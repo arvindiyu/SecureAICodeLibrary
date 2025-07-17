@@ -1,0 +1,5 @@
+theme: jekyll-theme-minimal
+title: Secure Code Library
+description: A comprehensive collection of secure coding prompts, guidelines, and Copilot custom instructions
+show_downloads: true
+google_analytics:
