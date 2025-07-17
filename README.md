@@ -12,20 +12,18 @@ This repository is organized into the following main sections:
 
 ## Categories
 
-### Code — Backend Frameworks
-- Azure Functions
-- FastAPI
-- Flask
-- Google Cloud Functions
-- Go (Echo, Gin)
-- Java (Spring Boot, MVC)
-- .NET (ASP.NET Core)
-- Node (JS / TypeScript)
-- PHP (Laravel, Symfony, General)
-- Python (SQLAlchemy, PySpark)
-- Ruby on Rails
-- Rust (Axum, General)
-- Unity (Rules)
+### Code Security
+- Language Agnostic Secure Coding
+- Secure Developer Assistant
+
+## General Security Frameworks
+- OWASP Top 10 (Web)
+- OWASP API Top 10
+- OWASP Top 10 for LLM
+- Database Security
+- Threat Modeling
+- STRIDE Framework
+- PASTA Framework
 
 ### API Security
 - Secure API Design
@@ -67,20 +65,6 @@ This repository is organized into the following main sections:
 - Least-Privilege Policy Author
 - Credential Hygiene Checklist
 
-### Code — Client-Side
-- Angular
-- Fresh
-- Next.js
-- Svelte
-- Vue.js
-
-### Code — Mobile
-- Android (Java, Kotlin)
-- iOS (Swift, SwiftUI, Objective-C)
-- React Native
-- Electron Mobile
-- Common Mobile Security (Platform-agnostic)
-
 ### Threat Modeling
 - Threat-Model : General
 - Threat-Model : Web & API
@@ -98,6 +82,36 @@ This repository is organized into the following main sections:
 - API Fuzzing Guide
 - Hard-Mode Pentest Scenario Builder
 
+
+### Code — Client-Side
+- Angular
+- Fresh
+- Next.js
+- Svelte
+- Vue.js
+
+### Code — Mobile
+- Android (Java, Kotlin)
+- iOS (Swift, SwiftUI, Objective-C)
+- React Native
+- Electron Mobile
+- Common Mobile Security (Platform-agnostic)
+
+### Code — Backend Frameworks
+- Azure Functions
+- FastAPI
+- Flask
+- Google Cloud Functions
+- Go (Echo, Gin)
+- Java (Spring Boot, MVC)
+- .NET (ASP.NET Core)
+- Node (JS / TypeScript)
+- PHP (Laravel, Symfony, General)
+- Python (SQLAlchemy, PySpark)
+- Ruby on Rails
+- Rust (Axum, General)
+- Unity (Rules)
+
 ### Workforce Enablement
 - Secure-Coding Mentor Bot
 - Lunch-and-Learn Playbook
@@ -111,18 +125,6 @@ This repository is organized into the following main sections:
 - Secure SDLC Maturity Self-Assessment
 - DevSecOps Roadmap Planner
 
-### Code Security
-- Language Agnostic Secure Coding
-- Secure Developer Assistant
-
-## General Security Frameworks
-- OWASP Top 10 (Web)
-- OWASP API Top 10
-- OWASP Top 10 for LLM
-- Database Security
-- Threat Modeling
-- STRIDE Framework
-- PASTA Framework
 
 ## Usage Standard Operating Procedure (SOP)
 
