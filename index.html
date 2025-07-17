@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Code Library</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            border-bottom: 1px solid #eaecef;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+        }
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        h2 {
+            font-size: 1.8em;
+            margin-top: 30px;
+            border-bottom: 1px solid #eaecef;
+            padding-bottom: 10px;
+        }
+        h3 {
+            font-size: 1.5em;
+            margin-top: 25px;
+        }
+        a {
+            color: #0366d6;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .category {
+            margin-bottom: 30px;
+        }
+        .category-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        .category-item {
+            background-color: #f6f8fa;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            padding: 15px;
+            transition: all 0.2s ease;
+        }
+        .category-item:hover {
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        .subcategory {
+            margin-left: 20px;
+            font-size: 0.9em;
+            color: #586069;
+        }
+        .usage-section {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 6px;
+            margin-top: 40px;
+        }
+        footer {
+            margin-top: 50px;
+            border-top: 1px solid #eaecef;
+            padding-top: 20px;
+            text-align: center;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Secure Code Library</h1>
+        <p>A comprehensive collection of secure coding prompts, guidelines, and Copilot custom instructions for various programming languages, frameworks, and security methodologies.</p>
+    </header>
+
+    <main>
+        <section>
+            <h2>Repository Structure</h2>
+            <p>This repository is organized into the following main sections:</p>
+            <ol>
+                <li><strong>Secure Coding Prompts</strong> - Located in the <code>prompts</code> directory, organized by category</li>
+                <li><strong>Copilot Custom Instructions</strong> - Located in the <code>.github/copilot</code> directory, organized by category</li>
+                <li><strong>General Security Guidelines</strong> - Located in the <code>guidelines</code> directory</li>
+            </ol>
+        </section>
+
+        <section>
+            <h2>Categories</h2>
+            
+            <div class="category">
+                <h3>Code — Backend Frameworks</h3>
+                <div class="category-items">
+                    <div class="category-item">
+                        <a href="./prompts/backend-frameworks/fastapi.md">FastAPI</a>
+                    </div>
+                    <div class="category-item">
+                        <a href="./prompts/backend-frameworks/node-typescript.md">Node (JS / TypeScript)</a>
+                    </div>
+                    <div class="category-item">
+                        <a href="./prompts/backend-frameworks/rust/rust-security.md">Rust (Axum, General)</a>
+                    </div>
+                    <!-- Add more backend frameworks as needed -->
+                </div>
+            </div>
+
+            <div class="category">
+                <h3>API Security</h3>
+                <div class="category-items">
+                    <div class="category-item">
+                        <a href="./prompts/api-security/api-design-security.md">Secure API Design</a>
+                    </div>
+                    <!-- Add more API security items as needed -->
+                </div>
+            </div>
+
+            <div class="category">
+                <h3>Cloud Security</h3>
+                <div class="category-items">
+                    <div class="category-item">
+                        <a href="./prompts/cloud-security/aws-security.md">AWS Security Configuration</a>
+                    </div>
+                    <div class="category-item">
+                        <a href="./prompts/cloud-security/gcp-security.md">GCP Security Configuration</a>
+                    </div>
+                    <div class="category-item">
+                        <a href="./prompts/cloud-security/terraform-security.md">Terraform Security</a>
+                    </div>
+                    <!-- Add more cloud security items as needed -->
+                </div>
+            </div>
+
+            <div class="category">
+                <h3>Code — Infra & Testing</h3>
+                <div class="category-items">
+                    <div class="category-item">
+                        <a href="./prompts/infra-testing/docker.md">Docker & Docker-Compose</a>
+                    </div>
+                    <div class="category-item">
+                        <a href="./prompts/infra-testing/container-security/container-security.md">Container Security</a>
+                    </div>
+                    <div class="category-item">
+                        <a href="./prompts/infra-testing/github-security/github-security.md">GitHub Security</a>
+                        <div class="subcategory">Code Signing, GitHub Actions, OAuth, Repository Security</div>
+                    </div>
+                    <!-- Add more infra & testing items as needed -->
+                </div>
+            </div>
+
+            <div class="category">
+                <h3>Code — Mobile</h3>
+                <div class="category-items">
+                    <div class="category-item">
+                        <a href="./prompts/mobile/android/android-security.md">Android (Java, Kotlin)</a>
+                    </div>
+                    <div class="category-item">
+                        <a href="./prompts/mobile/ios/ios-security.md">iOS (Swift, SwiftUI, Objective-C)</a>
+                    </div>
+                    <div class="category-item">
+                        <a href="./prompts/mobile/common/mobile-security-common.md">Common Mobile Security</a>
+                    </div>
+                    <!-- Add more mobile items as needed -->
+                </div>
+            </div>
+
+            <div class="category">
+                <h3>General Security Frameworks</h3>
+                <div class="category-items">
+                    <div class="category-item">
+                        <a href="./guidelines/general-security-frameworks/owasp-top10-web.md">OWASP Top 10 (Web)</a>
+                    </div>
+                    <div class="category-item">
+                        <a href="./guidelines/general-security-frameworks/owasp-top10-api.md">OWASP API Top 10</a>
+                    </div>
+                    <div class="category-item">
+                        <a href="./guidelines/general-security-frameworks/owasp-top10-llm.md">OWASP Top 10 for LLM</a>
+                    </div>
+                    <!-- Add more frameworks as needed -->
+                </div>
+            </div>
+        </section>
+
+        <section class="usage-section">
+            <h2>Usage Standard Operating Procedure (SOP)</h2>
+            
+            <h3>For Developers:</h3>
+            <ol>
+                <li><strong>Identify Your Technology</strong>: Navigate to the relevant section for your technology stack or security concern.</li>
+                <li><strong>Apply in Development</strong>: Use the prompts to guide your implementation of security features.</li>
+                <li><strong>Comprehensive Security Review</strong>: Use threat modeling prompts to identify potential security risks.</li>
+            </ol>
+
+            <h3>For Copilot Users:</h3>
+            <ol>
+                <li><strong>Configure Custom Instructions</strong>: Copy the relevant custom instructions from the <code>.github/copilot</code> directory.</li>
+                <li><strong>Using with Copilot</strong>: Reference the secure coding principles in your prompts to Copilot.</li>
+                <li><strong>Continuous Improvement</strong>: Update your custom instructions as new versions become available.</li>
+            </ol>
+
+            <h3>For Security Teams:</h3>
+            <ol>
+                <li><strong>Training and Awareness</strong>: Use the general guidelines as references for security reviews.</li>
+                <li><strong>Security Reviews and Assessments</strong>: Apply the security verification guidelines during code reviews.</li>
+                <li><strong>Policy Development</strong>: Use these resources to develop secure coding standards.</li>
+            </ol>
+        </section>
+    </main>
+
+    <footer>
+        <p>This repository is licensed under the MIT License - see the LICENSE file for details.</p>
+        <p><a href="https://github.com/username/SecureCodeLibrary">View on GitHub</a></p>
+    </footer>
+</body>
+</html>
