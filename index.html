@@ -8,6 +8,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Markdown and code highlighting libraries -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <!-- Custom markdown loader -->
+    <script src="./js/markdown-loader.js"></script>
     <style>
         :root {
             --primary-color: #4361ee;
@@ -359,24 +365,217 @@
             transform: translateY(-5px);
             box-shadow: 0 6px 15px rgba(0, 0, 0, 0.25);
         }
+        
+        /* Markdown content styling */
+        #content-container {
+            background-color: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-top: 40px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: none;
+        }
+        
+        .markdown-content {
+            line-height: 1.7;
+        }
+        
+        .markdown-content h1 {
+            font-size: 2.5em;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            border-bottom: 3px solid var(--accent-color);
+            padding-bottom: 10px;
+        }
+        
+        .markdown-content h2 {
+            font-size: 1.8em;
+            margin: 30px 0 15px;
+            color: var(--secondary-color);
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 8px;
+        }
+        
+        .markdown-content h3 {
+            font-size: 1.4em;
+            margin: 25px 0 15px;
+        }
+        
+        .markdown-content p {
+            margin-bottom: 16px;
+        }
+        
+        .markdown-content ul, 
+        .markdown-content ol {
+            margin: 20px 0;
+            padding-left: 25px;
+        }
+        
+        .markdown-content li {
+            margin-bottom: 8px;
+        }
+        
+        .markdown-content code {
+            background-color: #f1f5f9;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 0.9em;
+        }
+        
+        .markdown-content pre {
+            background-color: #f1f5f9;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        
+        .markdown-content pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+        
+        .markdown-content blockquote {
+            border-left: 4px solid var(--primary-color);
+            padding: 10px 20px;
+            margin: 20px 0;
+            background-color: #f8fafc;
+            color: #475569;
+        }
+        
+        .markdown-content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        
+        .markdown-content th, 
+        .markdown-content td {
+            border: 1px solid #e2e8f0;
+            padding: 10px;
+            text-align: left;
+        }
+        
+        .markdown-content th {
+            background-color: #f1f5f9;
+            font-weight: 600;
+        }
+        
+        .markdown-content img {
+            max-width: 100%;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        /* Breadcrumbs */
+        .breadcrumbs {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 25px;
+            font-size: 0.9em;
+            color: #64748b;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .breadcrumbs a {
+            color: var(--primary-color);
+        }
+        
+        .breadcrumbs i {
+            font-size: 0.8em;
+        }
+        
+        /* Back navigation */
+        .back-link {
+            display: flex;
+            gap: 15px;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .btn-back, .btn-home {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 15px;
+            background-color: var(--light-bg);
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-back:hover, .btn-home:hover {
+            background: var(--gradient-btn);
+            color: white;
+            text-decoration: none;
+            transform: translateY(-2px);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--primary-color);
+            font-size: 1.2em;
+        }
+        
+        .loading i {
+            margin-right: 10px;
+            animation: spin 1s linear infinite;
+        }
+        
+        .error-container {
+            text-align: center;
+            padding: 40px;
+            color: var(--warning-color);
+        }
+        
+        .error-container h3 {
+            color: var(--warning-color);
+            margin-bottom: 15px;
+        }
+        
+        .error-container pre {
+            text-align: left;
+            background-color: #ffe5e5;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            color: #e11d48;
+            font-family: monospace;
+            overflow-x: auto;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
     <header>
-        <h1>Secure AI Code Library</h1>
-        <p>A collection of secure coding prompts, guidelines, and Copilot custom instructions for various programming languages, frameworks, and security methodologies.</p>
+        <h1>Secure Code Library</h1>
+        <p>A comprehensive collection of secure coding prompts, guidelines, and Copilot custom instructions for various programming languages, frameworks, and security methodologies.</p>
     </header>
 
-    <main>
+    <!-- Container for markdown content -->
+    <div id="content-container" style="display: none;">
+        <!-- Markdown content will be loaded here -->
+    </div>
+
+    <main id="main-content">
         <section class="usage-section">
             <h2>Repository Structure</h2>
-            <h3><p>This repository is organized into the following main sections:</p></h3>
+            <p>This repository is organized into the following main sections:</p>
             <ol>
                 <li><strong>Secure Coding Prompts</strong> - Located in the <code>prompts</code> directory, organized by category</li>
                 <li><strong>Copilot Custom Instructions</strong> - Located in the <code>.github/copilot</code> directory, organized by category</li>
                 <li><strong>General Security Guidelines</strong> - Located in the <code>guidelines</code> directory</li>
             </ol>
-            
         </section>
         <section class="usage-section">
             <h2>Usage Standard Operating Procedure (SOP)</h2>
@@ -702,11 +901,13 @@
                 </div>
             </div>
         </section>
+
+        
     </main>
 
     <footer>
         <p>This repository is licensed under the MIT License - see the LICENSE file for details.</p>
-        <p><a href="https://github.com/arvindiyu/SecureAICodeLibrary/">View on GitHub</a></p>
+        <p><a href="https://github.com/arvindiyu/SecureAICodeLibrary">View on GitHub</a></p>
     </footer>
 
     <div id="back-to-top" class="top-button">
@@ -767,6 +968,31 @@
                 top: 0,
                 behavior: 'smooth'
             });
+        });
+
+        // Configure marked.js options
+        marked.setOptions({
+            highlight: function(code, lang) {
+                if (lang && hljs.getLanguage(lang)) {
+                    return hljs.highlight(lang, code).value;
+                } else {
+                    return hljs.highlightAuto(code).value;
+                }
+            },
+            breaks: true,
+            gfm: true
+        });
+        
+        // Check URL on page load for markdown parameter
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const markdownPath = urlParams.get('md');
+            
+            if (markdownPath) {
+                document.getElementById('content-container').style.display = 'block';
+                document.getElementById('main-content').style.display = 'none';
+                loadMarkdownContent(markdownPath);
+            }
         });
     </script>
 </body>
