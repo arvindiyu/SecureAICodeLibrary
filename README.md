@@ -1,6 +1,6 @@
-# Secure Code Library
+# Secure AI Code Library
 
-A comprehensive collection of secure coding prompts, guidelines, and Copilot custom instructions for various programming languages, frameworks, and security methodologies.
+A collection of secure coding prompts, guidelines, and Copilot custom instructions for various programming languages, frameworks, and security methodologies.
 
 ## Repository Structure
 
