@@ -4,84 +4,367 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Secure Code Library</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3a0ca3;
+            --accent-color: #4cc9f0;
+            --warning-color: #f72585;
+            --success-color: #4ade80;
+            --light-bg: #f8fafc;
+            --dark-text: #1e293b;
+            --light-text: #f8fafc;
+            --card-1: #4361ee;
+            --card-2: #3a0ca3;
+            --card-3: #7209b7;
+            --card-4: #f72585;
+            --card-5: #4cc9f0;
+            --card-6: #7b2cbf;
+            --card-7: #480ca8;
+            --card-8: #4895ef;
+            --card-9: #3f37c9;
+            --card-10: #ff7900;
+            --card-11: #2a9d8f;
+            --card-12: #e63946;
+            --gradient-bg: linear-gradient(135deg, #4361ee, #3a0ca3);
+            --gradient-btn: linear-gradient(135deg, #4cc9f0, #4361ee);
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
             line-height: 1.6;
-            color: #333;
+            color: var(--dark-text);
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
+            background-color: var(--light-bg);
+            scroll-behavior: smooth;
         }
+        
         header {
-            border-bottom: 1px solid #eaecef;
-            margin-bottom: 20px;
-            padding-bottom: 20px;
+            background: var(--gradient-bg);
+            color: white;
+            padding: 40px 30px;
+            border-radius: 16px;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+            position: relative;
+            overflow: hidden;
         }
+        
+        header::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 60%);
+            transform: rotate(30deg);
+        }
+        
         h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
+            font-size: 2.8em;
+            margin-bottom: 15px;
+            letter-spacing: -0.5px;
+            position: relative;
         }
+        
         h2 {
-            font-size: 1.8em;
-            margin-top: 30px;
-            border-bottom: 1px solid #eaecef;
-            padding-bottom: 10px;
+            font-size: 2em;
+            margin-top: 40px;
+            border-bottom: 3px solid var(--accent-color);
+            padding-bottom: 12px;
+            display: inline-block;
         }
+        
         h3 {
-            font-size: 1.5em;
-            margin-top: 25px;
+            font-size: 1.6em;
+            margin-top: 30px;
+            color: var(--secondary-color);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
+        
+        h3 i {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        
         a {
-            color: #0366d6;
+            color: var(--primary-color);
             text-decoration: none;
-        }
-        a:hover {
-            text-decoration: underline;
-        }
-        .category {
-            margin-bottom: 30px;
-        }
-        .category-items {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 15px;
-        }
-        .category-item {
-            background-color: #f6f8fa;
-            border: 1px solid #e1e4e8;
-            border-radius: 6px;
-            padding: 15px;
+            font-weight: 500;
             transition: all 0.2s ease;
         }
-        .category-item:hover {
-            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
-            transform: translateY(-2px);
+        
+        a:hover {
+            color: var(--secondary-color);
+            text-decoration: underline;
         }
-        .subcategory {
-            margin-left: 20px;
-            font-size: 0.9em;
-            color: #586069;
+        
+        .search-container {
+            margin: 20px 0;
+            position: relative;
         }
-        .usage-section {
-            background-color: #f8f9fa;
+        
+        .search-input {
+            width: 100%;
+            padding: 15px 20px;
+            padding-left: 45px;
+            border-radius: 12px;
+            border: 2px solid #e2e8f0;
+            font-size: 1.1em;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.3);
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+        }
+        
+        .category {
+            margin-bottom: 50px;
+            transition: all 0.3s ease;
+        }
+        
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .category-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        
+        .category-item {
+            background-color: white;
+            border-radius: 12px;
             padding: 20px;
-            border-radius: 6px;
-            margin-top: 40px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+            border-top: 5px solid var(--card-1);
         }
-        footer {
+        
+        .category-item:nth-child(2n) {
+            border-top-color: var(--card-2);
+        }
+        
+        .category-item:nth-child(3n) {
+            border-top-color: var(--card-3);
+        }
+        
+        .category-item:nth-child(4n) {
+            border-top-color: var(--card-4);
+        }
+        
+        .category-item:nth-child(5n) {
+            border-top-color: var(--card-5);
+        }
+        
+        .category-item:nth-child(6n) {
+            border-top-color: var(--card-6);
+        }
+        
+        .category-item:nth-child(7n) {
+            border-top-color: var(--card-7);
+        }
+        
+        .category-item:nth-child(8n) {
+            border-top-color: var(--card-8);
+        }
+        
+        .category-item:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            transform: translateY(-4px);
+        }
+        
+        .category-item a {
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+        
+        .subcategory {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #64748b;
+            line-height: 1.4;
+        }
+        
+        .usage-section {
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
             margin-top: 50px;
-            border-top: 1px solid #eaecef;
-            padding-top: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid var(--accent-color);
+        }
+        
+        .usage-section h3 {
+            color: var(--primary-color);
+        }
+        
+        .usage-section ol {
+            padding-left: 25px;
+            margin-top: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .usage-section li {
+            margin-bottom: 10px;
+        }
+        
+        .usage-section li strong {
+            color: var(--secondary-color);
+        }
+        
+        footer {
+            margin-top: 60px;
+            padding: 30px 0;
             text-align: center;
             font-size: 0.9em;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .badge {
+            display: inline-block;
+            font-size: 0.75em;
+            padding: 4px 10px;
+            border-radius: 12px;
+            background-color: var(--accent-color);
+            color: white;
+            margin-left: 8px;
+            vertical-align: middle;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .quick-nav {
+            background-color: white;
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin: 30px 0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid var(--primary-color);
+        }
+        
+        .quick-nav h4 {
+            color: var(--secondary-color);
+            margin-bottom: 10px;
+        }
+        
+        .quick-nav-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            list-style: none;
+        }
+        
+        .quick-nav-item a {
+            display: inline-block;
+            padding: 5px 12px;
+            background: var(--light-bg);
+            border-radius: 8px;
+            font-size: 0.9em;
+            transition: all 0.2s ease;
+        }
+        
+        .quick-nav-item a:hover {
+            background: var(--gradient-btn);
+            color: white;
+            text-decoration: none;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .category-description {
+            margin-bottom: 15px;
+            font-size: 1.05em;
+            color: #475569;
+            max-width: 90%;
+        }
+        
+        .view-all {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9em;
+            padding: 5px 10px;
+            background-color: var(--light-bg);
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+        
+        .view-all:hover {
+            background-color: #e2e8f0;
+            text-decoration: none;
+        }
+        
+        .top-button {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            background: var(--gradient-btn);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+        
+        .top-button.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .top-button:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.25);
         }
     </style>
 </head>
 <body>
     <header>
         <h1>Secure Code Library</h1>
-        <p>A collection of secure coding prompts, guidelines, and Copilot custom instructions for various programming languages, frameworks, and security methodologies.</p>
+        <p>A comprehensive collection of secure coding prompts, guidelines, and Copilot custom instructions for various programming languages, frameworks, and security methodologies.</p>
     </header>
 
     <main>
@@ -94,6 +377,308 @@
                 <li><strong>General Security Guidelines</strong> - Located in the <code>guidelines</code> directory</li>
             </ol>
         </section>
+
+        <div class="search-container">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" id="search-input" class="search-input" placeholder="Search for security topics, frameworks or languages..." />
+        </div>
+
+        <div class="quick-nav">
+            <h4><i class="fas fa-bolt"></i> Quick Navigation</h4>
+            <ul class="quick-nav-list">
+                <li class="quick-nav-item"><a href="#backend-frameworks">Backend Frameworks</a></li>
+                <li class="quick-nav-item"><a href="#api-security">API Security</a></li>
+                <li class="quick-nav-item"><a href="#cloud-security">Cloud Security</a></li>
+                <li class="quick-nav-item"><a href="#infra-testing">Infra & Testing</a></li>
+                <li class="quick-nav-item"><a href="#client-side">Client-Side</a></li>
+                <li class="quick-nav-item"><a href="#mobile">Mobile</a></li>
+                <li class="quick-nav-item"><a href="#threat-modeling">Threat Modeling</a></li>
+                <li class="quick-nav-item"><a href="#security-frameworks">Security Frameworks</a></li>
+                <li class="quick-nav-item"><a href="#secrets-management">Secrets Management</a></li>
+                <li class="quick-nav-item"><a href="#validation">Validation</a></li>
+                <li class="quick-nav-item"><a href="#workforce">Workforce Enablement</a></li>
+            </ul>
+        </div>
+
+        <section>
+            <h2>Categories</h2>
+            
+            <div id="backend-frameworks" class="category">
+                <div class="category-header">
+                    <h3><i class="fas fa-server"></i> Code — Backend Frameworks <span class="badge">13 Topics</span></h3>
+                    <a href="#" class="view-all">View all <i class="fas fa-angle-right"></i></a>
+                </div>
+                <p class="category-description">Secure coding patterns and guidelines for server-side application frameworks</p>
+                <div class="category-items">
+                    <div class="category-item">
+                        <a href="./prompts/backend-frameworks/fastapi.md">FastAPI</a>
+                        <div class="subcategory">Python web framework security guidance</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="./prompts/backend-frameworks/node-typescript.md">Node (JS / TypeScript)</a>
+                        <div class="subcategory">Security for Node.js applications</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="./prompts/backend-frameworks/rust/rust-security.md">Rust (Axum, General)</a>
+                        <div class="subcategory">Memory-safe Rust backend security</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="#">Azure Functions</a>
+                        <div class="subcategory">Secure serverless Azure development</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="#">Flask</a>
+                        <div class="subcategory">Python Flask security implementation</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="#">Google Cloud Functions</a>
+                        <div class="subcategory">GCP serverless security patterns</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="#">Go (Echo, Gin)</a>
+                        <div class="subcategory">Go web frameworks security</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="#">Java (Spring Boot, MVC)</a>
+                        <div class="subcategory">Spring framework security practices</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="#">.NET (ASP.NET Core)</a>
+                        <div class="subcategory">ASP.NET Core security implementation</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="api-security" class="category">
+                <div class="category-header">
+                    <h3><i class="fas fa-plug"></i> API Security <span class="badge">5 Topics</span></h3>
+                    <a href="#" class="view-all">View all <i class="fas fa-angle-right"></i></a>
+                </div>
+                <p class="category-description">Patterns and guidelines for building secure APIs and web services</p>
+                <div class="category-items">
+                    <div class="category-item">
+                        <a href="./prompts/api-security/api-design-security.md">Secure API Design</a>
+                        <div class="subcategory">API security by design principles</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="#">API Authentication</a>
+                        <div class="subcategory">Secure authentication patterns for APIs</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="#">API Authorization</a>
+                        <div class="subcategory">Fine-grained access control for APIs</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="#">API Data Validation</a>
+                        <div class="subcategory">Input validation for API security</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="#">API Rate Limiting</a>
+                        <div class="subcategory">Protection against abuse and DoS</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="cloud-security" class="category">
+                <div class="category-header">
+                    <h3><i class="fas fa-cloud"></i> Cloud Security <span class="badge">4 Topics</span></h3>
+                    <a href="#" class="view-all">View all <i class="fas fa-angle-right"></i></a>
+                </div>
+                <p class="category-description">Secure configuration and patterns for cloud platforms and infrastructure</p>
+                <div class="category-items">
+                    <div class="category-item">
+                        <a href="./prompts/cloud-security/aws-security.md">AWS Security Configuration</a>
+                    </div>
+                    <div class="category-item">
+                        <a href="./prompts/cloud-security/gcp-security.md">GCP Security Configuration</a>
+                    </div>
+                    <div class="category-item">
+                        <a href="./prompts/cloud-security/terraform-security.md">Terraform Security</a>
+                    </div>
+                    <!-- Add more cloud security items as needed -->
+                </div>
+            </div>
+
+            <div id="infra-testing" class="category">
+                <div class="category-header">
+                    <h3><i class="fas fa-cubes"></i> Code — Infra & Testing <span class="badge">8+ Topics</span></h3>
+                    <a href="#" class="view-all">View all <i class="fas fa-angle-right"></i></a>
+                </div>
+                <p class="category-description">Security for infrastructure code, CI/CD pipelines, and testing methodologies</p>
+                <div class="category-items">
+                    <div class="category-item">
+                        <a href="./prompts/infra-testing/docker.md">Docker & Docker-Compose</a>
+                    </div>
+                    <div class="category-item">
+                        <a href="./prompts/infra-testing/container-security/container-security.md">Container Security</a>
+                    </div>
+                    <div class="category-item">
+                        <a href="./prompts/infra-testing/github-security/github-security.md">GitHub Security</a>
+                        <div class="subcategory">Code Signing, GitHub Actions, OAuth, Repository Security</div>
+                    </div>
+                    <!-- Add more infra & testing items as needed -->
+                </div>
+            </div>
+
+            <div id="client-side" class="category">
+                <div class="category-header">
+                    <h3><i class="fas fa-desktop"></i> Code — Client-Side <span class="badge">5 Topics</span></h3>
+                    <a href="#" class="view-all">View all <i class="fas fa-angle-right"></i></a>
+                </div>
+                <p class="category-description">Security patterns for frontend web applications and frameworks</p>
+                <div class="category-items">
+                    <div class="category-item">
+                        <a href="./prompts/client-side/nextjs.md">Next.js</a>
+                        <div class="subcategory">Secure React framework patterns</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="#">Angular</a>
+                        <div class="subcategory">Angular security best practices</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="#">Vue.js</a>
+                        <div class="subcategory">Vue framework security patterns</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="#">Svelte</a>
+                        <div class="subcategory">Svelte security implementation</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="#">Fresh</a>
+                        <div class="subcategory">Deno-based framework security</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="mobile" class="category">
+                <div class="category-header">
+                    <h3><i class="fas fa-mobile-alt"></i> Code — Mobile <span class="badge">5 Topics</span></h3>
+                    <a href="#" class="view-all">View all <i class="fas fa-angle-right"></i></a>
+                </div>
+                <p class="category-description">Security patterns for mobile application development across platforms</p>
+                <div class="category-items">
+                    <div class="category-item">
+                        <a href="./prompts/mobile/android/android-security.md">Android (Java, Kotlin)</a>
+                    </div>
+                    <div class="category-item">
+                        <a href="./prompts/mobile/ios/ios-security.md">iOS (Swift, SwiftUI, Objective-C)</a>
+                    </div>
+                    <div class="category-item">
+                        <a href="./prompts/mobile/common/mobile-security-common.md">Common Mobile Security</a>
+                    </div>
+                    <!-- Add more mobile items as needed -->
+                </div>
+            </div>
+
+            <div id="threat-modeling" class="category">
+                <div class="category-header">
+                    <h3><i class="fas fa-sitemap"></i> Threat Modeling <span class="badge">3 Topics</span></h3>
+                    <a href="#" class="view-all">View all <i class="fas fa-angle-right"></i></a>
+                </div>
+                <p class="category-description">Methodologies and templates for identifying security threats in applications</p>
+                <div class="category-items">
+                    <div class="category-item">
+                        <a href="./prompts/threat-modeling/general.md">General Threat Modeling</a>
+                        <div class="subcategory">Platform-agnostic threat modeling approaches</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="./prompts/threat-modeling/web-api.md">Web & API Threat Modeling</a>
+                        <div class="subcategory">Web and API-specific threat identification</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="#">Diagram Generator</a>
+                        <div class="subcategory">Visual threat model creation tools</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="security-frameworks" class="category">
+                <div class="category-header">
+                    <h3><i class="fas fa-shield-alt"></i> General Security Frameworks <span class="badge">7 Topics</span></h3>
+                    <a href="#" class="view-all">View all <i class="fas fa-angle-right"></i></a>
+                </div>
+                <p class="category-description">Established security frameworks and methodologies for application security</p>
+                <div class="category-items">
+                    <div class="category-item">
+                        <a href="./guidelines/general-security-frameworks/owasp-top10-web.md">OWASP Top 10 (Web)</a>
+                    </div>
+                    <div class="category-item">
+                        <a href="./guidelines/general-security-frameworks/owasp-top10-api.md">OWASP API Top 10</a>
+                    </div>
+                    <div class="category-item">
+                        <a href="./guidelines/general-security-frameworks/owasp-top10-llm.md">OWASP Top 10 for LLM</a>
+                    </div>
+                    <!-- Add more frameworks as needed -->
+                </div>
+            </div>
+            
+            <div id="secrets-management" class="category">
+                <div class="category-header">
+                    <h3><i class="fas fa-key"></i> Secrets Management <span class="badge">6 Topics</span></h3>
+                    <a href="#" class="view-all">View all <i class="fas fa-angle-right"></i></a>
+                </div>
+                <p class="category-description">Securely managing credentials, tokens, and sensitive configuration data</p>
+                <div class="category-items">
+                    <div class="category-item">
+                        <a href="./prompts/secrets-management/secrets-detection-assistant.md">Secrets Detection Assistant</a>
+                        <div class="subcategory">Tools for identifying exposed secrets</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="#">Secrets Rotation Strategy</a>
+                        <div class="subcategory">Guidance for rotating credentials</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="#">Vault Configuration Guide</a>
+                        <div class="subcategory">Secure secrets storage implementation</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="validation" class="category">
+                <div class="category-header">
+                    <h3><i class="fas fa-clipboard-check"></i> Validation <span class="badge">6 Topics</span></h3>
+                    <a href="#" class="view-all">View all <i class="fas fa-angle-right"></i></a>
+                </div>
+                <p class="category-description">Testing and validation methodologies for application security</p>
+                <div class="category-items">
+                    <div class="category-item">
+                        <a href="./prompts/validation/dynamic-test-plan-generator.md">Dynamic Test-Plan Generator</a>
+                        <div class="subcategory">Automated security testing plans</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="./prompts/validation/input-validation.md">Input Validation</a>
+                        <div class="subcategory">Secure input processing patterns</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="./prompts/validation/secure-application-logging.md">Secure Application Logging</a>
+                        <div class="subcategory">Proper logging for security events</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="workforce" class="category">
+                <div class="category-header">
+                    <h3><i class="fas fa-users"></i> Workforce Enablement <span class="badge">11 Topics</span></h3>
+                    <a href="#" class="view-all">View all <i class="fas fa-angle-right"></i></a>
+                </div>
+                <p class="category-description">Training, education, and skills development for secure development practices</p>
+                <div class="category-items">
+                    <div class="category-item">
+                        <a href="./prompts/workforce-enablement/secure-coding-mentor-bot.md">Secure-Coding Mentor Bot</a>
+                        <div class="subcategory">AI-assisted security learning</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="#">Lunch-and-Learn Playbook</a>
+                        <div class="subcategory">Security awareness training</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="#">AppSec Champion Program</a>
+                        <div class="subcategory">Building security champions</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <section class="usage-section">
             <h2>Usage Standard Operating Procedure (SOP)</h2>
             
@@ -118,105 +703,72 @@
                 <li><strong>Policy Development</strong>: Use these resources to develop secure coding standards.</li>
             </ol>
         </section>
-        <section>
-            <h2>Categories</h2>
-
-            <div class="category">
-                <h3>API Security</h3>
-                <div class="category-items">
-                    <div class="category-item">
-                        <a href="./prompts/api-security/api-design-security.md">Secure API Design</a>
-                    </div>
-                    <!-- Add more API security items as needed -->
-                </div>
-            </div>
-
-            <div class="category">
-                <h3>Cloud Security</h3>
-                <div class="category-items">
-                    <div class="category-item">
-                        <a href="./prompts/cloud-security/aws-security.md">AWS Security Configuration</a>
-                    </div>
-                    <div class="category-item">
-                        <a href="./prompts/cloud-security/gcp-security.md">GCP Security Configuration</a>
-                    </div>
-                    <div class="category-item">
-                        <a href="./prompts/cloud-security/terraform-security.md">Terraform Security</a>
-                    </div>
-                    <!-- Add more cloud security items as needed -->
-                </div>
-            </div>
-            <div class="category">
-                <h3>Code — Backend Frameworks</h3>
-                <div class="category-items">
-                    <div class="category-item">
-                        <a href="./prompts/backend-frameworks/fastapi.md">FastAPI</a>
-                    </div>
-                    <div class="category-item">
-                        <a href="./prompts/backend-frameworks/node-typescript.md">Node (JS / TypeScript)</a>
-                    </div>
-                    <div class="category-item">
-                        <a href="./prompts/backend-frameworks/rust/rust-security.md">Rust (Axum, General)</a>
-                    </div>
-                    <!-- Add more backend frameworks as needed -->
-                </div>
-            </div>
-            <div class="category">
-                <h3>Code — Infra & Testing</h3>
-                <div class="category-items">
-                    <div class="category-item">
-                        <a href="./prompts/infra-testing/docker.md">Docker & Docker-Compose</a>
-                    </div>
-                    <div class="category-item">
-                        <a href="./prompts/infra-testing/container-security/container-security.md">Container Security</a>
-                    </div>
-                    <div class="category-item">
-                        <a href="./prompts/infra-testing/github-security/github-security.md">GitHub Security</a>
-                        <div class="subcategory">Code Signing, GitHub Actions, OAuth, Repository Security</div>
-                    </div>
-                    <!-- Add more infra & testing items as needed -->
-                </div>
-            </div>
-
-            <div class="category">
-                <h3>Code — Mobile</h3>
-                <div class="category-items">
-                    <div class="category-item">
-                        <a href="./prompts/mobile/android/android-security.md">Android (Java, Kotlin)</a>
-                    </div>
-                    <div class="category-item">
-                        <a href="./prompts/mobile/ios/ios-security.md">iOS (Swift, SwiftUI, Objective-C)</a>
-                    </div>
-                    <div class="category-item">
-                        <a href="./prompts/mobile/common/mobile-security-common.md">Common Mobile Security</a>
-                    </div>
-                    <!-- Add more mobile items as needed -->
-                </div>
-            </div>
-
-            <div class="category">
-                <h3>General Security Frameworks</h3>
-                <div class="category-items">
-                    <div class="category-item">
-                        <a href="./guidelines/general-security-frameworks/owasp-top10-web.md">OWASP Top 10 (Web)</a>
-                    </div>
-                    <div class="category-item">
-                        <a href="./guidelines/general-security-frameworks/owasp-top10-api.md">OWASP API Top 10</a>
-                    </div>
-                    <div class="category-item">
-                        <a href="./guidelines/general-security-frameworks/owasp-top10-llm.md">OWASP Top 10 for LLM</a>
-                    </div>
-                    <!-- Add more frameworks as needed -->
-                </div>
-            </div>
-        </section>
-
-        
     </main>
 
     <footer>
         <p>This repository is licensed under the MIT License - see the LICENSE file for details.</p>
         <p><a href="https://github.com/username/SecureCodeLibrary">View on GitHub</a></p>
     </footer>
+
+    <div id="back-to-top" class="top-button">
+        <i class="fas fa-arrow-up"></i>
+    </div>
+
+    <script>
+        // Search functionality
+        const searchInput = document.getElementById('search-input');
+        const allItems = document.querySelectorAll('.category-item');
+        const categories = document.querySelectorAll('.category');
+        
+        searchInput.addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase().trim();
+            
+            if (searchTerm === '') {
+                // Show all categories and items when search is empty
+                categories.forEach(cat => {
+                    cat.style.display = 'block';
+                    const items = cat.querySelectorAll('.category-item');
+                    items.forEach(item => item.style.display = 'block');
+                });
+                return;
+            }
+            
+            // Hide all categories initially
+            categories.forEach(cat => cat.style.display = 'none');
+            
+            // For each item, check if it matches the search
+            allItems.forEach(item => {
+                const title = item.querySelector('a').textContent.toLowerCase();
+                const description = item.querySelector('.subcategory')?.textContent.toLowerCase() || '';
+                
+                if (title.includes(searchTerm) || description.includes(searchTerm)) {
+                    // Show this item and its parent category
+                    item.style.display = 'block';
+                    item.closest('.category').style.display = 'block';
+                } else {
+                    // Hide non-matching items
+                    item.style.display = 'none';
+                }
+            });
+        });
+        
+        // Back to top button functionality
+        const backToTopButton = document.getElementById('back-to-top');
+        
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 300) {
+                backToTopButton.classList.add('visible');
+            } else {
+                backToTopButton.classList.remove('visible');
+            }
+        });
+        
+        backToTopButton.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+    </script>
 </body>
 </html>
