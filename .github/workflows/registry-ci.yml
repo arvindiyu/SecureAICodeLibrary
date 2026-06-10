@@ -1,0 +1,123 @@
+name: Registry CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Run validation
+        shell: bash
+        run: |
+          mkdir -p logs
+          set -o pipefail
+          make validate 2>&1 | tee logs/validate.log
+      - name: Upload failure log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validate-log
+          path: logs/validate.log
+
+  index-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Check INDEX drift
+        shell: bash
+        run: |
+          mkdir -p logs
+          set -o pipefail
+          make index 2>&1 | tee logs/index-drift.log
+          git diff --exit-code registry/INDEX.md 2>&1 | tee -a logs/index-drift.log
+      - name: Upload failure log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: index-drift-log
+          path: logs/index-drift.log
+
+  sbom-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Check SBOM drift
+        shell: bash
+        run: |
+          mkdir -p logs
+          set -o pipefail
+          make sbom 2>&1 | tee logs/sbom-drift.log
+          git diff --exit-code sbom.cdx.json 2>&1 | tee -a logs/sbom-drift.log
+      - name: Upload failure log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-drift-log
+          path: logs/sbom-drift.log
+
+  token-budget:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Run token-budget lint
+        shell: bash
+        run: |
+          mkdir -p logs
+          set -o pipefail
+          make token-budget 2>&1 | tee logs/token-budget.log
+      - name: Upload failure log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: token-budget-log
+          path: logs/token-budget.log
+
+  cross-link:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Run cross-link lint
+        shell: bash
+        run: |
+          mkdir -p logs
+          set -o pipefail
+          bash scripts/cross-link-lint.sh 2>&1 | tee logs/cross-link.log
+      - name: Upload failure log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cross-link-log
+          path: logs/cross-link.log
