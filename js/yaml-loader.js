@@ -53,8 +53,8 @@
 
     md += row('Category',       dig(data, 'category'));
     md += row('Severity',       dig(data, 'severity'));
-    md += row('Mythos pillar',  dig(data, 'mythos_alignment.pillar'));
-    md += row('Substantiation', dig(data, 'mythos_alignment.substantiation'));
+    md += row('Alignment pillar', dig(data, 'mythos_alignment.pillar'));
+    md += row('Substantiation',    dig(data, 'mythos_alignment.substantiation'));
     md += '\n';
 
     var summary = dig(data, 'summary');

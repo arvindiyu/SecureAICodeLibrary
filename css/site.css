@@ -1,4 +1,4 @@
-/* site.css — Secure AI Code Library :: Mythos-Aligned Foundation
+/* site.css — Secure AI Code Library :: Secure-by-Design AI Control Plane
    Supplemental styles: mermaid, callout, pill, search results, prism overrides.
    Minimal, mobile-responsive. No dark mode (deferred). */
 
@@ -43,14 +43,14 @@
   vertical-align: middle;
 }
 
-.pill.mythos-aligned {
+.pill.frontier-tuned {
   background: linear-gradient(135deg, #0366d6, #6f42c1);
   color: white;
   font-weight: 600;
   box-shadow: 0 2px 6px rgba(3, 102, 214, 0.3);
 }
 
-.pill.mythos-aligned:hover {
+.pill.frontier-tuned:hover {
   opacity: 0.9;
   text-decoration: none;
 }
