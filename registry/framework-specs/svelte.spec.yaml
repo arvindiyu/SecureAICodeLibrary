@@ -1,0 +1,161 @@
+metadata:
+  id: svelte
+  name: Svelte / SvelteKit
+  version: "1.0.0"
+  description: "Security spec sheet for Svelte and SvelteKit apps. Covers {@html} risks, SvelteKit CSRF protection, server-action validation, and CSP nonce for SSR."
+  tags: [javascript, spa, frontend, svelte, sveltekit, html-tag, csrf, ssr]
+
+summary: "Svelte: prohibit {@html} with user data; SvelteKit CSRF protection is opt-in — verify hooks.server.ts; validate all +server.ts and form-action inputs; configure CSP nonce for SSR. Extends input-validation-javascript."
+
+applies_to:
+  language: javascript
+  framework: svelte
+  min_version: "1.0.0"
+
+extends: input-validation-javascript
+
+globs:
+  - "**/*.svelte"
+  - "svelte.config.*"
+  - "src/hooks.server.*"
+  - "src/routes/**/*server*"
+
+security_relevant_defaults:
+  html_tag_auto_escapes: false        # {@html} renders raw HTML — no escaping
+  template_interpolation_escapes: true # {value} is auto-escaped
+  csrf_protection: "opt-in"           # SvelteKit 1.x: CSRF check in handle hook (disabled by default for non-SameSite); verify
+  form_actions_validate: false        # SvelteKit form actions receive raw FormData — must validate manually
+  csp_nonce_for_ssr: true             # required when using <script> tags in SSR output
+
+authoritative_refs:
+  - "https://kit.svelte.dev/docs/introduction"
+  - "https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html"
+  - "OWASP ASVS v5 §5.3 (Output Encoding)"
+  - "OWASP ASVS v5 §13.2 (RESTful Web Service)"
+
+applicable_rules:
+  - input-validation-javascript
+  - auth-patterns
+  - cors-security
+  - error-handling
+
+subagent_hints:
+  coding-standards-reviewer:
+    extra_checks:
+      - "Scan for {@html ...} tags — every occurrence requires a prior DOMPurify.sanitize() or equivalent call"
+      - "Check src/hooks.server.ts for a handle() function that validates CSRF for non-GET mutation requests"
+      - "Verify that +server.ts POST/PUT/DELETE handlers parse and validate request.json() or request.formData() with a schema (e.g. zod)"
+      - "Ensure SvelteKit form actions use the 'fail' helper to return validation errors — not raw thrown errors that leak stack traces"
+      - "Check svelte.config.js for CSP configuration when targeting SSR adapter (node-adapter, Vercel, Cloudflare)"
+  secure-developer-mentor:
+    extra_checks:
+      - "Explain SvelteKit's hook pipeline for auth (handle, handleFetch, handleError) and how to add JWT/session validation"
+      - "Guide zod integration with SvelteKit +page.server.ts form actions for type-safe input validation"
+
+content: |
+  ## Svelte / SvelteKit Security Defaults
+
+  ### XSS Prevention — {@html} Tag
+
+  Svelte's `{value}` interpolation is **auto-escaped**. The `{@html rawContent}` tag renders raw HTML
+  with **no escaping** — it is Svelte's primary XSS surface. AI commonly generates `{@html}` for rich
+  content rendering without sanitization.
+
+  **NEVER:**
+  ```svelte
+  <!-- BAD: AI commonly generates this for "markdown rendering" -->
+  {@html userComment}
+  ```
+
+  **Correct — sanitize with DOMPurify before {@html}:**
+  ```svelte
+  <script>
+    import DOMPurify from 'dompurify';
+    export let rawContent = '';
+    $: safe = DOMPurify.sanitize(rawContent);
+  </script>
+
+  {@html safe}
+  ```
+
+  ### SvelteKit CSRF Protection
+
+  SvelteKit does NOT automatically protect against CSRF for non-SameSite requests. Implement a handle hook:
+
+  ```typescript
+  // src/hooks.server.ts
+  import { error } from '@sveltejs/kit';
+
+  export async function handle({ event, resolve }) {
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(event.request.method)) {
+      const origin = event.request.headers.get('origin');
+      const expectedOrigin = event.url.origin;
+      if (origin && origin !== expectedOrigin) {
+        throw error(403, 'CSRF validation failed');
+      }
+    }
+    return resolve(event);
+  }
+  ```
+
+  ### Server Action Input Validation
+
+  SvelteKit form actions receive raw `FormData`. Always parse and validate with a schema library.
+
+  ```typescript
+  // src/routes/submit/+page.server.ts
+  import { z } from 'zod';
+  import { fail } from '@sveltejs/kit';
+
+  const schema = z.object({
+    title: z.string().min(1).max(200),
+    body: z.string().max(5000),
+  });
+
+  export const actions = {
+    default: async ({ request }) => {
+      const data = Object.fromEntries(await request.formData());
+      const result = schema.safeParse(data);
+      if (!result.success) {
+        return fail(422, { errors: result.error.flatten() });
+      }
+      // proceed with result.data — typed and validated
+    },
+  };
+  ```
+
+  ### Content Security Policy (SSR)
+
+  When using a SvelteKit SSR adapter, configure CSP nonces to allow framework-generated inline scripts
+  without disabling CSP entirely.
+
+  ```javascript
+  // svelte.config.js
+  const config = {
+    kit: {
+      csp: {
+        mode: 'nonce',
+        directives: {
+          'script-src': ['self'],
+          'style-src': ['self', 'unsafe-inline'], // minimize: prefer nonce-only
+        },
+      },
+    },
+  };
+  ```
+
+  ## AI Antipatterns (cross-reference: docs/EXTERNAL-RESOURCES.md § Per-Framework AI Pitfalls)
+
+  | Antipattern | Rule |
+  |---|---|
+  | `{@html userInput}` without DOMPurify | `input-validation-javascript` |
+  | Missing CSRF origin check in `hooks.server.ts` | `auth-patterns` |
+  | Unparsed `request.formData()` in server actions | `input-validation-javascript` |
+  | Missing CSP configuration for SSR adapter | `cors-security` |
+
+  ## Authoritative References
+
+  - [SvelteKit Documentation](https://kit.svelte.dev/docs/introduction)
+  - [OWASP CSP Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html)
+  - Rule: `input-validation-javascript` (extends)
+  - Rules: `auth-patterns`, `cors-security`, `error-handling`

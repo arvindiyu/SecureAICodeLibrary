@@ -1,0 +1,183 @@
+metadata:
+  id: react-native
+  name: React Native
+  version: "1.0.0"
+  description: "Security spec sheet for React Native mobile applications. Covers secure storage, WebView configuration, certificate pinning, deep-link validation, and production logging controls."
+  tags: [javascript, react-native, mobile, secure-storage, webview, certificate-pinning, deep-links]
+
+summary: "React Native: use react-native-keychain for sensitive data (not AsyncStorage); configure WebView with originWhitelist; implement certificate pinning; validate deep-link URLs; disable console in production. Extends input-validation-javascript."
+
+applies_to:
+  language: javascript
+  framework: react-native
+  min_version: "0.71.0"
+
+extends: input-validation-javascript
+
+globs:
+  - "package.json"
+  - "android/app/src/main/**"
+  - "ios/**/*.{swift,m}"
+  - "**/*.tsx"
+  - "**/*.ts"
+  - "app.json"
+  - "metro.config.*"
+
+security_relevant_defaults:
+  async_storage_encrypted: false         # AsyncStorage stores data in plaintext — never use for tokens/PII
+  webview_javascript_enabled: true       # JavaScript enabled by default in WebView
+  webview_origin_whitelist_default: "['*']"  # all origins by default — must restrict
+  console_log_in_production: true        # React Native does not strip console.log in release — must configure
+  hermes_sourcemap_bundled: false        # Hermes does not bundle sourcemaps in release by default
+
+authoritative_refs:
+  - "https://reactnative.dev/docs/security"
+  - "https://cheatsheetseries.owasp.org/cheatsheets/Mobile_Application_Security_Cheat_Sheet.html"
+  - "OWASP ASVS v5 §9.2 (Server Authentication)"
+  - "OWASP ASVS v5 §6.1 (Data Classification)"
+  - "CWE-312"
+
+applicable_rules:
+  - input-validation-javascript
+  - auth-patterns
+  - cryptography-standards
+  - error-handling
+  - access-control
+
+subagent_hints:
+  coding-standards-reviewer:
+    extra_checks:
+      - "Scan for AsyncStorage.setItem() with token, password, secret, key values — must use react-native-keychain or expo-secure-store instead"
+      - "Check WebView components for originWhitelist — ['*'] is the dangerous default; restrict to your domain(s)"
+      - "Scan for Linking.openURL(url) without validating that url starts with 'https://' (scheme validation for deep links)"
+      - "Verify console.log statements are removed or disabled for production builds via babel-plugin-transform-remove-console"
+      - "Check that certificate pinning is configured for API base URL (react-native-ssl-pinning or OkHttp pinning)"
+      - "Scan for hardcoded API keys, tokens, or URLs with credentials in JS source files"
+  secure-developer-mentor:
+    extra_checks:
+      - "Guide react-native-keychain setup for token storage with biometric authentication"
+      - "Explain React Native HTTPS certificate pinning options and tradeoffs (OkHttp vs. react-native-ssl-pinning)"
+
+content: |
+  ## React Native Security Defaults
+
+  ### Secure Storage — Never Use AsyncStorage for Secrets
+
+  `AsyncStorage` stores data as **plaintext** on the device filesystem, readable without root access
+  on some configurations. Use `react-native-keychain` or `expo-secure-store` for sensitive data.
+
+  **NEVER:**
+  ```javascript
+  // BAD: AI commonly generates this for "simplicity"
+  import AsyncStorage from '@react-native-async-storage/async-storage';
+  await AsyncStorage.setItem('auth_token', token);
+  ```
+
+  **Correct — encrypted keychain storage:**
+  ```javascript
+  // GOOD: react-native-keychain
+  import * as Keychain from 'react-native-keychain';
+
+  // Store
+  await Keychain.setGenericPassword('token', accessToken, {
+    accessControl: Keychain.ACCESS_CONTROL.BIOMETRY_ANY,
+    accessible: Keychain.ACCESSIBLE.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+  });
+
+  // Retrieve
+  const credentials = await Keychain.getGenericPassword();
+  if (credentials) {
+    const token = credentials.password;
+  }
+  ```
+
+  ### WebView — Restrict Origins
+
+  Never use `originWhitelist={['*']}` for WebViews that load internal content.
+
+  ```jsx
+  // BAD: all origins allowed
+  <WebView source={{ uri: url }} originWhitelist={['*']} />
+
+  // GOOD: restrict to your domain
+  <WebView
+    source={{ uri: 'https://app.example.com/widget' }}
+    originWhitelist={['https://app.example.com']}
+    onShouldStartLoadWithRequest={(request) => {
+      return request.url.startsWith('https://app.example.com');
+    }}
+  />
+  ```
+
+  ### Deep-Link URL Validation
+
+  Always validate deep-link URLs before opening them. Scheme-only validation is insufficient.
+
+  ```javascript
+  // GOOD: strict deep-link validation
+  import { Linking } from 'react-native';
+
+  function handleDeepLink(url) {
+    try {
+      const parsed = new URL(url);
+      const allowedHosts = ['app.example.com'];
+      if (parsed.protocol !== 'https:' || !allowedHosts.includes(parsed.hostname)) {
+        console.warn('Blocked deep link to untrusted URL:', url);
+        return;
+      }
+      Linking.openURL(url);
+    } catch {
+      console.warn('Invalid deep link URL:', url);
+    }
+  }
+  ```
+
+  ### Remove console.log in Production Builds
+
+  React Native does NOT automatically strip `console.log` statements in release builds.
+
+  ```javascript
+  // babel.config.js — GOOD: strip console in production
+  module.exports = {
+    presets: ['module:metro-react-native-babel-preset'],
+    plugins: [
+      ...(process.env.NODE_ENV === 'production' ? [['transform-remove-console']] : []),
+    ],
+  };
+  ```
+
+  ### Certificate Pinning
+
+  For high-security apps, pin the API server certificate to prevent MITM attacks even if the device
+  trust store is compromised.
+
+  ```javascript
+  // GOOD: fetch with pinned certificate via react-native-ssl-pinning
+  import { fetch } from 'react-native-ssl-pinning';
+
+  const response = await fetch('https://api.example.com/data', {
+    method: 'GET',
+    sslPinning: {
+      certs: ['api_cert'], // corresponds to api_cert.cer in your bundle
+    },
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  ```
+
+  ## AI Antipatterns (cross-reference: docs/EXTERNAL-RESOURCES.md § Per-Framework AI Pitfalls)
+
+  | Antipattern | Rule |
+  |---|---|
+  | `AsyncStorage.setItem('token', value)` — plaintext storage — CWE-312 | `cryptography-standards` |
+  | `<WebView originWhitelist={['*']}>` | `access-control` |
+  | `Linking.openURL(userInput)` without scheme/host validation | `input-validation-javascript` |
+  | `console.log(token)` in production builds | `error-handling` |
+  | Missing certificate pinning for API calls | `auth-patterns` |
+
+  ## Authoritative References
+
+  - [React Native Security Guide](https://reactnative.dev/docs/security)
+  - [OWASP Mobile Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Mobile_Application_Security_Cheat_Sheet.html)
+  - Rule: `input-validation-javascript` (extends)
+  - Rules: `auth-patterns`, `cryptography-standards`, `error-handling`, `access-control`
+  - CWE-312 (Cleartext Storage of Sensitive Information)

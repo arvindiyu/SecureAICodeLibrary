@@ -1,0 +1,172 @@
+metadata:
+  id: rails
+  name: Ruby on Rails
+  version: "1.0.0"
+  description: "Security spec sheet for Ruby on Rails applications. Covers CSRF protection, strong_parameters, html_safe risks, Content-Security-Policy, and ActiveRecord parameterization."
+  tags: [ruby, rails, ruby-on-rails, csrf, strong-parameters, mass-assignment, html-safe, csp]
+
+summary: "Rails: never use params.permit! (mass assignment); never call html_safe without explicit sanitize(); protect_from_forgery must stay on; configure CSP via DSL; use AR parameterized queries. No Ruby per-language parent rule (deferred to M8)."
+
+applies_to:
+  language: ruby
+  framework: rails
+  min_version: "7.0"
+
+globs:
+  - "Gemfile"
+  - "config/application.rb"
+  - "config/routes.rb"
+  - "app/controllers/**/*.rb"
+  - "app/models/**/*.rb"
+  - "app/views/**/*.html.erb"
+
+security_relevant_defaults:
+  csrf_protection: true                   # protect_from_forgery enabled by default; API-only mode disables it
+  html_escaping_erb: true                 # ERB auto-escapes by default; html_safe bypasses
+  strong_parameters_enforced: true        # ActionController::Parameters requires explicit permit()
+  mass_assignment_vulnerability: false    # Rails 4+ mitigated by strong_parameters; but params.permit! re-opens it
+  content_security_policy_dsl: true       # config/initializers/content_security_policy.rb rails DSL available
+  secret_key_base_env: true              # RAILS_MASTER_KEY and credentials.yml.enc replace hardcoded secrets
+
+authoritative_refs:
+  - "https://guides.rubyonrails.org/security.html"
+  - "https://cheatsheetseries.owasp.org/cheatsheets/Ruby_on_Rails_Cheat_Sheet.html"
+  - "OWASP ASVS v5 §5.1 (Input Validation)"
+  - "OWASP ASVS v5 §5.3 (Output Encoding)"
+  - "CWE-79"
+  - "CWE-89"
+
+applicable_rules:
+  - auth-patterns
+  - access-control
+  - cors-security
+  - error-handling
+  - cryptography-standards
+
+subagent_hints:
+  coding-standards-reviewer:
+    extra_checks:
+      - "Scan for params.permit! — this is equivalent to Rails 3 attr_accessible :all and re-enables mass assignment; replace with explicit permit(:field1, :field2)"
+      - "Scan for .html_safe calls — each requires a preceding sanitize() call or must be a static string literal"
+      - "Verify protect_from_forgery is present in ApplicationController (or API-only apps use appropriate token auth)"
+      - "Check for find_by_sql or where('...') with string interpolation — use parameterized form: where('name = ?', value)"
+      - "Confirm config/initializers/content_security_policy.rb exists and is not empty or commented out"
+      - "Verify Rails credentials (config/credentials.yml.enc) used for secrets, not hardcoded strings in application.rb"
+  secure-developer-mentor:
+    extra_checks:
+      - "Explain Rails Brakeman static analysis tool and how to integrate it in CI"
+      - "Guide Rails Content-Security-Policy DSL configuration for SPAs with ActionCable"
+
+content: |
+  ## Ruby on Rails Security Defaults
+
+  ### CSRF Protection
+
+  `protect_from_forgery` is enabled by default in `ApplicationController`. In API-only mode it is
+  disabled — replace with token-based authentication.
+
+  ```ruby
+  # GOOD: ensure protection is explicit, not inherited-and-forgotten
+  class ApplicationController < ActionController::Base
+    protect_from_forgery with: :exception  # raises InvalidAuthenticityToken on mismatch
+  end
+
+  # GOOD: API mode — use token auth instead of CSRF
+  class ApiController < ActionController::API
+    before_action :authenticate_token!
+
+    private
+    def authenticate_token!
+      token = request.headers['Authorization']&.split('Bearer ')&.last
+      @current_user = User.find_by!(api_token: token)
+    rescue ActiveRecord::RecordNotFound
+      render json: { error: 'Unauthorized' }, status: :unauthorized
+    end
+  end
+  ```
+
+  ### Strong Parameters — Explicit Permit Lists
+
+  `params.permit!` re-enables mass assignment for all parameters. AI commonly generates this when
+  "iterating quickly."
+
+  **NEVER:**
+  ```ruby
+  # BAD: mass assignment — any request parameter becomes a model attribute
+  def user_params
+    params.require(:user).permit!
+  end
+  ```
+
+  **Correct — explicit permit list:**
+  ```ruby
+  # GOOD: explicit field allowlist
+  def user_params
+    params.require(:user).permit(:name, :email, :bio)
+    # Never include: :admin, :role, :confirmed, :api_token
+  end
+  ```
+
+  ### Output Encoding — html_safe
+
+  ERB auto-escapes `<%= value %>`. Calling `.html_safe` on a value bypasses this.
+  AI commonly generates `.html_safe` for "rendering HTML from the database."
+
+  **NEVER:**
+  ```ruby
+  # BAD: XSS — renders raw HTML from database column
+  <%= user.bio.html_safe %>
+  ```
+
+  **Correct — sanitize explicitly:**
+  ```ruby
+  # GOOD: sanitize with Rails ActionView::Helpers::SanitizeHelper
+  <%= sanitize(user.bio, tags: %w[p b i ul li], attributes: %w[class]) %>
+  ```
+
+  ### ActiveRecord Parameterization
+
+  ```ruby
+  # BAD: SQL injection via string interpolation
+  User.where("name = '#{params[:name]}'")
+
+  # GOOD: parameterized query (Rails ORM handles escaping)
+  User.where(name: params[:name])
+  User.where("name = ?", params[:name])
+  User.where("name = :name", name: params[:name])
+  ```
+
+  ### Content Security Policy
+
+  ```ruby
+  # config/initializers/content_security_policy.rb — GOOD
+  Rails.application.config.content_security_policy do |policy|
+    policy.default_src :self
+    policy.script_src :self, :https
+    policy.style_src :self, :https, :unsafe_inline
+    policy.font_src :self, :https, :data
+    policy.img_src :self, :https, :data
+    policy.connect_src :self, :https
+  end
+  Rails.application.config.content_security_policy_nonce_generator = ->(_req) { SecureRandom.base64(16) }
+  ```
+
+  ## AI Antipatterns (cross-reference: docs/EXTERNAL-RESOURCES.md § Per-Framework AI Pitfalls)
+
+  | Antipattern | Rule |
+  |---|---|
+  | `params.permit!` — mass assignment vulnerability | `access-control` |
+  | `user_content.html_safe` without `sanitize()` — CWE-79 | `auth-patterns` |
+  | String interpolation in `where()` — CWE-89 | `auth-patterns` |
+  | Missing or commented-out CSP initializer | `cors-security` |
+  | Hardcoded secrets in `config/application.rb` | `cryptography-standards` |
+
+  > **Note:** No Ruby per-language parent rule exists in Wave 2b; `extends:` is unset. When a Ruby
+  > language rule (`input-validation-ruby`) is added, this spec sheet should set `extends: input-validation-ruby`.
+
+  ## Authoritative References
+
+  - [Rails Security Guide](https://guides.rubyonrails.org/security.html)
+  - [OWASP Ruby on Rails Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Ruby_on_Rails_Cheat_Sheet.html)
+  - Rules: `auth-patterns`, `access-control`, `cors-security`, `cryptography-standards`
+  - CWE-79 (XSS), CWE-89 (SQL Injection)

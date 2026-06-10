@@ -1,0 +1,174 @@
+metadata:
+  id: express
+  name: Express.js
+  version: "1.0.0"
+  description: "Security spec sheet for Express.js Node.js web applications. Covers helmet security headers, CORS allowlisting, middleware ordering, input validation, and rate limiting."
+  tags: [javascript, nodejs, backend, express, helmet, cors, rate-limiting, middleware]
+
+summary: "Express: apply helmet() as first middleware; configure CORS with explicit origin allowlist; validate all req.body/req.params with express-validator or zod; add rate limiting on auth routes; never eval() request data. Extends input-validation-javascript."
+
+applies_to:
+  language: javascript
+  framework: express
+  min_version: "4.18.0"
+
+extends: input-validation-javascript
+
+globs:
+  - "**/*.{js,ts}"
+  - "package.json"
+  - "app.{js,ts}"
+  - "server.{js,ts}"
+  - "src/routes/**"
+  - "src/middleware/**"
+
+security_relevant_defaults:
+  helmet_required: true               # security headers — not included by default
+  cors_default: "permissive"          # without cors package: no CORS headers (but also no restriction)
+  csrf_handling: "manual"             # no built-in CSRF — use csurf or double-submit cookie pattern
+  body_parser_limit: "100kb"          # default body size limit; increase only when justified
+  error_handler_reveals_stack: true   # default error handler includes stack traces — override in prod
+
+authoritative_refs:
+  - "https://expressjs.com/en/advanced/best-practice-security.html"
+  - "https://cheatsheetseries.owasp.org/cheatsheets/NodeJS_Security_Cheat_Sheet.html"
+  - "OWASP ASVS v5 §5.1 (Input Validation)"
+  - "OWASP ASVS v5 §14.4 (HTTP Security Headers)"
+
+applicable_rules:
+  - input-validation-javascript
+  - auth-patterns
+  - cors-security
+  - error-handling
+  - access-control
+
+subagent_hints:
+  coding-standards-reviewer:
+    extra_checks:
+      - "Verify helmet() is the FIRST middleware registered in app.use() chain"
+      - "Check cors() configuration — 'origin: *' with credentials is invalid; 'origin: true' mirrors all origins (dangerous)"
+      - "Scan for eval(), Function(), vm.runInContext() calls with req.body / req.params / req.query values"
+      - "Verify authentication middleware is registered BEFORE route handlers that require auth"
+      - "Check for express-rate-limit or similar on /auth, /login, /register, /reset-password routes"
+      - "Confirm custom error handler at bottom of middleware stack does NOT return err.stack to clients in production"
+      - "Scan for res.json(req.body) or res.send(req.query.*) — direct input mirroring without transformation"
+  secure-developer-mentor:
+    extra_checks:
+      - "Guide helmet() configuration for strict CSP in Express applications"
+      - "Explain express-validator chain API for comprehensive input validation with sanitization"
+
+content: |
+  ## Express.js Security Defaults
+
+  ### Security Headers — helmet()
+
+  Express does NOT include security headers by default. `helmet()` must be the **first** middleware.
+
+  ```javascript
+  // GOOD: helmet as first middleware
+  const express = require('express');
+  const helmet = require('helmet');
+  const cors = require('cors');
+
+  const app = express();
+
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+      },
+    },
+    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+  }));
+  ```
+
+  ### CORS — explicit origin allowlist
+
+  Never use `origin: '*'` for authenticated APIs. Use an explicit allowlist.
+
+  ```javascript
+  // GOOD: explicit CORS allowlist
+  const allowedOrigins = (process.env.CORS_ORIGINS || '').split(',');
+
+  app.use(cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('CORS policy violation'));
+      }
+    },
+    credentials: true,
+  }));
+  ```
+
+  ### Middleware Ordering
+
+  Authentication middleware MUST come before route handlers. AI commonly places middleware in the wrong order.
+
+  ```javascript
+  // CORRECT ordering:
+  app.use(helmet());              // 1. security headers
+  app.use(cors(corsOptions));     // 2. CORS
+  app.use(express.json({ limit: '100kb' })); // 3. body parsing
+  app.use(authMiddleware);        // 4. authentication
+  app.use('/api', routes);        // 5. routes
+  app.use(errorHandler);          // 6. error handler (last)
+  ```
+
+  ### Input Validation
+
+  Always validate and sanitize `req.body`, `req.params`, and `req.query`. Never pass them directly to database
+  queries, file paths, or system calls.
+
+  ```javascript
+  // GOOD: express-validator + explicit schema
+  const { body, param, validationResult } = require('express-validator');
+
+  router.post('/users/:id/update',
+    param('id').isInt({ min: 1 }),
+    body('email').isEmail().normalizeEmail(),
+    body('name').isLength({ min: 1, max: 100 }).escape(),
+    (req, res) => {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
+      // safe to use req.body.email, req.body.name, req.params.id
+    }
+  );
+  ```
+
+  ### Rate Limiting
+
+  ```javascript
+  // GOOD: rate limit auth endpoints
+  const rateLimit = require('express-rate-limit');
+
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: 'Too many login attempts',
+  });
+
+  app.use('/auth', authLimiter);
+  ```
+
+  ## AI Antipatterns (cross-reference: docs/EXTERNAL-RESOURCES.md § Per-Framework AI Pitfalls)
+
+  | Antipattern | Rule |
+  |---|---|
+  | Missing `helmet()` or placing it after route middleware | `error-handling` (headers) |
+  | `cors({ origin: '*' })` on authenticated API | `cors-security` |
+  | Authentication middleware registered after route handlers | `auth-patterns` |
+  | `eval(req.body.expression)` — remote code execution | `input-validation-javascript` |
+  | Error handler returning `err.stack` in production | `error-handling` |
+
+  ## Authoritative References
+
+  - [Express.js Security Best Practices](https://expressjs.com/en/advanced/best-practice-security.html)
+  - [OWASP Node.js Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/NodeJS_Security_Cheat_Sheet.html)
+  - Rule: `input-validation-javascript` (extends)
+  - Rules: `auth-patterns`, `cors-security`, `error-handling`, `access-control`

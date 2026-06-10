@@ -1,0 +1,157 @@
+metadata:
+  id: angular
+  name: Angular
+  version: "1.0.0"
+  description: "Security spec sheet for Angular SPAs. Covers DomSanitizer, XSRF strategy, HttpInterceptors, and CSP configuration."
+  tags: [typescript, spa, frontend, angular, xsrf, dom-sanitizer]
+
+summary: "Angular: enforce DomSanitizer for all HTML rendering; never call bypassSecurityTrust* with unsanitized input; configure XSRF token strategy; use HttpInterceptors for auth headers; apply strict CSP. Extends input-validation-typescript."
+
+applies_to:
+  language: typescript
+  framework: angular
+  min_version: "15.0.0"
+
+extends: input-validation-typescript
+
+globs:
+  - "angular.json"
+  - "**/*.component.ts"
+  - "**/*.component.html"
+  - "src/app/**/*.ts"
+
+security_relevant_defaults:
+  xsrf_cookie_name: XSRF-TOKEN
+  xsrf_header_name: X-XSRF-TOKEN
+  xsrf_enabled_by_default: true
+  dom_sanitizer_auto_escapes: true
+  bypass_security_trust_methods_require_review: true
+  template_injection_risk: false   # Angular compiles templates; dynamic template injection is the risk
+  strict_mode_required: true       # strictTemplates in tsconfig; eliminates entire categories of injection paths
+
+authoritative_refs:
+  - "https://angular.dev/best-practices/security"
+  - "https://cheatsheetseries.owasp.org/cheatsheets/Angular_Based_Application_Security_Cheat_Sheet.html"
+  - "OWASP ASVS v5 §5.3 (Output Encoding)"
+  - "OWASP ASVS v5 §4.1 (Access Control)"
+
+applicable_rules:
+  - input-validation-typescript
+  - auth-patterns
+  - cors-security
+  - cryptography-standards
+  - error-handling
+
+subagent_hints:
+  coding-standards-reviewer:
+    extra_checks:
+      - "Scan for bypassSecurityTrustHtml / bypassSecurityTrustScript / bypassSecurityTrustUrl / bypassSecurityTrustStyle / bypassSecurityTrustResourceUrl — each call requires a justification comment"
+      - "Verify DomSanitizer.sanitize(SecurityContext.HTML, ...) is used instead of direct innerHTML binding"
+      - "Check that withXsrfConfiguration() or HttpClientXsrfModule is configured in providers (Angular 18+ and legacy)"
+      - "Confirm HttpInterceptors exist for auth-header injection — no component-level manual header setting"
+      - "Ensure strictTemplates: true in tsconfig.app.json to prevent type-unsafe template bindings"
+      - "Validate that JWT/session tokens are stored in memory (service state) or httpOnly cookies, NOT localStorage"
+  secure-developer-mentor:
+    extra_checks:
+      - "Guide developer on Angular route guards (CanActivateFn) and how to combine with server-side authorization"
+      - "Explain Content-Security-Policy nonce configuration for Angular SSR (Angular Universal / App Engine)"
+
+content: |
+  ## Angular Security Defaults
+
+  ### Authentication & CSRF Protection
+
+  Angular's `HttpClient` includes built-in XSRF protection via cookie-to-header token mirroring. Configure it
+  explicitly rather than relying on defaults, especially when upgrading across major versions.
+
+  **Correct (Angular 18+):**
+  ```typescript
+  // app.config.ts
+  export const appConfig: ApplicationConfig = {
+    providers: [
+      provideHttpClient(
+        withXsrfConfiguration({
+          cookieName: 'XSRF-TOKEN',
+          headerName: 'X-XSRF-TOKEN',
+        }),
+      ),
+    ],
+  };
+  ```
+
+  **Correct (legacy NgModule):**
+  ```typescript
+  @NgModule({
+    imports: [
+      HttpClientModule,
+      HttpClientXsrfModule.withOptions({
+        cookieName: 'XSRF-TOKEN',
+        headerName: 'X-XSRF-TOKEN',
+      }),
+    ],
+  })
+  export class AppModule {}
+  ```
+
+  ### Output Encoding — DomSanitizer
+
+  Angular auto-escapes template interpolation (`{{ value }}`). The only unsafe surface is property
+  binding to `innerHTML`, `src`, `href`, and `style` with security-sensitive values.
+
+  **Correct — sanitize before binding:**
+  ```typescript
+  @Component({ template: '<div [innerHTML]="safeContent"></div>' })
+  export class SafeComponent {
+    safeContent: SafeHtml;
+
+    constructor(private sanitizer: DomSanitizer) {
+      // sanitize() returns null for dangerous content; prefer this over bypass methods
+      this.safeContent =
+        this.sanitizer.sanitize(SecurityContext.HTML, this.untrustedInput) ?? '';
+    }
+  }
+  ```
+
+  **NEVER emit** — these bypass Angular's XSS defenses:
+  ```typescript
+  // BAD: AI commonly generates this for "convenience"
+  this.trustedContent = this.sanitizer.bypassSecurityTrustHtml(userInput);
+  ```
+
+  ### CORS & Auth Headers
+
+  Configure CORS on the backend. In Angular, use `HttpInterceptors` to attach auth headers — never in component code.
+
+  ```typescript
+  // GOOD: centralized auth-header injection
+  export const authInterceptor: HttpInterceptorFn = (req, next) => {
+    const token = inject(AuthService).getAccessToken();
+    if (!token) return next(req);
+    return next(req.clone({
+      setHeaders: { Authorization: `Bearer ${token}` },
+    }));
+  };
+  ```
+
+  ### Secrets & Environment Config
+
+  - Use `environment.ts` only for **non-sensitive** build-time config (API base URLs, feature flags).
+  - Never commit real API keys into `environment.ts`.
+  - Sensitive config must come from the backend API, not the Angular bundle.
+
+  ## AI Antipatterns (cross-reference: docs/EXTERNAL-RESOURCES.md § Per-Framework AI Pitfalls)
+
+  | Antipattern | Rule |
+  |---|---|
+  | Calling `bypassSecurityTrust*()` without a justification comment | `input-validation-typescript` |
+  | Binding `[innerHTML]` without `DomSanitizer.sanitize()` | `input-validation-typescript` |
+  | Disabling `XSRF_STRATEGY` for REST APIs | `auth-patterns`, `cors-security` |
+  | Storing JWTs in `localStorage` instead of memory or httpOnly cookies | `auth-patterns`, `cryptography-standards` |
+  | Missing `strictTemplates: true` in tsconfig — allows any-typed template bindings | `input-validation-typescript` |
+
+  ## Authoritative References
+
+  - [Angular Security Guide](https://angular.dev/best-practices/security)
+  - [OWASP Angular Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Angular_Based_Application_Security_Cheat_Sheet.html)
+  - Rule: `input-validation-typescript` (extends)
+  - Rules: `auth-patterns`, `cors-security`, `cryptography-standards`, `error-handling`
