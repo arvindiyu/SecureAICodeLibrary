@@ -10,6 +10,21 @@
 
 ---
 
+## Project posture <a id="project-posture"></a>
+
+This repository is a **personal research project**, authored and maintained by an individual with 15+ years of AppSec experience and active AI-practitioner literacy. It is offered as a *de facto, point-in-time* representation of secure-by-design controls for AI-assisted software development as of **mid-2026**.
+
+Two implications follow:
+
+1. **Relevance window.** Industry threat-posture, AI-model capabilities, IDE-agent APIs, and regulatory expectations all evolve on quarterly cycles. Specific rule wording, subagent flows, citation freshness, and even architectural assumptions in this repository may diminish in relevance as the underlying technology matures. The [`docs/SOURCES.md`](./docs/SOURCES.md) allowlist and `freshness-check` pre-commit help, but they cannot guarantee currency between releases.
+2. **Maintenance pace.** The maintainer will try to keep the registry, adapters, and threat-intel citations current, but updates may not be agile. There is no SLA on PR triage, security-advisory turnaround, or roadmap delivery. Issues are best-effort.
+
+For production deployments, treat this library as a **baseline reference** — pair it with your organization's current standards, your AI-coding-assistant vendor's latest security advisories, and an internal red-team evaluation of the rules that matter most to you. This repository's value is in the *framing*, the *control mapping*, and the *integration contracts* — not in being the sole source of truth.
+
+If you want to contribute fixes, fresher sources, or new rules, see [`CONTRIBUTING.md`](./CONTRIBUTING.md). If you want to fork and diverge for your own context, that is also a fully supported use case — MIT-licensed and explicitly encouraged.
+
+---
+
 ## Honest claim ladder
 
 We are explicit about what we do and do not claim. The Mythos-Aligned label is a substantiated foundation — not a certification.
