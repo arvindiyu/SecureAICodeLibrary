@@ -1,0 +1,75 @@
+# yaml-language-server: $schema=../../schemas/subagent.schema.json
+# Canonical Tier-A + Tier-C subagent specification for `threat-modeler`.
+# Field ordering follows registry/schemas/subagent.schema.json property order
+# (cache-stable per ADR 0005 §8). Do not reorder top-level keys.
+
+metadata:
+  id: threat-modeler
+  name: Threat Modeler
+  description: >-
+    Produces and updates STRIDE threat models when trust boundaries change. Also
+    the single source of truth for Mermaid DFD/data-flow diagrams in this
+    library — the diagram-generator capability lives here per Phase 5d. Output
+    is a proposed delta to THREAT_MODEL.md plus a Mermaid diagram; nothing is
+    committed without human review.
+  version: "1.0.0"
+
+classification: medium-impact
+
+human_approval: required_before_commit
+
+tiers:
+  native:
+    cursor: "@threat-modeler <feature-area>"
+    agents_md: "Invoke `threat-modeler` for the named feature area; emit STRIDE table + Mermaid DFD."
+    copilot_coding_agent: "Open issue with label `subagent:threat-modeler` and the affected paths."
+  headless:
+    runner: registry/subagents/threat-modeler/run.sh
+    deps: [git, rg, jq]
+    optional_llm_env: SECUREAI_LLM_ENDPOINT
+    output_format: sarif
+
+token_budget:
+  input_max: 40000
+  output_max: 8000
+  warn_at: 0.75
+  system_prompt: 2500
+
+audit_log:
+  enabled: true
+  path: .securecode/audit.log
+  format: jsonl
+  fields:
+    - timestamp
+    - subagent_id
+    - tier
+    - user
+    - inputs_hash
+    - model
+    - token_in
+    - token_out
+    - decision
+    - finding_count
+
+tool_scope:
+  allowed:
+    - read_file
+    - glob
+    - grep
+
+inputs:
+  required:
+    - staged_diff
+  optional:
+    - feature_area
+    - threat_model_path
+
+outputs:
+  - THREAT_MODEL.md
+
+references:
+  rules:
+    - threat-model-presence
+    - mcp-server-safety
+    - agentic-obo-auth
+    - ai-data-classification
