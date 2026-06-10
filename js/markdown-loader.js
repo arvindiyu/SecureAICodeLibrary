@@ -2,6 +2,35 @@
 // This script handles loading and rendering markdown files within the site template
 // Extended: lazy Mermaid post-render, YAML-link rewriting, lazy Prism highlighting.
 
+/* ── Source-aware relative-path resolution ─────────────────────────────────
+   Rendered markdown documents commonly use sibling-relative links like
+   `./SOURCES.md`, `../adr/0004-...md`, or `../../THREAT_MODEL.md`. The SPA
+   serves them all under a single URL (index.html?md=...), so the browser
+   resolves those relative paths against the SPA root, not the source
+   markdown's directory — producing 404s. resolveSourceRelative() normalizes
+   them against the currently-rendered source file's directory before fetch.
+*/
+function getCurrentSourcePath() {
+    var params = new URLSearchParams(window.location.search);
+    return params.get('md') || params.get('yaml') || '';
+}
+
+function resolveSourceRelative(currentSource, target) {
+    if (!target) return target;
+    if (target.charAt(0) === '/') return target.replace(/^\/+/, '');
+    var currentDir = String(currentSource || '').replace(/[^/]*$/, '');
+    if (!currentDir) return target; // no source context = treat as repo-rooted
+    var parts = (currentDir + target).split('/');
+    var out = [];
+    for (var i = 0; i < parts.length; i++) {
+        var seg = parts[i];
+        if (seg === '' || seg === '.') continue;
+        if (seg === '..') { out.pop(); continue; }
+        out.push(seg);
+    }
+    return out.join('/');
+}
+
 /* ── Lazy script loader (memoized) ─────────────────────────────────────── */
 function loadScript(url) {
     if (loadScript._cache[url]) return loadScript._cache[url];
@@ -21,15 +50,25 @@ loadScript._cache = {};
 function postRenderMarkdown(container) {
     var cdn = window.__SECUREAI_CDN || {};
 
-    // 1. Rewrite .yaml links → ?yaml= SPA form
+    // 1. Rewrite .yaml AND .md links → SPA form, resolving relative paths
+    //    against the currently-rendered source file's directory.
+    var currentSource = getCurrentSourcePath();
     var anchors = container.querySelectorAll('a[href]');
     anchors.forEach(function (a) {
         var href = a.getAttribute('href');
         if (!href) return;
-        // Already in SPA form or external
         if (href.startsWith('?') || href.startsWith('http') || href.startsWith('#')) return;
+        if (href.startsWith('mailto:') || href.startsWith('javascript:')) return;
         if (/\.(rule\.yaml|spec\.yaml|subagent\.yaml|yaml)$/i.test(href)) {
-            a.setAttribute('href', '?yaml=' + encodeURIComponent(href));
+            var resolved = resolveSourceRelative(currentSource, href);
+            a.setAttribute('href', '?yaml=' + encodeURIComponent(resolved));
+        } else if (/\.(md|markdown)(#[^?]*)?$/i.test(href)) {
+            // Split fragment so it's preserved in the SPA URL.
+            var hashIdx = href.indexOf('#');
+            var pathPart = hashIdx >= 0 ? href.substring(0, hashIdx) : href;
+            var hashPart = hashIdx >= 0 ? href.substring(hashIdx) : '';
+            var resolvedMd = resolveSourceRelative(currentSource, pathPart);
+            a.setAttribute('href', '?md=' + encodeURIComponent(resolvedMd) + hashPart);
         }
     });
 
@@ -152,17 +191,33 @@ document.addEventListener('click', function (event) {
     if (href.indexOf('?yaml=') === 0) return;
 
     var mdPath = null;
+    var hashPart = '';
     if (href.indexOf('?md=') === 0) {
-        // Strip the ?md= prefix to get the actual file path.
-        mdPath = decodeURIComponent(href.slice(4));
+        // Strip the ?md= prefix to get the actual file path (already absolute).
+        var raw = href.slice(4);
+        var qHashIdx = raw.indexOf('#');
+        if (qHashIdx >= 0) { hashPart = raw.substring(qHashIdx); raw = raw.substring(0, qHashIdx); }
+        mdPath = decodeURIComponent(raw);
     } else if (/\.(md|markdown)(#[^?]*)?$/i.test(href)) {
-        mdPath = href;
+        // Raw relative .md link (defensive — postRenderMarkdown should rewrite
+        // these, but inline-injected links or future code paths may bypass it).
+        var hashIdx = href.indexOf('#');
+        var pathPart = hashIdx >= 0 ? href.substring(0, hashIdx) : href;
+        hashPart = hashIdx >= 0 ? href.substring(hashIdx) : '';
+        mdPath = resolveSourceRelative(getCurrentSourcePath(), pathPart);
     }
     if (!mdPath) return;
 
     event.preventDefault();
-    window.history.pushState({}, '', '?md=' + encodeURIComponent(mdPath));
+    window.history.pushState({}, '', '?md=' + encodeURIComponent(mdPath) + hashPart);
     loadMarkdownContent(mdPath);
+    // Scroll to fragment after content paints, if specified.
+    if (hashPart && hashPart.length > 1) {
+        setTimeout(function () {
+            var target = document.getElementById(hashPart.slice(1));
+            if (target && target.scrollIntoView) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 50);
+    }
 });
 
 // Handle browser back/forward navigation
