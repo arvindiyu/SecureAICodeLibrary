@@ -1,0 +1,6 @@
+# Placeholder. Phase 3 populates this directory with three IDE adapters and a single installer:
+#   adapters/cursor/      -> .cursor/rules/<id>.mdc + .cursor/skills/<subagent-id>/SKILL.md
+#   adapters/copilot/     -> .github/copilot-instructions.md (top-level INDEX only)
+#   adapters/agents-md/   -> glob-scoped sections in consumer AGENTS.md
+#   adapters/install.sh   -> auto-detects IDE markers and lowers to detected targets
+# Claude Code and Windsurf adapters are deferred to Phase 8 M8.
