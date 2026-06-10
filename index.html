@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Code Library</title>
+    <title>Secure AI Code Library :: Mythos-Aligned Foundation</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -558,8 +558,22 @@
 </head>
 <body>
     <header>
-        <h1>Secure Code Library</h1>
-        <p>A collection of secure coding prompts, guidelines, and Copilot custom instructions for various programming languages, frameworks, and security methodologies.</p>
+        <h1>Secure AI Code Library :: Mythos-Aligned Foundation
+            <a class="pill mythos-aligned" href="?md=docs/MYTHOS.md#roadmap"
+               title="Substantiated alignment with CSA&#x2019;s Mythos-Ready pillars. See roadmap for full-Ready milestones.">Mythos-Aligned</a>
+        </h1>
+        <p class="subtitle">Secure-by-Design AI Control Plane for the SDLC</p>
+        <nav aria-label="Primary navigation">
+            <ul>
+                <li><a href="?md=docs/AI-CONTROL-MAP.md">AI-Control-Map</a></li>
+                <li><a href="?md=registry/INDEX.md">Governance</a></li>
+                <li><a href="?md=docs/SUBAGENT-FLOWS.md">Subagents</a></li>
+                <li><a href="?md=docs/INSTALL.md">Adapters</a></li>
+                <li><a href="?md=docs/MANTHAN-CONTRACT.md">Pre-commit</a></li>
+                <li><a href="?md=docs/MYTHOS.md">Mythos</a></li>
+                <li><a href="?md=docs/TOKEN-ECONOMICS.md">Token-Economics</a></li>
+            </ul>
+        </nav>
     </header>
 
     <!-- Container for markdown content -->
@@ -568,68 +582,203 @@
     </div>
 
     <main id="main-content">
-        <section class="usage-section">
-            <h2>Repository Structure</h2>
-            <p>This repository is organized into the following main sections:</p>
-            <ol>
-                <li><strong>Secure Coding Prompts</strong> - Located in the <code>prompts</code> directory, organized by category</li>
-                <li><strong>Copilot Custom Instructions</strong> - Located in the <code>.github/copilot</code> directory, organized by category</li>
-                <li><strong>General Security Guidelines</strong> - Located in the <code>guidelines</code> directory</li>
-            </ol>
+        <!-- ── Hero intro ─────────────────────────────────────────────────── -->
+        <section class="hero-intro">
+            <p class="lede">
+                A <strong>Secure-by-Design AI Control Plane</strong> for the SDLC. Ships 62 IDE-agnostic rules, 6 automated subagents, 3 IDE adapters, and a pre-commit / Manthan scan-gate &mdash; so AI-generated code is governed before it lands.
+            </p>
+            <div class="hero-cta-row">
+                <a class="cta cta-primary" href="?md=docs/AI-CONTROL-MAP.md">
+                    <i class="fas fa-map"></i> Read the AI Control Map
+                </a>
+                <a class="cta cta-secondary" href="?md=docs/INSTALL.md">
+                    <i class="fas fa-rocket"></i> Install in your IDE
+                </a>
+                <a class="cta cta-secondary" href="?md=registry/INDEX.md">
+                    <i class="fas fa-list"></i> Browse the Rule Registry
+                </a>
+            </div>
         </section>
-        <section class="usage-section">
-            <h2>Usage Standard Operating Procedure (SOP)</h2>
-            
-            <h3>For Developers:</h3>
-            <ol>
-                <li><strong>Identify Your Technology</strong>: Navigate to the relevant section for your technology stack or security concern.</li>
-                <li><strong>Apply in Development</strong>: Use the prompts to guide your implementation of security features.</li>
-                <li><strong>Comprehensive Security Review</strong>: Use threat modeling prompts to identify potential security risks.</li>
-            </ol>
 
-            <h3>For Copilot Users:</h3>
-            <ol>
-                <li><strong>Configure Custom Instructions</strong>: Copy the relevant custom instructions from the <code>.github/copilot</code> directory.</li>
-                <li><strong>Using with Copilot</strong>: Reference the secure coding principles in your prompts to Copilot.</li>
-                <li><strong>Continuous Improvement</strong>: Update your custom instructions as new versions become available.</li>
-            </ol>
-
-            <h3>For Security Teams:</h3>
-            <ol>
-                <li><strong>Training and Awareness</strong>: Use the general guidelines as references for security reviews.</li>
-                <li><strong>Security Reviews and Assessments</strong>: Apply the security verification guidelines during code reviews.</li>
-                <li><strong>Policy Development</strong>: Use these resources to develop secure coding standards.</li>
-            </ol>
+        <!-- ── Site contents at a glance ─────────────────────────────────── -->
+        <section class="stats-strip" aria-label="Library at a glance">
+            <div class="stat"><span class="stat-num">62</span><span class="stat-label">Rules</span></div>
+            <div class="stat"><span class="stat-num">6</span><span class="stat-label">Subagents</span></div>
+            <div class="stat"><span class="stat-num">12</span><span class="stat-label">Framework Specs</span></div>
+            <div class="stat"><span class="stat-num">3</span><span class="stat-label">IDE Adapters</span></div>
+            <div class="stat"><span class="stat-num">5</span><span class="stat-label">ADRs</span></div>
+            <div class="stat"><span class="stat-num">4</span><span class="stat-label">CI Workflows</span></div>
         </section>
-        <div class="search-container">
-            <i class="fas fa-search search-icon"></i>
-            <input type="text" id="search-input" class="search-input" placeholder="Search for security topics, frameworks or languages..." />
-        </div>
 
-        <div class="quick-nav">
-            <h4><i class="fas fa-bolt"></i> Quick Navigation</h4>
-            <ul class="quick-nav-list">
-                <li class="quick-nav-item"><a href="#backend-frameworks">Backend Frameworks</a></li>
-                <li class="quick-nav-item"><a href="#api-security">API Security</a></li>
-                <li class="quick-nav-item"><a href="#cloud-security">Cloud Security</a></li>
-                <li class="quick-nav-item"><a href="#infra-testing">Infra & Testing</a></li>
-                <li class="quick-nav-item"><a href="#client-side">Client-Side</a></li>
-                <li class="quick-nav-item"><a href="#mobile">Mobile</a></li>
-                <li class="quick-nav-item"><a href="#threat-modeling">Threat Modeling</a></li>
-                <li class="quick-nav-item"><a href="#security-frameworks">Security Frameworks</a></li>
-                <li class="quick-nav-item"><a href="#secrets-management">Secrets Management</a></li>
-                <li class="quick-nav-item"><a href="#validation">Validation</a></li>
-                <li class="quick-nav-item"><a href="#workforce">Workforce Enablement</a></li>
-            </ul>
-        </div>
+        <!-- ── Get started in 3 steps ────────────────────────────────────── -->
+        <section class="get-started">
+            <h2><i class="fas fa-bolt"></i> Get started in 3 steps</h2>
+            <div class="step-grid">
+                <div class="step-card">
+                    <div class="step-num">1</div>
+                    <h3>Read the map</h3>
+                    <p>Understand which control fires at which SDLC stage. One page, one diagram, one traceability table.</p>
+                    <a href="?md=docs/AI-CONTROL-MAP.md">Open AI Control Map &rarr;</a>
+                </div>
+                <div class="step-card">
+                    <div class="step-num">2</div>
+                    <h3>Install for your IDE</h3>
+                    <p>Run the adapter for Cursor, Copilot, or any AGENTS.md-compliant agent &mdash; rules + subagents wired in minutes.</p>
+                    <a href="?md=docs/INSTALL.md">View install matrix &rarr;</a>
+                </div>
+                <div class="step-card">
+                    <div class="step-num">3</div>
+                    <h3>Wire the pre-commit gate</h3>
+                    <p>Block non-compliant commits locally and in CI. Optional Manthan ASOC scan-before-merge contract.</p>
+                    <a href="?md=docs/MANTHAN-CONTRACT.md">View Manthan contract &rarr;</a>
+                </div>
+            </div>
+        </section>
 
-        <section>
-            <h2>Categories</h2>
-            
+        <!-- ── Who is this for? ──────────────────────────────────────────── -->
+        <section class="personas">
+            <h2><i class="fas fa-users"></i> Who is this for?</h2>
+            <div class="persona-grid">
+                <div class="persona-card">
+                    <h4><i class="fas fa-code"></i> Developers</h4>
+                    <p>Get IDE-native secure-coding guardrails (Cursor rules, Copilot instructions, AGENTS.md) generated from one canonical source.</p>
+                    <a href="?md=AGENTS.md">Agent guidelines &rarr;</a>
+                </div>
+                <div class="persona-card">
+                    <h4><i class="fas fa-shield-alt"></i> Security Engineers</h4>
+                    <p>Map every rule to OWASP ASVS, ISO 27001 / 42001, NIST AI RMF, MITRE ATLAS, and CWE. Audit-ready by design.</p>
+                    <a href="?md=CONSTITUTION.md">View the Constitution &rarr;</a>
+                </div>
+                <div class="persona-card">
+                    <h4><i class="fas fa-cogs"></i> Platform Engineers</h4>
+                    <p>Run the Tier-C headless subagents in CI, gate merges on severity thresholds, dogfood with <code>make all</code>.</p>
+                    <a href="?md=docs/SUBAGENT-FLOWS.md">Subagent flows &rarr;</a>
+                </div>
+                <div class="persona-card">
+                    <h4><i class="fas fa-balance-scale"></i> CISO / Audit</h4>
+                    <p>Honest claim ladder: <em>Mythos-Aligned</em> today, dated roadmap to <em>Mythos-Ready</em>. Every threat-intel claim sourced.</p>
+                    <a href="?md=docs/MYTHOS.md#roadmap">Mythos alignment &amp; roadmap &rarr;</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── How to use this site (browse modes) ───────────────────────── -->
+        <section class="site-howto">
+            <h2><i class="fas fa-compass"></i> How to navigate this site</h2>
+            <div class="howto-grid">
+                <div class="howto-item">
+                    <h4><i class="fas fa-search"></i> Search</h4>
+                    <p>Type below to fuzzy-search every rule, subagent, framework spec, and doc by name, tag, or body.</p>
+                </div>
+                <div class="howto-item">
+                    <h4><i class="fas fa-file-alt"></i> Read a doc</h4>
+                    <p>Click any nav link or use <code>?md=docs/NAME.md</code> to view rendered markdown with diagrams, syntax highlighting, and cross-links.</p>
+                </div>
+                <div class="howto-item">
+                    <h4><i class="fas fa-file-code"></i> Inspect a rule / subagent</h4>
+                    <p>Click any <code>*.rule.yaml</code> link or use <code>?yaml=registry/&hellip;</code> to view the schema-validated YAML rendered as readable docs. &ldquo;View raw YAML&rdquo; toggle preserves the source.</p>
+                </div>
+                <div class="howto-item">
+                    <h4><i class="fas fa-th"></i> Browse by category</h4>
+                    <p>Scroll to the <a href="#catalog">curated catalog</a> below for ready-to-use prompts and Copilot custom instructions across 12+ domains (AI governance, backend frameworks, cloud, mobile, infra testing, secrets, threat modeling, and more).</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── Live search ───────────────────────────────────────────────── -->
+        <section class="search-section" aria-label="Search">
+            <h2><i class="fas fa-search"></i> Search rules, subagents &amp; docs</h2>
+            <div class="search-container">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="search-input" class="search-input"
+                       placeholder="Search rules, subagents, docs, frameworks&#x2026;" />
+            </div>
+        <div class="category-filter-row">
+            <label for="category-filter">Filter by category:</label>
+            <select id="category-filter">
+                <option value="all">All</option>
+                <option value="ai-governance">AI Governance</option>
+                <option value="coding-standards">Coding Standards</option>
+                <option value="policies">Policies</option>
+                <option value="precommit">Pre-commit</option>
+                <option value="subagent">Subagents</option>
+                <option value="framework-spec">Framework Specs</option>
+                <option value="doc">Docs</option>
+            </select>
+        </div>
+            <div id="search-status"></div>
+            <div id="lunr-results"></div>
+        </section>
+
+        <!-- ── Catalog: curated prompts & instructions by category ──────── -->
+        <section id="catalog" class="prompt-catalog">
+            <div class="quick-nav">
+                <h4><i class="fas fa-bolt"></i> Jump to a category</h4>
+                <ul class="quick-nav-list">
+                    <li class="quick-nav-item"><a href="#ai-governance">AI Governance</a></li>
+                    <li class="quick-nav-item"><a href="#backend-frameworks">Backend Frameworks</a></li>
+                    <li class="quick-nav-item"><a href="#api-security">API Security</a></li>
+                    <li class="quick-nav-item"><a href="#cloud-security">Cloud Security</a></li>
+                    <li class="quick-nav-item"><a href="#infra-testing">Infra &amp; Testing</a></li>
+                    <li class="quick-nav-item"><a href="#client-side">Client-Side</a></li>
+                    <li class="quick-nav-item"><a href="#mobile">Mobile</a></li>
+                    <li class="quick-nav-item"><a href="#threat-modeling">Threat Modeling</a></li>
+                    <li class="quick-nav-item"><a href="#security-frameworks">Security Frameworks</a></li>
+                    <li class="quick-nav-item"><a href="#secrets-management">Secrets Management</a></li>
+                    <li class="quick-nav-item"><a href="#validation">Validation</a></li>
+                    <li class="quick-nav-item"><a href="#workforce">Workforce Enablement</a></li>
+                </ul>
+            </div>
+
+            <h2><i class="fas fa-book-open"></i> Prompt &amp; Instruction Catalog</h2>
+            <p class="catalog-intro">Ready-to-use secure-coding prompts, Copilot custom instructions, and topical guides &mdash; complementary to the rule registry. Click any item to view rendered markdown; click any <code>.rule.yaml</code> to inspect a registry rule.</p>
+
+            <div id="ai-governance" class="category">
+                <div class="category-header">
+                    <h3><i class="fas fa-robot"></i> AI Governance &amp; Control <span class="badge">New</span></h3>
+                    <a href="?md=registry/INDEX.md" class="view-all">View all <i class="fas fa-angle-right"></i></a>
+                </div>
+                <p class="category-description">AI-specific governance rules, subagents, and control-plane artifacts for the AI SDLC</p>
+                <div class="category-items">
+                    <div class="category-item">
+                        <a href="?md=docs/AI-CONTROL-MAP.md">AI Control Map</a>
+                        <div class="subcategory">Swim-lane mapping AI SDLC stages to rules, subagents, and gates</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="?md=registry/INDEX.md">Registry Index</a>
+                        <div class="subcategory">Full catalog of 47+ rules, specs, and subagents</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="?yaml=registry/subagents/ai-governance-auditor/subagent.yaml">AI Governance Auditor</a>
+                        <div class="subcategory">Audits AI-generated code against governance rules</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="?yaml=registry/subagents/coding-standards-reviewer/subagent.yaml">Coding Standards Reviewer</a>
+                        <div class="subcategory">Reviews code against secure-by-design coding standards</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="?yaml=registry/subagents/threat-modeler/subagent.yaml">Threat Modeler</a>
+                        <div class="subcategory">STRIDE threat modeling with Mermaid diagrams</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="?md=docs/MANTHAN-CONTRACT.md">Pre-commit Contract</a>
+                        <div class="subcategory">Scan-before-merge severity gates and freshness policy</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="?md=docs/TOKEN-ECONOMICS.md">Token Economics</a>
+                        <div class="subcategory">Two-layer loading, budgets, cache-stable ordering</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="?md=docs/MYTHOS.md">Mythos Alignment</a>
+                        <div class="subcategory">CSA Mythos-Ready pillar mapping and roadmap</div>
+                    </div>
+                </div>
+            </div>
+
             <div id="backend-frameworks" class="category">
                 <div class="category-header">
-                    <h3><i class="fas fa-server"></i> Code — Backend Frameworks <span class="badge">13 Topics</span></h3>
-                    <a href="#" class="view-all">View all <i class="fas fa-angle-right"></i></a>
+                    <h3><i class="fas fa-server"></i> Code &mdash; Backend Frameworks <span class="badge">13 Topics</span></h3>
+                    <a href="?md=docs/EXTERNAL-RESOURCES.md" class="view-all">View all <i class="fas fa-angle-right"></i></a>
                 </div>
                 <p class="category-description">Secure coding patterns and guidelines for server-side application frameworks</p>
                 <div class="category-items">
@@ -646,27 +795,27 @@
                         <div class="subcategory">Memory-safe Rust backend security</div>
                     </div>
                     <div class="category-item">
-                        <a href="#">Azure Functions[WIP]</a>
-                        <div class="subcategory">Secure serverless Azure development</div>
+                        <a href="?md=docs/EXTERNAL-RESOURCES.md">Azure Functions</a>
+                        <div class="subcategory">Secure serverless Azure development &mdash; see External Resources</div>
                     </div>
                     <div class="category-item">
-                        <a href="#">Flask [WIP]</a>
+                        <a href="?yaml=registry/framework-specs/flask.spec.yaml">Flask</a>
                         <div class="subcategory">Python Flask security implementation</div>
                     </div>
                     <div class="category-item">
-                        <a href="#">Google Cloud Functions [WIP]</a>
-                        <div class="subcategory">GCP serverless security patterns</div>
+                        <a href="?md=docs/EXTERNAL-RESOURCES.md">Google Cloud Functions</a>
+                        <div class="subcategory">GCP serverless security patterns &mdash; see External Resources</div>
                     </div>
                     <div class="category-item">
-                        <a href="#">Go (Echo, Gin) [WIP]</a>
+                        <a href="?yaml=registry/framework-specs/gin.spec.yaml">Go (Echo, Gin)</a>
                         <div class="subcategory">Go web frameworks security</div>
                     </div>
                     <div class="category-item">
-                        <a href="#">Java (Spring Boot, MVC) [WIP]</a>
+                        <a href="?yaml=registry/framework-specs/spring-boot.spec.yaml">Java (Spring Boot, MVC)</a>
                         <div class="subcategory">Spring framework security practices</div>
                     </div>
                     <div class="category-item">
-                        <a href="#">.NET (ASP.NET Core) [WIP]</a>
+                        <a href="?yaml=registry/framework-specs/aspnet-core.spec.yaml">.NET (ASP.NET Core)</a>
                         <div class="subcategory">ASP.NET Core security implementation</div>
                     </div>
                 </div>
@@ -675,7 +824,7 @@
             <div id="api-security" class="category">
                 <div class="category-header">
                     <h3><i class="fas fa-plug"></i> API Security <span class="badge">5 Topics</span></h3>
-                    <a href="#" class="view-all">View all <i class="fas fa-angle-right"></i></a>
+                    <a href="?md=docs/EXTERNAL-RESOURCES.md" class="view-all">View all <i class="fas fa-angle-right"></i></a>
                 </div>
                 <p class="category-description">Patterns and guidelines for building secure APIs and web services</p>
                 <div class="category-items">
@@ -684,28 +833,28 @@
                         <div class="subcategory">API security by design principles</div>
                     </div>
                     <div class="category-item">
-                        <a href="#">API Authentication [WIP]</a>
-                        <div class="subcategory">Secure authentication patterns for APIs</div>
+                        <a href="?md=docs/EXTERNAL-RESOURCES.md">API Authentication</a>
+                        <div class="subcategory">Secure authentication patterns for APIs &mdash; see External Resources</div>
                     </div>
                     <div class="category-item">
-                        <a href="#">API Authorization [WIP]</a>
-                        <div class="subcategory">Fine-grained access control for APIs</div>
+                        <a href="?md=docs/EXTERNAL-RESOURCES.md">API Authorization</a>
+                        <div class="subcategory">Fine-grained access control for APIs &mdash; see External Resources</div>
                     </div>
                     <div class="category-item">
-                        <a href="#">API Data Validation [WIP]</a>
-                        <div class="subcategory">Input validation for API security</div>
+                        <a href="?md=docs/EXTERNAL-RESOURCES.md">API Data Validation</a>
+                        <div class="subcategory">Input validation for API security &mdash; see External Resources</div>
                     </div>
                     <div class="category-item">
-                        <a href="#">API Rate Limiting [WIP]</a>
-                        <div class="subcategory">Protection against abuse and DoS</div>
+                        <a href="?md=docs/EXTERNAL-RESOURCES.md">API Rate Limiting</a>
+                        <div class="subcategory">Protection against abuse and DoS &mdash; see External Resources</div>
                     </div>
                 </div>
             </div>
 
             <div id="cloud-security" class="category">
                 <div class="category-header">
-                    <h3><i class="fas fa-cloud"></i> Cloud Security <span class="badge">4 Topics</span></h3>
-                    <a href="#" class="view-all">View all <i class="fas fa-angle-right"></i></a>
+                    <h3><i class="fas fa-cloud"></i> Cloud Security <span class="badge">5 Topics</span></h3>
+                    <a href="?md=docs/EXTERNAL-RESOURCES.md" class="view-all">View all <i class="fas fa-angle-right"></i></a>
                 </div>
                 <p class="category-description">Secure configuration and patterns for cloud platforms and infrastructure</p>
                 <div class="category-items">
@@ -719,19 +868,20 @@
                         <a href="./prompts/cloud-security/terraform-security.md">Terraform Security</a>
                     </div>
                     <div class="category-item">
-                        <a href="#">Azure Security Configuration [WIP]</a>
+                        <a href="?md=docs/EXTERNAL-RESOURCES.md">Azure Security Configuration</a>
+                        <div class="subcategory">Azure cloud security posture &mdash; see External Resources</div>
                     </div>
-                     <div class="category-item">
-                        <a href="#">Kubernetes Security [WIP]</a>
+                    <div class="category-item">
+                        <a href="?md=docs/EXTERNAL-RESOURCES.md">Kubernetes Security</a>
+                        <div class="subcategory">K8s workload security patterns &mdash; see External Resources</div>
                     </div>
-                    <!-- Add more cloud security items as needed -->
                 </div>
             </div>
 
             <div id="infra-testing" class="category">
                 <div class="category-header">
-                    <h3><i class="fas fa-cubes"></i> Code — Infra & Testing <span class="badge">8+ Topics</span></h3>
-                    <a href="#" class="view-all">View all <i class="fas fa-angle-right"></i></a>
+                    <h3><i class="fas fa-cubes"></i> Code &mdash; Infra &amp; Testing <span class="badge">8+ Topics</span></h3>
+                    <a href="?md=docs/EXTERNAL-RESOURCES.md" class="view-all">View all <i class="fas fa-angle-right"></i></a>
                 </div>
                 <p class="category-description">Security for infrastructure code, CI/CD pipelines, and testing methodologies</p>
                 <div class="category-items">
@@ -751,8 +901,8 @@
 
             <div id="client-side" class="category">
                 <div class="category-header">
-                    <h3><i class="fas fa-desktop"></i> Code — Client-Side <span class="badge">5 Topics</span></h3>
-                    <a href="#" class="view-all">View all <i class="fas fa-angle-right"></i></a>
+                    <h3><i class="fas fa-desktop"></i> Code &mdash; Client-Side <span class="badge">5 Topics</span></h3>
+                    <a href="?md=docs/EXTERNAL-RESOURCES.md" class="view-all">View all <i class="fas fa-angle-right"></i></a>
                 </div>
                 <p class="category-description">Security patterns for frontend web applications and frameworks</p>
                 <div class="category-items">
@@ -761,20 +911,28 @@
                         <div class="subcategory">Secure React framework patterns</div>
                     </div>
                     <div class="category-item">
-                        <a href="#">Angular [WIP]</a>
+                        <a href="?yaml=registry/framework-specs/angular.spec.yaml">Angular</a>
                         <div class="subcategory">Angular security best practices</div>
                     </div>
                     <div class="category-item">
-                        <a href="#">Vue.js [WIP]</a>
+                        <a href="?yaml=registry/framework-specs/vue.spec.yaml">Vue.js</a>
                         <div class="subcategory">Vue framework security patterns</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="?yaml=registry/framework-specs/svelte.spec.yaml">Svelte</a>
+                        <div class="subcategory">Svelte security patterns</div>
+                    </div>
+                    <div class="category-item">
+                        <a href="?yaml=registry/framework-specs/react-native.spec.yaml">React Native</a>
+                        <div class="subcategory">Cross-platform mobile security</div>
                     </div>
                 </div>
             </div>
 
             <div id="mobile" class="category">
                 <div class="category-header">
-                    <h3><i class="fas fa-mobile-alt"></i> Code — Mobile <span class="badge">5 Topics</span></h3>
-                    <a href="#" class="view-all">View all <i class="fas fa-angle-right"></i></a>
+                    <h3><i class="fas fa-mobile-alt"></i> Code &mdash; Mobile <span class="badge">5 Topics</span></h3>
+                    <a href="?md=docs/EXTERNAL-RESOURCES.md" class="view-all">View all <i class="fas fa-angle-right"></i></a>
                 </div>
                 <p class="category-description">Security patterns for mobile application development across platforms</p>
                 <div class="category-items">
@@ -794,7 +952,7 @@
             <div id="threat-modeling" class="category">
                 <div class="category-header">
                     <h3><i class="fas fa-sitemap"></i> Threat Modeling <span class="badge">3 Topics</span></h3>
-                    <a href="#" class="view-all">View all <i class="fas fa-angle-right"></i></a>
+                    <a href="?md=docs/EXTERNAL-RESOURCES.md" class="view-all">View all <i class="fas fa-angle-right"></i></a>
                 </div>
                 <p class="category-description">Methodologies and templates for identifying security threats in applications</p>
                 <div class="category-items">
@@ -803,12 +961,12 @@
                         <div class="subcategory">Platform-agnostic threat modeling approaches</div>
                     </div>
                     <div class="category-item">
-                        <a href="./prompts/threat-modeling/web-api.md">Web & API Threat Modeling</a>
+                        <a href="./prompts/threat-modeling/web-api.md">Web &amp; API Threat Modeling</a>
                         <div class="subcategory">Web and API-specific threat identification</div>
                     </div>
                     <div class="category-item">
-                        <a href="#">Diagram Generator [WIP]</a>
-                        <div class="subcategory">Visual threat model creation tools</div>
+                        <a href="?yaml=registry/subagents/threat-modeler/subagent.yaml">Threat Modeler Subagent</a>
+                        <div class="subcategory">AI-driven STRIDE threat modeling with Mermaid diagrams</div>
                     </div>
                 </div>
             </div>
@@ -816,7 +974,7 @@
             <div id="security-frameworks" class="category">
                 <div class="category-header">
                     <h3><i class="fas fa-shield-alt"></i> General Security Frameworks <span class="badge">7 Topics</span></h3>
-                    <a href="#" class="view-all">View all <i class="fas fa-angle-right"></i></a>
+                    <a href="?md=docs/EXTERNAL-RESOURCES.md" class="view-all">View all <i class="fas fa-angle-right"></i></a>
                 </div>
                 <p class="category-description">Established security frameworks and methodologies for application security</p>
                 <div class="category-items">
@@ -836,7 +994,7 @@
             <div id="secrets-management" class="category">
                 <div class="category-header">
                     <h3><i class="fas fa-key"></i> Secrets Management <span class="badge">6 Topics</span></h3>
-                    <a href="#" class="view-all">View all <i class="fas fa-angle-right"></i></a>
+                    <a href="?md=docs/EXTERNAL-RESOURCES.md" class="view-all">View all <i class="fas fa-angle-right"></i></a>
                 </div>
                 <p class="category-description">Securely managing credentials, tokens, and sensitive configuration data</p>
                 <div class="category-items">
@@ -845,12 +1003,12 @@
                         <div class="subcategory">Tools for identifying exposed secrets</div>
                     </div>
                     <div class="category-item">
-                        <a href="#">Secrets Rotation Strategy [WIP]</a>
-                        <div class="subcategory">Guidance for rotating credentials</div>
+                        <a href="?md=docs/EXTERNAL-RESOURCES.md">Secrets Rotation Strategy</a>
+                        <div class="subcategory">Guidance for rotating credentials &mdash; see External Resources</div>
                     </div>
                     <div class="category-item">
-                        <a href="#">Vault Configuration Guide [WIP]</a>
-                        <div class="subcategory">Secure secrets storage implementation</div>
+                        <a href="?md=docs/EXTERNAL-RESOURCES.md">Vault Configuration Guide</a>
+                        <div class="subcategory">Secure secrets storage implementation &mdash; see External Resources</div>
                     </div>
                 </div>
             </div>
@@ -858,7 +1016,7 @@
             <div id="validation" class="category">
                 <div class="category-header">
                     <h3><i class="fas fa-clipboard-check"></i> Validation <span class="badge">6 Topics</span></h3>
-                    <a href="#" class="view-all">View all <i class="fas fa-angle-right"></i></a>
+                    <a href="?md=docs/EXTERNAL-RESOURCES.md" class="view-all">View all <i class="fas fa-angle-right"></i></a>
                 </div>
                 <p class="category-description">Testing and validation methodologies for application security</p>
                 <div class="category-items">
@@ -880,7 +1038,7 @@
             <div id="workforce" class="category">
                 <div class="category-header">
                     <h3><i class="fas fa-users"></i> Workforce Enablement <span class="badge">11 Topics</span></h3>
-                    <a href="#" class="view-all">View all <i class="fas fa-angle-right"></i></a>
+                    <a href="?md=docs/EXTERNAL-RESOURCES.md" class="view-all">View all <i class="fas fa-angle-right"></i></a>
                 </div>
                 <p class="category-description">Training, education, and skills development for secure development practices</p>
                 <div class="category-items">
@@ -889,12 +1047,12 @@
                         <div class="subcategory">AI-assisted security learning</div>
                     </div>
                     <div class="category-item">
-                        <a href="#">Lunch-and-Learn Playbook [WIP]</a>
-                        <div class="subcategory">Security awareness training</div>
+                        <a href="?md=docs/EXTERNAL-RESOURCES.md">Lunch-and-Learn Playbook</a>
+                        <div class="subcategory">Security awareness training &mdash; see External Resources</div>
                     </div>
                     <div class="category-item">
-                        <a href="#">AppSec Champion Program [WIP]</a>
-                        <div class="subcategory">Building security champions</div>
+                        <a href="?md=docs/EXTERNAL-RESOURCES.md">AppSec Champion Program</a>
+                        <div class="subcategory">Building security champions &mdash; see External Resources</div>
                     </div>
                 </div>
             </div>
@@ -913,79 +1071,35 @@
     </div>
 
     <script>
-        // Search functionality
-        const searchInput = document.getElementById('search-input');
-        const allItems = document.querySelectorAll('.category-item');
-        const categories = document.querySelectorAll('.category');
-        
-        searchInput.addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase().trim();
-            
-            if (searchTerm === '') {
-                // Show all categories and items when search is empty
-                categories.forEach(cat => {
-                    cat.style.display = 'block';
-                    const items = cat.querySelectorAll('.category-item');
-                    items.forEach(item => item.style.display = 'block');
-                });
-                return;
-            }
-            
-            // Hide all categories initially
-            categories.forEach(cat => cat.style.display = 'none');
-            
-            // For each item, check if it matches the search
-            allItems.forEach(item => {
-                const title = item.querySelector('a').textContent.toLowerCase();
-                const description = item.querySelector('.subcategory')?.textContent.toLowerCase() || '';
-                
-                if (title.includes(searchTerm) || description.includes(searchTerm)) {
-                    // Show this item and its parent category
-                    item.style.display = 'block';
-                    item.closest('.category').style.display = 'block';
-                } else {
-                    // Hide non-matching items
-                    item.style.display = 'none';
-                }
-            });
-        });
-        
-        // Back to top button functionality
-        const backToTopButton = document.getElementById('back-to-top');
-        
-        window.addEventListener('scroll', () => {
+        // Back to top button
+        var backToTopButton = document.getElementById('back-to-top');
+        window.addEventListener('scroll', function () {
             if (window.scrollY > 300) {
                 backToTopButton.classList.add('visible');
             } else {
                 backToTopButton.classList.remove('visible');
             }
         });
-        
-        backToTopButton.addEventListener('click', () => {
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
+        backToTopButton.addEventListener('click', function () {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         });
 
         // Configure marked.js options
         marked.setOptions({
-            highlight: function(code, lang) {
+            highlight: function (code, lang) {
                 if (lang && hljs.getLanguage(lang)) {
                     return hljs.highlight(lang, code).value;
-                } else {
-                    return hljs.highlightAuto(code).value;
                 }
+                return hljs.highlightAuto(code).value;
             },
             breaks: true,
             gfm: true
         });
-        
-        // Check URL on page load for markdown parameter
-        document.addEventListener('DOMContentLoaded', function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const markdownPath = urlParams.get('md');
-            
+
+        // Check URL on page load for ?md= parameter
+        document.addEventListener('DOMContentLoaded', function () {
+            var urlParams = new URLSearchParams(window.location.search);
+            var markdownPath = urlParams.get('md');
             if (markdownPath) {
                 document.getElementById('content-container').style.display = 'block';
                 document.getElementById('main-content').style.display = 'none';
@@ -993,5 +1107,28 @@
             }
         });
     </script>
+
+    <noscript>
+        <p style="text-align:center;padding:2em;color:#e11d48;">
+            This site requires a JavaScript-enabled browser to render documentation.
+            Please enable JavaScript or use a modern browser.
+        </p>
+    </noscript>
+
+    <!-- CDN deps loaded on demand by markdown-loader/yaml-loader -->
+    <script>
+        window.__SECUREAI_CDN = {
+            mermaid:   'https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js',
+            jsyaml:    'https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js',
+            prismCore: 'https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js',
+            prismYaml: 'https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js',
+            prismBash: 'https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js',
+            prismJson: 'https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js',
+            lunr:      'https://cdn.jsdelivr.net/npm/lunr@2.3.9/lunr.min.js'
+        };
+    </script>
+    <link rel="stylesheet" href="css/site.css">
+    <script src="js/yaml-loader.js" defer></script>
+    <script src="js/search.js" defer></script>
 </body>
 </html>

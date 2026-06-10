@@ -1,0 +1,1994 @@
+[
+  {
+    "body_preview": "metadata: id: agentic-action-classification name: Agentic Action Classification description: Classify every agent tool and action as High, Medium, or Low impact; maintain a documented matrix; use classification to drive approval requirements, audit depth, and capability grants. version: \"1.0.0\" tags",
+    "category": "ai-governance",
+    "description": "Classify every agent tool and action as High, Medium, or Low impact; maintain a documented matrix; use classification to drive approval requirements, audit depth, and capability grants.",
+    "globs": [
+      "**/agents/**",
+      "**/agentic/**",
+      "**/.cursor/rules/**",
+      "**/subagents/**"
+    ],
+    "id": "agentic-action-classification",
+    "name": "Agentic Action Classification",
+    "path": "registry/rules/ai-governance/agentic-action-classification.rule.yaml",
+    "summary": "Classify every agent tool as High (financial, infra, secrets, prod-writes), Medium (PRs, internal comms, non-prod), or Low (read-only, public data); document the matrix; use classification to gate approval and audit. (NIST AI RMF MAP-2.1)",
+    "tags": [
+      "agentic",
+      "impact-assessment",
+      "classification",
+      "security"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: agentic-bulk-limits name: Agentic Bulk Limits description: Enforce per-request tool-call caps for agents; require user re-engagement before continuing bulk operations; target systems must enforce their own rate and volume limits. version: \"1.0.0\" tags: [agentic, rate-limiting, bulk-act",
+    "category": "ai-governance",
+    "description": "Enforce per-request tool-call caps for agents; require user re-engagement before continuing bulk operations; target systems must enforce their own rate and volume limits.",
+    "globs": [
+      "**/agents/**",
+      "**/agentic/**",
+      "**/workflows/**",
+      "**/subagents/**"
+    ],
+    "id": "agentic-bulk-limits",
+    "name": "Agentic Bulk Limits",
+    "path": "registry/rules/ai-governance/agentic-bulk-limits.rule.yaml",
+    "summary": "Cap agent tool calls per user request (default \u226420); require user re-engagement before additional bulk operations; target APIs must enforce independent volume limits; never silently loop. (OWASP LLM06)",
+    "tags": [
+      "agentic",
+      "rate-limiting",
+      "bulk-actions",
+      "dos-prevention"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: agentic-human-approval name: Agentic Human Approval description: Agents must not autonomously execute High-Impact actions; the agent prepares, the human executes. Asking permission is insufficient\u2014the agent must lack the capability. version: \"1.0.0\" tags: [agentic, human-in-the-loop, a",
+    "category": "ai-governance",
+    "description": "Agents must not autonomously execute High-Impact actions; the agent prepares, the human executes. Asking permission is insufficient\u2014the agent must lack the capability.",
+    "globs": [],
+    "id": "agentic-human-approval",
+    "name": "Agentic Human Approval",
+    "path": "registry/rules/ai-governance/agentic-human-approval.rule.yaml",
+    "summary": "Deny agents execution capability for High-Impact actions (financial, infra, secrets, prod writes); agent prepares and drafts, human executes; permission-asking alone is insufficient\u2014capability removal is the control. (ISO 42001 A.9.1)",
+    "tags": [
+      "agentic",
+      "human-in-the-loop",
+      "approval",
+      "high-impact",
+      "security"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: agentic-obo-auth name: Agentic On-Behalf-Of Authentication description: Agents must access remote systems using the current user's token or OAuth2 OBO flow; never use a shared service principal; every agent action must be attributable to the real user. version: \"1.0.0\" tags: [agentic, ",
+    "category": "ai-governance",
+    "description": "Agents must access remote systems using the current user's token or OAuth2 OBO flow; never use a shared service principal; every agent action must be attributable to the real user.",
+    "globs": [
+      "**/agents/**",
+      "**/auth/**",
+      "**/oauth/**",
+      "**/mcp/**",
+      "**/integrations/**"
+    ],
+    "id": "agentic-obo-auth",
+    "name": "Agentic On-Behalf-Of Authentication",
+    "path": "registry/rules/ai-governance/agentic-obo-auth.rule.yaml",
+    "summary": "Agents must use the current user's delegated token (OAuth2 OBO or passthrough) for every downstream API call; never use a shared service principal; RBAC must be enforced at the target; every agent action must be attributable to the real user. (RFC 8693)",
+    "tags": [
+      "agentic",
+      "authentication",
+      "obo",
+      "oauth",
+      "token-passthrough",
+      "security"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: agentic-tool-scoping name: Agentic Tool Scoping description: Provision each agent with only the minimum tools required for its specific task; document and review the tool inventory; avoid broad or catch-all MCP server access. version: \"1.0.0\" tags: [agentic, mcp, tool-calling, least-pr",
+    "category": "ai-governance",
+    "description": "Provision each agent with only the minimum tools required for its specific task; document and review the tool inventory; avoid broad or catch-all MCP server access.",
+    "globs": [
+      "**/agents/**",
+      "**/mcp/**",
+      "**/subagents/**",
+      "**/tools/**",
+      "**/.cursor/rules/**"
+    ],
+    "id": "agentic-tool-scoping",
+    "name": "Agentic Tool Scoping",
+    "path": "registry/rules/ai-governance/agentic-tool-scoping.rule.yaml",
+    "summary": "Grant each agent only the tools it actually needs (\u22645 for narrow tasks); document each tool with a justification; reject catch-all or admin-scoped MCP servers; review tool inventories at least quarterly. (ISO 42001 A.9.1)",
+    "tags": [
+      "agentic",
+      "mcp",
+      "tool-calling",
+      "least-privilege",
+      "security"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: ai-audit-logging name: AI Audit Logging description: Log all LLM requests, responses, and tool calls with user identity, model version, token counts, and decision outcome; enforce retention TTL; integrate with SIEM for anomaly detection. version: \"1.0.0\" tags: [ai-security, audit, logg",
+    "category": "ai-governance",
+    "description": "Log all LLM requests, responses, and tool calls with user identity, model version, token counts, and decision outcome; enforce retention TTL; integrate with SIEM for anomaly detection.",
+    "globs": [],
+    "id": "ai-audit-logging",
+    "name": "AI Audit Logging",
+    "path": "registry/rules/ai-governance/ai-audit-logging.rule.yaml",
+    "summary": "Log every LLM request, response, and tool call with: user identity, model version, token counts, decision, inputs-hash; enforce data-retention TTL; feed SIEM for anomaly detection; support per-user throttling. (ISO 27001 A.8.15)",
+    "tags": [
+      "ai-security",
+      "audit",
+      "logging",
+      "observability",
+      "compliance"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: ai-bias-fairness name: AI Bias and Fairness description: Test for disparate impact across protected groups before deployment; define quantitative fairness metrics; audit training data for representation and labeling bias; monitor for drift in production. version: \"1.0.0\" tags: [ai-gove",
+    "category": "ai-governance",
+    "description": "Test for disparate impact across protected groups before deployment; define quantitative fairness metrics; audit training data for representation and labeling bias; monitor for drift in production.",
+    "globs": [
+      "**/models/**",
+      "**/ml/**",
+      "**/training/**",
+      "**/datasets/**",
+      "**/ai/**"
+    ],
+    "id": "ai-bias-fairness",
+    "name": "AI Bias and Fairness",
+    "path": "registry/rules/ai-governance/ai-bias-fairness.rule.yaml",
+    "summary": "Perform pre-deployment bias audit across protected groups; define and measure at least one quantitative fairness metric (demographic parity, equalized odds); audit training data for representation; monitor production for bias drift; document remediation procedures. (EU AI Act Art. 10)",
+    "tags": [
+      "ai-governance",
+      "bias",
+      "fairness",
+      "ethics",
+      "compliance"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: ai-code-provenance name: AI Code Provenance description: Every AI-generated or AI-assisted commit must carry a Co-Authored-By trailer identifying the AI tool; CI verifies the trailer is present on flagged commits; enables attribution, audit, and downstream license analysis. version: \"1",
+    "category": "ai-governance",
+    "description": "Every AI-generated or AI-assisted commit must carry a Co-Authored-By trailer identifying the AI tool; CI verifies the trailer is present on flagged commits; enables attribution, audit, and downstream license analysis.",
+    "globs": [
+      "**/.github/**",
+      "**/Makefile",
+      "**/.git/**",
+      "**/hooks/**",
+      "**/*.py",
+      "**/*.ts",
+      "**/*.js",
+      "**/*.go",
+      "**/*.java"
+    ],
+    "id": "ai-code-provenance",
+    "name": "AI Code Provenance",
+    "path": "registry/rules/ai-governance/ai-code-provenance.rule.yaml",
+    "summary": "Add Co-Authored-By trailer to every AI-generated commit (e.g., Co-Authored-By: github-copilot[bot]); CI verifies trailer on AI-flagged commits; enables audit, license analysis, and supply-chain traceability. (ISO 42001 A.8.4)",
+    "tags": [
+      "ai-governance",
+      "provenance",
+      "attribution",
+      "git",
+      "supply-chain",
+      "code-generation"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: ai-content-moderation name: AI Content Moderation description: Filter AI output for harmful, toxic, or brand-damaging content before publication; require human review for AI content reaching external audiences; apply stricter configs for public-facing AI. version: \"1.0.0\" tags: [ai-sec",
+    "category": "ai-governance",
+    "description": "Filter AI output for harmful, toxic, or brand-damaging content before publication; require human review for AI content reaching external audiences; apply stricter configs for public-facing AI.",
+    "globs": [
+      "**/llm/**",
+      "**/ai/**",
+      "**/prompts/**",
+      "**/content/**",
+      "**/chatbot/**"
+    ],
+    "id": "ai-content-moderation",
+    "name": "AI Content Moderation",
+    "path": "registry/rules/ai-governance/ai-content-moderation.rule.yaml",
+    "summary": "Filter all AI-generated output through a content moderation pipeline before reaching external audiences; require human review for public-facing content; use stricter configs for public vs internal; log all moderation decisions. (OWASP LLM02)",
+    "tags": [
+      "ai-security",
+      "content-moderation",
+      "brand-safety",
+      "guardrails",
+      "output-filtering"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: ai-data-classification name: AI Data Classification description: Classify every data source used by AI systems (training, RAG, inference context) for sensitivity; maintain a data-source inventory with owner and classification; identify uncontrolled sources explicitly. version: \"1.0.0\" ",
+    "category": "ai-governance",
+    "description": "Classify every data source used by AI systems (training, RAG, inference context) for sensitivity; maintain a data-source inventory with owner and classification; identify uncontrolled sources explicitly.",
+    "globs": [
+      "**/data/**",
+      "**/datasets/**",
+      "**/rag/**",
+      "**/ai/**",
+      "**/pipelines/**"
+    ],
+    "id": "ai-data-classification",
+    "name": "AI Data Classification",
+    "path": "registry/rules/ai-governance/ai-data-classification.rule.yaml",
+    "summary": "Classify every AI data source (training, RAG, context) for sensitivity (PII, confidential, regulated, public); maintain an owner-attributed inventory; tag uncontrolled sources (web scrape, public APIs) explicitly; drive access control from classification. (ISO 42001 A.7.3)",
+    "tags": [
+      "ai-security",
+      "data-classification",
+      "pii",
+      "sensitivity",
+      "compliance"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: ai-data-provenance name: AI Data Provenance description: Document lineage for all AI training and inference data; enforce quality gates before model training; version datasets; detect train/test contamination; maintain queryable, immutable lineage records. version: \"1.0.0\" tags: [ai-go",
+    "category": "ai-governance",
+    "description": "Document lineage for all AI training and inference data; enforce quality gates before model training; version datasets; detect train/test contamination; maintain queryable, immutable lineage records.",
+    "globs": [
+      "**/data/**",
+      "**/ml/**",
+      "**/training/**",
+      "**/pipelines/**",
+      "**/datasets/**"
+    ],
+    "id": "ai-data-provenance",
+    "name": "AI Data Provenance",
+    "path": "registry/rules/ai-governance/ai-data-provenance.rule.yaml",
+    "summary": "Document source, transformation, and quality for all AI training and inference data; enforce automated quality gates (completeness, accuracy, consistency) before training; version datasets; detect train-test contamination; keep lineage immutable and queryable. (ISO 42001 A.7.1)",
+    "tags": [
+      "ai-governance",
+      "data-provenance",
+      "data-quality",
+      "lineage",
+      "compliance"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: ai-data-segregation name: AI Data Segregation description: User-supplied data must only serve that user; enforce per-user namespacing in vector stores; no cross-user data leakage; TTL on all user-supplied content; no long-term cross-session memory without Privacy approval. version: \"1.",
+    "category": "ai-governance",
+    "description": "User-supplied data must only serve that user; enforce per-user namespacing in vector stores; no cross-user data leakage; TTL on all user-supplied content; no long-term cross-session memory without Privacy approval.",
+    "globs": [
+      "**/data/**",
+      "**/vectors/**",
+      "**/embeddings/**",
+      "**/rag/**",
+      "**/memory/**"
+    ],
+    "id": "ai-data-segregation",
+    "name": "AI Data Segregation",
+    "path": "registry/rules/ai-governance/ai-data-segregation.rule.yaml",
+    "summary": "Isolate all user-supplied AI context (chat history, uploads, embeddings) to the originating user; never allow cross-user data leakage; enforce TTL on user-supplied content; segment vector stores by sensitivity; prohibit cross-session memory without Privacy/Legal approval. (GDPR Art. 5)",
+    "tags": [
+      "ai-security",
+      "data-segregation",
+      "privacy",
+      "pii",
+      "user-isolation"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: ai-explainability name: AI Explainability description: Document model choices, data lineage, and intended use; disclose AI interaction to users; provide layered explanations (outcome, process, counterfactual); treat explainability as a design requirement. version: \"1.0.0\" tags: [ai-gov",
+    "category": "ai-governance",
+    "description": "Document model choices, data lineage, and intended use; disclose AI interaction to users; provide layered explanations (outcome, process, counterfactual); treat explainability as a design requirement.",
+    "globs": [
+      "**/models/**",
+      "**/ai/**",
+      "**/llm/**",
+      "**/chatbot/**",
+      "**/ml/**"
+    ],
+    "id": "ai-explainability",
+    "name": "AI Explainability",
+    "path": "registry/rules/ai-governance/ai-explainability.rule.yaml",
+    "summary": "Author a model card for every deployed AI system documenting purpose, limitations, and data lineage; notify users they are interacting with AI; provide outcome-level explanations; define prohibited uses; track model versions and retraining events. (EU AI Act Art. 13)",
+    "tags": [
+      "ai-governance",
+      "explainability",
+      "documentation",
+      "transparency",
+      "compliance"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: ai-guardrails name: AI Guardrails description: Implement input and output guardrails on all LLM interactions; use platform guardrail configs; apply stricter controls for public-facing AI; version guardrail configurations alongside model deployments. version: \"1.0.0\" tags: [ai-security,",
+    "category": "ai-governance",
+    "description": "Implement input and output guardrails on all LLM interactions; use platform guardrail configs; apply stricter controls for public-facing AI; version guardrail configurations alongside model deployments.",
+    "globs": [
+      "**/llm/**",
+      "**/prompts/**",
+      "**/ai/**",
+      "**/chatbot/**",
+      "**/guardrails/**"
+    ],
+    "id": "ai-guardrails",
+    "name": "AI Guardrails",
+    "path": "registry/rules/ai-governance/ai-guardrails.rule.yaml",
+    "summary": "Apply input guardrails (PII detection, injection blocking, content policy) and output guardrails (harmful-content filter, PII redaction, topic validation) to every LLM interaction; use stricter configs for public-facing AI; version guardrail configs. (OWASP LLM01+LLM02)",
+    "tags": [
+      "ai-security",
+      "guardrails",
+      "content-filtering",
+      "output-validation",
+      "llm"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: ai-human-oversight name: AI Human Oversight description: Every AI system must have a tested kill switch, confidence-threshold escalation to human reviewers, logged human overrides, graceful degradation to manual processes, and documented escalation procedures. version: \"1.0.0\" tags: [a",
+    "category": "ai-governance",
+    "description": "Every AI system must have a tested kill switch, confidence-threshold escalation to human reviewers, logged human overrides, graceful degradation to manual processes, and documented escalation procedures.",
+    "globs": [
+      "**/ai/**",
+      "**/agents/**",
+      "**/services/**",
+      "**/ml/**",
+      "**/models/**"
+    ],
+    "id": "ai-human-oversight",
+    "name": "AI Human Oversight",
+    "path": "registry/rules/ai-governance/ai-human-oversight.rule.yaml",
+    "summary": "Equip every production AI system with a tested kill switch, confidence-threshold-based escalation to human reviewers, immutable override logs (who/when/why/what), graceful degradation to manual fallback, and documented escalation tiers. (ISO 42001 A.9.2)",
+    "tags": [
+      "ai-governance",
+      "human-oversight",
+      "kill-switch",
+      "override",
+      "safety"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: ai-kill-switch name: AI Kill Switch description: Every agentic system must have a documented, tested kill switch covering session termination, model rollback, and traffic gating; activation must be immediate, authorized, and produce an immutable audit entry. version: \"1.0.0\" tags: [ai-",
+    "category": "ai-governance",
+    "description": "Every agentic system must have a documented, tested kill switch covering session termination, model rollback, and traffic gating; activation must be immediate, authorized, and produce an immutable audit entry.",
+    "globs": [
+      "**/agents/**",
+      "**/ai/**",
+      "**/services/**",
+      "**/deployments/**",
+      "**/gateway/**"
+    ],
+    "id": "ai-kill-switch",
+    "name": "AI Kill Switch",
+    "path": "registry/rules/ai-governance/ai-kill-switch.rule.yaml",
+    "summary": "Every agentic AI system must document and regularly test a kill switch at three layers (session terminate, model rollback, traffic gate); activation must halt processing within seconds, require authorized credentials, and produce an immutable audit entry. (ISO 42001 A.8.2)",
+    "tags": [
+      "ai-governance",
+      "kill-switch",
+      "incident-response",
+      "safety",
+      "agentic"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: ai-model-lifecycle name: AI Model Lifecycle description: Govern the full AI model lifecycle from design through decommissioning; require model versioning and registry; define lifecycle stages with quality gates; detect drift; support canary deployment and rollback. version: \"1.0.0\" tag",
+    "category": "ai-governance",
+    "description": "Govern the full AI model lifecycle from design through decommissioning; require model versioning and registry; define lifecycle stages with quality gates; detect drift; support canary deployment and rollback.",
+    "globs": [
+      "**/models/**",
+      "**/ml/**",
+      "**/training/**",
+      "**/registry/**",
+      "**/.github/workflows/**"
+    ],
+    "id": "ai-model-lifecycle",
+    "name": "AI Model Lifecycle",
+    "path": "registry/rules/ai-governance/ai-model-lifecycle.rule.yaml",
+    "summary": "Register all AI models in a centralized registry with versioned artifacts; enforce lifecycle stages (design \u2192 test \u2192 approval \u2192 production \u2192 decommission) with documented quality gates; detect data/concept/performance drift; deploy via canary with automatic rollback. (ISO 42001 A.6.2)",
+    "tags": [
+      "ai-governance",
+      "model-lifecycle",
+      "versioning",
+      "monitoring",
+      "mlops"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: ai-rate-limiting name: AI Rate Limiting description: Enforce per-user and per-team request and token-budget limits on AI API access; monitor consumption; scope prompts to relevant context only; avoid mixing unrelated tasks in one session. version: \"1.0.0\" tags: [ai-security, rate-limit",
+    "category": "ai-governance",
+    "description": "Enforce per-user and per-team request and token-budget limits on AI API access; monitor consumption; scope prompts to relevant context only; avoid mixing unrelated tasks in one session.",
+    "globs": [
+      "**/llm/**",
+      "**/ai/**",
+      "**/api/**",
+      "**/gateway/**",
+      "**/.cursor/**"
+    ],
+    "id": "ai-rate-limiting",
+    "name": "AI Rate Limiting",
+    "path": "registry/rules/ai-governance/ai-rate-limiting.rule.yaml",
+    "summary": "Enforce per-user and per-team AI request and token-budget limits; monitor consumption and alert on anomalies; scope prompts to relevant context only (never whole-repo); use one session per task to keep context clean and costs predictable. (NIST AI RMF GOVERN-1.1)",
+    "tags": [
+      "ai-security",
+      "rate-limiting",
+      "cost-management",
+      "token-budget"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: ai-regulatory-compliance name: AI Regulatory Compliance description: Engage Legal before deploying AI subject to regulation; classify AI systems under EU AI Act; complete data classification; require Secure-by-Design review; assess third-party AI vendors; screen for prohibited use case",
+    "category": "ai-governance",
+    "description": "Engage Legal before deploying AI subject to regulation; classify AI systems under EU AI Act; complete data classification; require Secure-by-Design review; assess third-party AI vendors; screen for prohibited use cases.",
+    "globs": [
+      "**/ai/**",
+      "**/compliance/**",
+      "**/legal/**",
+      "**/governance/**"
+    ],
+    "id": "ai-regulatory-compliance",
+    "name": "AI Regulatory Compliance",
+    "path": "registry/rules/ai-governance/ai-regulatory-compliance.rule.yaml",
+    "summary": "Engage Legal before deploying regulated AI; classify under EU AI Act tiers; complete data classification; require Secure-by-Design review; assess third-party AI; prohibit unauthorized surveillance, discrimination, and deepfakes. (EU AI Act Art. 5)",
+    "tags": [
+      "ai-governance",
+      "compliance",
+      "regulatory",
+      "eu-ai-act",
+      "legal",
+      "privacy"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: ai-third-party-ai name: AI Third-Party AI Governance description: Apply AI-specific vendor assessment beyond standard procurement; require AI-specific contractual clauses; monitor for drift and silent model updates; define subprocessor requirements and exit strategy. version: \"1.0.0\" t",
+    "category": "ai-governance",
+    "description": "Apply AI-specific vendor assessment beyond standard procurement; require AI-specific contractual clauses; monitor for drift and silent model updates; define subprocessor requirements and exit strategy.",
+    "globs": [
+      "**/llm/**",
+      "**/vendors/**",
+      "**/integrations/**",
+      "**/third-party/**",
+      "**/ai/**"
+    ],
+    "id": "ai-third-party-ai",
+    "name": "AI Third-Party AI Governance",
+    "path": "registry/rules/ai-governance/ai-third-party-ai.rule.yaml",
+    "summary": "Assess third-party AI vendors with AI-specific criteria (data handling, model updates, bias SLAs, audit rights); require AI-specific contract clauses; monitor for silent model changes; document subprocessors; define exit strategy. (ISO 42001 A.10.1)",
+    "tags": [
+      "ai-governance",
+      "third-party",
+      "vendor",
+      "supply-chain",
+      "compliance"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: llm-output-sanitization name: LLM Output Sanitization description: Strip prompt-injection markers and embedded tool-invocation syntax from LLM outputs; escape outputs context-appropriately before rendering; reject outputs that contain structural command sequences. version: \"1.0.0\" tags",
+    "category": "ai-governance",
+    "description": "Strip prompt-injection markers and embedded tool-invocation syntax from LLM outputs; escape outputs context-appropriately before rendering; reject outputs that contain structural command sequences.",
+    "globs": [
+      "**/llm/**",
+      "**/prompts/**",
+      "**/outputs/**",
+      "**/ai/**",
+      "**/templates/**",
+      "**/renderers/**"
+    ],
+    "id": "llm-output-sanitization",
+    "name": "LLM Output Sanitization",
+    "path": "registry/rules/ai-governance/llm-output-sanitization.rule.yaml",
+    "summary": "Sanitize every LLM output before rendering or passing downstream: strip injection markers, escape for context (HTML/SQL/shell), reject outputs containing embedded tool-invocation syntax or instruction-override sequences; never trust model output as safe. (OWASP LLM02)",
+    "tags": [
+      "ai-security",
+      "output-sanitization",
+      "prompt-injection",
+      "xss",
+      "llm"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: mcp-server-safety name: MCP Server Safety description: MCP servers must follow an approved blueprint, be registered, implement authentication (OBO where applicable), pass Secure-by-Design review, and be protected by WAF/rate-limiting if internet-facing. version: \"1.0.0\" tags: [ai-secur",
+    "category": "ai-governance",
+    "description": "MCP servers must follow an approved blueprint, be registered, implement authentication (OBO where applicable), pass Secure-by-Design review, and be protected by WAF/rate-limiting if internet-facing.",
+    "globs": [],
+    "id": "mcp-server-safety",
+    "name": "MCP Server Safety",
+    "path": "registry/rules/ai-governance/mcp-server-safety.rule.yaml",
+    "summary": "Build MCP servers from approved blueprints; register in approved catalog before deployment; implement OBO auth for user-scoped actions; complete Secure-by-Design review; add WAF + rate-limiting for internet-facing endpoints. (MCP spec)",
+    "tags": [
+      "ai-security",
+      "mcp",
+      "tool-calling",
+      "server-safety",
+      "platform"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: prompt-injection-prevention name: Prompt Injection Prevention description: Validate and sanitize all LLM inputs; detect injection patterns; separate system prompts from user content; use constrained interfaces for high-risk flows. version: \"1.0.0\" tags: [ai-security, prompt-injection, ",
+    "category": "ai-governance",
+    "description": "Validate and sanitize all LLM inputs; detect injection patterns; separate system prompts from user content; use constrained interfaces for high-risk flows.",
+    "globs": [],
+    "id": "prompt-injection-prevention",
+    "name": "Prompt Injection Prevention",
+    "path": "registry/rules/ai-governance/prompt-injection-prevention.rule.yaml",
+    "summary": "Sanitize all LLM inputs before model invocation; detect injection patterns (role-override, instruction-leakage, delimiter confusion); never concatenate user content into the system prompt; use constrained interfaces where possible. (OWASP LLM01)",
+    "tags": [
+      "ai-security",
+      "prompt-injection",
+      "jailbreak",
+      "input-validation",
+      "llm"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: access-control name: Access Control description: Enforce server-side authorization on every request; deny by default; prevent IDOR; apply least privilege. version: \"1.0.0\" tags: [access-control, authorization, rbac, abac, least-privilege, idor] category: coding-standards severity: crit",
+    "category": "coding-standards",
+    "description": "Enforce server-side authorization on every request; deny by default; prevent IDOR; apply least privilege.",
+    "globs": [
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx",
+      "**/*.mjs",
+      "**/*.py",
+      "**/*.java",
+      "**/*.kt",
+      "**/*.go",
+      "**/*.cs",
+      "**/*.rb",
+      "**/*.php"
+    ],
+    "id": "access-control",
+    "name": "Access Control",
+    "path": "registry/rules/coding-standards/access-control.rule.yaml",
+    "summary": "Enforce server-side authorization on every request. Deny by default. Verify resource ownership to prevent IDOR. Centralize checks in middleware; never rely on client-side role checks alone.",
+    "tags": [
+      "access-control",
+      "authorization",
+      "rbac",
+      "abac",
+      "least-privilege",
+      "idor"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: auth-patterns name: Secure Authentication Patterns description: Use Argon2id/bcrypt for passwords, validate JWTs fully, manage sessions securely; ban MD5/SHA-1 for password storage. version: \"1.0.0\" tags: [authentication, passwords, jwt, sessions, bcrypt, argon2] category: coding-stand",
+    "category": "coding-standards",
+    "description": "Use Argon2id/bcrypt for passwords, validate JWTs fully, manage sessions securely; ban MD5/SHA-1 for password storage.",
+    "globs": [
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx",
+      "**/*.mjs",
+      "**/*.py",
+      "**/*.java",
+      "**/*.kt",
+      "**/*.go",
+      "**/*.cs",
+      "**/*.rb",
+      "**/*.php"
+    ],
+    "id": "auth-patterns",
+    "name": "Secure Authentication Patterns",
+    "path": "registry/rules/coding-standards/auth-patterns.rule.yaml",
+    "summary": "Hash passwords with Argon2id or bcrypt (cost \u226512). Validate JWTs with signature, expiry, and issuer checks. Set session cookies httpOnly, secure, SameSite=strict. Ban MD5/SHA-1 for credentials.",
+    "tags": [
+      "authentication",
+      "passwords",
+      "jwt",
+      "sessions",
+      "bcrypt",
+      "argon2"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: cors-security name: CORS Security description: Configure CORS with explicit, minimal origin allowlists; never use wildcard (*) with credentials; reflect Origin header only after validation. version: \"1.0.0\" tags: [cors, cross-origin, http-headers, api-security] category: coding-standar",
+    "category": "coding-standards",
+    "description": "Configure CORS with explicit, minimal origin allowlists; never use wildcard (*) with credentials; reflect Origin header only after validation.",
+    "globs": [
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx",
+      "**/*.mjs",
+      "**/*.py",
+      "**/*.java",
+      "**/*.go",
+      "**/*.cs",
+      "**/*.rb",
+      "**/*.php"
+    ],
+    "id": "cors-security",
+    "name": "CORS Security",
+    "path": "registry/rules/coding-standards/cors-security.rule.yaml",
+    "summary": "Configure CORS with an explicit origin allowlist. Never use wildcard (*) when credentials are included. Validate the Origin header server-side; do not reflect arbitrary origins. Restrict allowed methods and headers.",
+    "tags": [
+      "cors",
+      "cross-origin",
+      "http-headers",
+      "api-security"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: cryptography-standards name: Cryptography Standards description: Use only approved algorithms (AES-256-GCM, Argon2id, SHA-256+, Ed25519); ban MD5, SHA-1, DES, 3DES, RC4, ECB mode; use OS CSPRNG for all random material. version: \"1.0.0\" tags: [cryptography, encryption, hashing, key-mana",
+    "category": "coding-standards",
+    "description": "Use only approved algorithms (AES-256-GCM, Argon2id, SHA-256+, Ed25519); ban MD5, SHA-1, DES, 3DES, RC4, ECB mode; use OS CSPRNG for all random material.",
+    "globs": [
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx",
+      "**/*.mjs",
+      "**/*.py",
+      "**/*.java",
+      "**/*.kt",
+      "**/*.go",
+      "**/*.cs",
+      "**/*.rs",
+      "**/*.rb",
+      "**/*.php"
+    ],
+    "id": "cryptography-standards",
+    "name": "Cryptography Standards",
+    "path": "registry/rules/coding-standards/cryptography-standards.rule.yaml",
+    "summary": "Use AES-256-GCM or ChaCha20-Poly1305 for encryption; Argon2id or bcrypt(\u226512) for passwords; SHA-256+ for hashing. Ban MD5, SHA-1, DES, 3DES, RC4, ECB. Use OS CSPRNG; never Math.random() for secrets.",
+    "tags": [
+      "cryptography",
+      "encryption",
+      "hashing",
+      "key-management",
+      "csprng",
+      "pqc"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: dependency-management name: Dependency Management description: Pin dependencies with exact versions and integrity hashes; scan for known CVEs in CI; keep an SBOM; remove unused dependencies promptly. version: \"1.0.0\" tags: [dependencies, sca, sbom, supply-chain, cve, lockfile] category",
+    "category": "coding-standards",
+    "description": "Pin dependencies with exact versions and integrity hashes; scan for known CVEs in CI; keep an SBOM; remove unused dependencies promptly.",
+    "globs": [
+      "**/package.json",
+      "**/package-lock.json",
+      "**/yarn.lock",
+      "**/pnpm-lock.yaml",
+      "**/requirements.txt",
+      "**/Pipfile.lock",
+      "**/pyproject.toml",
+      "**/poetry.lock",
+      "**/pom.xml",
+      "**/build.gradle",
+      "**/go.mod",
+      "**/go.sum",
+      "**/Cargo.toml",
+      "**/Cargo.lock",
+      "**/*.csproj"
+    ],
+    "id": "dependency-management",
+    "name": "Dependency Management",
+    "path": "registry/rules/coding-standards/dependency-management.rule.yaml",
+    "summary": "Pin all dependencies with exact versions and integrity hashes. Scan for CVEs in CI. Maintain a CycloneDX SBOM. Remove unused packages. Never install packages from untrusted sources.",
+    "tags": [
+      "dependencies",
+      "sca",
+      "sbom",
+      "supply-chain",
+      "cve",
+      "lockfile"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: error-handling name: Secure Error Handling description: Return generic error messages to clients; log full details server-side; never expose stack traces, internal paths, or sensitive data in responses. version: \"1.0.0\" tags: [error-handling, information-disclosure, logging, exception-",
+    "category": "coding-standards",
+    "description": "Return generic error messages to clients; log full details server-side; never expose stack traces, internal paths, or sensitive data in responses.",
+    "globs": [
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx",
+      "**/*.mjs",
+      "**/*.py",
+      "**/*.java",
+      "**/*.kt",
+      "**/*.go",
+      "**/*.cs",
+      "**/*.rb",
+      "**/*.php"
+    ],
+    "id": "error-handling",
+    "name": "Secure Error Handling",
+    "path": "registry/rules/coding-standards/error-handling.rule.yaml",
+    "summary": "Return generic error messages to clients. Log full error details server-side only. Never expose stack traces, internal paths, SQL errors, or sensitive data in API responses. Catch all unhandled rejections.",
+    "tags": [
+      "error-handling",
+      "information-disclosure",
+      "logging",
+      "exception-handling"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: input-validation name: Input Validation description: Validate all user input server-side for type, length, format, and range; use allowlists; reject invalid input before processing. version: \"1.0.0\" tags: [input-validation, sanitization, allowlist, injection, xss] category: coding-stan",
+    "category": "coding-standards",
+    "description": "Validate all user input server-side for type, length, format, and range; use allowlists; reject invalid input before processing.",
+    "globs": [
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx",
+      "**/*.mjs",
+      "**/*.py",
+      "**/*.java",
+      "**/*.kt",
+      "**/*.go",
+      "**/*.cs",
+      "**/*.rb",
+      "**/*.php",
+      "**/*.rs"
+    ],
+    "id": "input-validation",
+    "name": "Input Validation",
+    "path": "registry/rules/coding-standards/input-validation.rule.yaml",
+    "summary": "Validate all user input server-side: type, length, format, and range. Use allowlists over blocklists. Reject invalid input before processing. Never trust client-side validation alone.",
+    "tags": [
+      "input-validation",
+      "sanitization",
+      "allowlist",
+      "injection",
+      "xss"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: no-hardcoded-secrets name: No Hardcoded Secrets description: Prohibit API keys, passwords, tokens, private keys, and connection strings in source code; require environment variables or secret managers. version: \"1.0.0\" tags: [secrets, credentials, api-keys, tokens, secret-management, t",
+    "category": "coding-standards",
+    "description": "Prohibit API keys, passwords, tokens, private keys, and connection strings in source code; require environment variables or secret managers.",
+    "globs": [
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx",
+      "**/*.mjs",
+      "**/*.py",
+      "**/*.java",
+      "**/*.kt",
+      "**/*.go",
+      "**/*.cs",
+      "**/*.rb",
+      "**/*.php",
+      "**/*.swift",
+      "**/*.rs",
+      "**/*.scala",
+      "**/*.ex",
+      "**/*.exs",
+      "**/*.c",
+      "**/*.cpp",
+      "**/*.cc",
+      "**/*.h",
+      "**/*.hpp"
+    ],
+    "id": "no-hardcoded-secrets",
+    "name": "No Hardcoded Secrets",
+    "path": "registry/rules/coding-standards/no-hardcoded-secrets.rule.yaml",
+    "summary": "Never hardcode API keys, passwords, tokens, private keys, or connection strings in source code. Load secrets from environment variables or a secret manager (Vault, AWS Secrets Manager, Azure Key Vault). Commit .env.example only.",
+    "tags": [
+      "secrets",
+      "credentials",
+      "api-keys",
+      "tokens",
+      "secret-management",
+      "tier0"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: no-sql-injection name: No SQL Injection description: Use parameterized queries or prepared statements for all database interactions; never concatenate user input into SQL strings. version: \"1.0.0\" tags: [sql-injection, parameterized-queries, orm, prepared-statements, database] category",
+    "category": "coding-standards",
+    "description": "Use parameterized queries or prepared statements for all database interactions; never concatenate user input into SQL strings.",
+    "globs": [
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx",
+      "**/*.mjs",
+      "**/*.py",
+      "**/*.java",
+      "**/*.kt",
+      "**/*.go",
+      "**/*.cs",
+      "**/*.rb",
+      "**/*.php",
+      "**/*.rs"
+    ],
+    "id": "no-sql-injection",
+    "name": "No SQL Injection",
+    "path": "registry/rules/coding-standards/no-sql-injection.rule.yaml",
+    "summary": "Use parameterized queries or prepared statements for all SQL. Never concatenate or interpolate user input into query strings. Use an ORM or query builder; validate identifiers against an allowlist if dynamic column names are required.",
+    "tags": [
+      "sql-injection",
+      "parameterized-queries",
+      "orm",
+      "prepared-statements",
+      "database"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: output-encoding name: Output Encoding description: Context-sensitively encode all output rendered in HTML, JavaScript, CSS, URLs, or XML; use trusted sanitizer libraries; never use innerHTML with user data. version: \"1.0.0\" tags: [output-encoding, xss, html-encoding, content-security-p",
+    "category": "coding-standards",
+    "description": "Context-sensitively encode all output rendered in HTML, JavaScript, CSS, URLs, or XML; use trusted sanitizer libraries; never use innerHTML with user data.",
+    "globs": [
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx",
+      "**/*.html",
+      "**/*.py",
+      "**/*.java",
+      "**/*.kt",
+      "**/*.go",
+      "**/*.cs",
+      "**/*.rb",
+      "**/*.php"
+    ],
+    "id": "output-encoding",
+    "name": "Output Encoding",
+    "path": "registry/rules/coding-standards/output-encoding.rule.yaml",
+    "summary": "Encode all user-controlled output before rendering: HTML-encode for HTML context, JS-encode for script context, URL-encode for URLs. Use DOMPurify for HTML sanitization. Set Content-Security-Policy headers. Never use innerHTML with unsanitized input.",
+    "tags": [
+      "output-encoding",
+      "xss",
+      "html-encoding",
+      "content-security-policy",
+      "sanitization"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: secure-configuration name: Secure Configuration description: Disable debug features in production, enforce HTTPS, set security headers, use allowlisted configurations, and separate config from code. version: \"1.0.0\" tags: [secure-configuration, hardening, security-headers, https, debug",
+    "category": "coding-standards",
+    "description": "Disable debug features in production, enforce HTTPS, set security headers, use allowlisted configurations, and separate config from code.",
+    "globs": [
+      "**/*.ts",
+      "**/*.js",
+      "**/*.py",
+      "**/*.java",
+      "**/*.go",
+      "**/*.cs",
+      "**/*.rb",
+      "**/*.php",
+      "**/*.yaml",
+      "**/*.yml",
+      "**/*.json",
+      "**/Dockerfile",
+      "**/*.conf",
+      "**/*.ini",
+      "**/*.toml"
+    ],
+    "id": "secure-configuration",
+    "name": "Secure Configuration",
+    "path": "registry/rules/coding-standards/secure-configuration.rule.yaml",
+    "summary": "Disable debug mode, verbose errors, and admin interfaces in production. Enforce HTTPS with HSTS. Set security headers (CSP, HSTS, X-Frame-Options). Separate configuration from code. Remove default credentials and unused features.",
+    "tags": [
+      "secure-configuration",
+      "hardening",
+      "security-headers",
+      "https",
+      "debug-mode"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: secure-deserialization name: Secure Deserialization description: Never deserialize untrusted data with unsafe deserializers; validate types after deserialization; avoid Java native, Python pickle, and PHP unserialize with user data. version: \"1.0.0\" tags: [deserialization, pickle, java",
+    "category": "coding-standards",
+    "description": "Never deserialize untrusted data with unsafe deserializers; validate types after deserialization; avoid Java native, Python pickle, and PHP unserialize with user data.",
+    "globs": [
+      "**/*.py",
+      "**/*.java",
+      "**/*.kt",
+      "**/*.php",
+      "**/*.ts",
+      "**/*.js",
+      "**/*.go",
+      "**/*.cs",
+      "**/*.rb"
+    ],
+    "id": "secure-deserialization",
+    "name": "Secure Deserialization",
+    "path": "registry/rules/coding-standards/secure-deserialization.rule.yaml",
+    "summary": "Never deserialize untrusted data with gadget-chain-prone formats (Java native serialization, Python pickle, PHP unserialize). Use JSON or Protobuf; validate structure and types after parsing. Integrity-check serialized blobs before deserializing.",
+    "tags": [
+      "deserialization",
+      "pickle",
+      "java-serialization",
+      "remote-code-execution",
+      "insecure-deserialization"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: security-logging name: Security Logging description: Log authentication, authorization, and security events with sufficient context for forensic analysis; protect logs from tampering; never log credentials or PII. version: \"1.0.0\" tags: [logging, audit-trail, forensics, siem, security-",
+    "category": "coding-standards",
+    "description": "Log authentication, authorization, and security events with sufficient context for forensic analysis; protect logs from tampering; never log credentials or PII.",
+    "globs": [
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx",
+      "**/*.mjs",
+      "**/*.py",
+      "**/*.java",
+      "**/*.kt",
+      "**/*.go",
+      "**/*.cs",
+      "**/*.rb",
+      "**/*.php"
+    ],
+    "id": "security-logging",
+    "name": "Security Logging",
+    "path": "registry/rules/coding-standards/security-logging.rule.yaml",
+    "summary": "Log all authentication, authorization, and security events with timestamp, user ID, IP, and action. Never log passwords, tokens, or PII. Protect log integrity. Centralize logs and set retention policy aligned to incident-response timelines.",
+    "tags": [
+      "logging",
+      "audit-trail",
+      "forensics",
+      "siem",
+      "security-events"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: session-management name: Session Management description: Generate cryptographically random session IDs; regenerate on login and privilege changes; expire idle and absolute sessions; invalidate on logout; use secure cookie attributes. version: \"1.0.0\" tags: [session-management, csrf, se",
+    "category": "coding-standards",
+    "description": "Generate cryptographically random session IDs; regenerate on login and privilege changes; expire idle and absolute sessions; invalidate on logout; use secure cookie attributes.",
+    "globs": [
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx",
+      "**/*.mjs",
+      "**/*.py",
+      "**/*.java",
+      "**/*.kt",
+      "**/*.go",
+      "**/*.cs",
+      "**/*.rb",
+      "**/*.php"
+    ],
+    "id": "session-management",
+    "name": "Session Management",
+    "path": "registry/rules/coding-standards/session-management.rule.yaml",
+    "summary": "Use CSPRNG-generated session IDs (\u2265128 bits). Regenerate IDs after login and privilege change. Set absolute and idle session timeouts. Invalidate server-side on logout. Set cookies httpOnly, Secure, SameSite=strict. Implement CSRF protection.",
+    "tags": [
+      "session-management",
+      "csrf",
+      "session-fixation",
+      "cookie-security",
+      "session-expiry"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: cryptography-standards-java name: Cryptography Standards \u2014 Java description: Java-specific cryptography guidance using JCA/JCE, Bouncy Castle, Spring Security Crypto; ban MessageDigest.getInstance(\"MD5/SHA1\") for security, SecureRandom misuse, and ECB mode. version: \"1.0.0\" tags: [cryp",
+    "category": "coding-standards/per-language",
+    "description": "Java-specific cryptography guidance using JCA/JCE, Bouncy Castle, Spring Security Crypto; ban MessageDigest.getInstance(\"MD5/SHA1\") for security, SecureRandom misuse, and ECB mode.",
+    "globs": [
+      "**/*.java"
+    ],
+    "id": "cryptography-standards-java",
+    "name": "Cryptography Standards \u2014 Java",
+    "path": "registry/rules/coding-standards/per-language/cryptography-standards-java.rule.yaml",
+    "summary": "Use SecureRandom for all random material; AES/GCM/NoPadding for encryption; BCryptPasswordEncoder or Argon2PasswordEncoder (Spring Security) for passwords. Ban MessageDigest.getInstance('MD5' or 'SHA-1') in security contexts and Cipher.getInstance('AES/ECB/...').",
+    "tags": [
+      "cryptography",
+      "java",
+      "jca",
+      "bouncy-castle",
+      "spring-security",
+      "securerandom"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: cryptography-standards-python name: Cryptography Standards \u2014 Python description: Python-specific cryptography guidance using the cryptography library (pyca), secrets module, and argon2-cffi; ban PyCrypto, pycryptodome unsafe patterns, and random module for security use. version: \"1.0.0",
+    "category": "coding-standards/per-language",
+    "description": "Python-specific cryptography guidance using the cryptography library (pyca), secrets module, and argon2-cffi; ban PyCrypto, pycryptodome unsafe patterns, and random module for security use.",
+    "globs": [
+      "**/*.py"
+    ],
+    "id": "cryptography-standards-python",
+    "name": "Cryptography Standards \u2014 Python",
+    "path": "registry/rules/coding-standards/per-language/cryptography-standards-python.rule.yaml",
+    "summary": "Use pyca/cryptography for symmetric and asymmetric ops; argon2-cffi for password hashing; secrets module for tokens. Ban random, hashlib.md5/sha1 for security, and PyCrypto (unmaintained). Never store keys in source or config files.",
+    "tags": [
+      "cryptography",
+      "python",
+      "pyca",
+      "secrets",
+      "argon2-cffi",
+      "hashlib"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: input-validation-go name: Input Validation \u2014 Go description: Go-specific input validation using go-playground/validator v10; decode into typed structs; reject unknown fields; validate path and query parameters explicitly. version: \"1.0.0\" tags: [input-validation, go, golang, validator,",
+    "category": "coding-standards/per-language",
+    "description": "Go-specific input validation using go-playground/validator v10; decode into typed structs; reject unknown fields; validate path and query parameters explicitly.",
+    "globs": [
+      "**/*.go"
+    ],
+    "id": "input-validation-go",
+    "name": "Input Validation \u2014 Go",
+    "path": "registry/rules/coding-standards/per-language/input-validation-go.rule.yaml",
+    "summary": "Decode JSON into typed Go structs with json.NewDecoder; disallow unknown fields with Decoder.DisallowUnknownFields(). Validate with github.com/go-playground/validator/v10. Never use map[string]interface{} as the primary input type at security boundaries.",
+    "tags": [
+      "input-validation",
+      "go",
+      "golang",
+      "validator",
+      "net-http",
+      "gin"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: input-validation-java name: Input Validation \u2014 Java description: Java-specific input validation using Jakarta Bean Validation (@Valid, @NotBlank, @Size); validate DTOs at controller boundary; sanitize HTML with OWASP Java HTML Sanitizer. version: \"1.0.0\" tags: [input-validation, java, ",
+    "category": "coding-standards/per-language",
+    "description": "Java-specific input validation using Jakarta Bean Validation (@Valid, @NotBlank, @Size); validate DTOs at controller boundary; sanitize HTML with OWASP Java HTML Sanitizer.",
+    "globs": [
+      "**/*.java"
+    ],
+    "id": "input-validation-java",
+    "name": "Input Validation \u2014 Java",
+    "path": "registry/rules/coding-standards/per-language/input-validation-java.rule.yaml",
+    "summary": "Use Jakarta Bean Validation (@Valid, @NotBlank, @Size, @Pattern) on all Spring @RequestBody and @RequestParam inputs. Apply @Validated at the service layer for nested calls. Sanitize HTML with OWASP Java HTML Sanitizer. Reject unknown fields with @JsonIgnoreProperties(ignoreUnknown=false).",
+    "tags": [
+      "input-validation",
+      "java",
+      "bean-validation",
+      "spring",
+      "jakarta"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: input-validation-javascript name: Input Validation \u2014 JavaScript description: JavaScript-specific input validation using Joi, Zod, or express-validator; validate before use; enforce type coercion awareness. version: \"1.0.0\" tags: [input-validation, javascript, joi, express-validator, no",
+    "category": "coding-standards/per-language",
+    "description": "JavaScript-specific input validation using Joi, Zod, or express-validator; validate before use; enforce type coercion awareness.",
+    "globs": [
+      "**/*.js",
+      "**/*.jsx",
+      "**/*.mjs",
+      "**/*.cjs"
+    ],
+    "id": "input-validation-javascript",
+    "name": "Input Validation \u2014 JavaScript",
+    "path": "registry/rules/coding-standards/per-language/input-validation-javascript.rule.yaml",
+    "summary": "Use Joi, Zod, or express-validator for all JavaScript API boundary inputs. Be explicit about type coercion (== vs ===); never rely on falsy checks alone for security decisions. Validate query params, path params, and headers as well as body.",
+    "tags": [
+      "input-validation",
+      "javascript",
+      "joi",
+      "express-validator",
+      "node"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: input-validation-python name: Input Validation \u2014 Python description: Python-specific input validation using pydantic or marshmallow; use type annotations; avoid eval/exec on user input; validate file uploads with python-magic. version: \"1.0.0\" tags: [input-validation, python, pydantic,",
+    "category": "coding-standards/per-language",
+    "description": "Python-specific input validation using pydantic or marshmallow; use type annotations; avoid eval/exec on user input; validate file uploads with python-magic.",
+    "globs": [
+      "**/*.py"
+    ],
+    "id": "input-validation-python",
+    "name": "Input Validation \u2014 Python",
+    "path": "registry/rules/coding-standards/per-language/input-validation-python.rule.yaml",
+    "summary": "Use pydantic (v2) or marshmallow for schema validation at all Python API boundaries. Never pass user input to eval(), exec(), or subprocess without strict allowlisting. Validate file type with python-magic, not just the extension.",
+    "tags": [
+      "input-validation",
+      "python",
+      "pydantic",
+      "marshmallow",
+      "fastapi",
+      "django"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: input-validation-typescript name: Input Validation \u2014 TypeScript description: TypeScript-specific input validation using Zod, class-validator, or equivalent; enforce strict types; no any on boundary inputs. version: \"1.0.0\" tags: [input-validation, typescript, zod, class-validator, expr",
+    "category": "coding-standards/per-language",
+    "description": "TypeScript-specific input validation using Zod, class-validator, or equivalent; enforce strict types; no any on boundary inputs.",
+    "globs": [
+      "**/*.ts",
+      "**/*.tsx"
+    ],
+    "id": "input-validation-typescript",
+    "name": "Input Validation \u2014 TypeScript",
+    "path": "registry/rules/coding-standards/per-language/input-validation-typescript.rule.yaml",
+    "summary": "Use Zod or class-validator for runtime schema validation at all TypeScript API boundaries. Enable strict mode; prohibit 'any' on incoming request bodies. Validate before type-asserting. Return structured 400 errors.",
+    "tags": [
+      "input-validation",
+      "typescript",
+      "zod",
+      "class-validator",
+      "express"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: no-sql-injection-java name: No SQL Injection \u2014 Java description: Java-specific SQL injection prevention using PreparedStatement, JPA JPQL named parameters, or Hibernate Criteria API; never use Statement with string concatenation. version: \"1.0.0\" tags: [sql-injection, java, prepared-st",
+    "category": "coding-standards/per-language",
+    "description": "Java-specific SQL injection prevention using PreparedStatement, JPA JPQL named parameters, or Hibernate Criteria API; never use Statement with string concatenation.",
+    "globs": [
+      "**/*.java"
+    ],
+    "id": "no-sql-injection-java",
+    "name": "No SQL Injection \u2014 Java",
+    "path": "registry/rules/coding-standards/per-language/no-sql-injection-java.rule.yaml",
+    "summary": "Use PreparedStatement with positional parameters, JPA named parameters (:param), or Spring Data derived queries. Never use Statement.execute(string) with user input. Audit @Query annotations and entityManager.createNativeQuery() calls for concatenation.",
+    "tags": [
+      "sql-injection",
+      "java",
+      "prepared-statement",
+      "jpa",
+      "hibernate",
+      "spring-data"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: no-sql-injection-python name: No SQL Injection \u2014 Python description: Python-specific SQL injection prevention using SQLAlchemy ORM or parameterized psycopg2/asyncpg queries; audit text() and execute() calls; never use % or .format() in SQL strings. version: \"1.0.0\" tags: [sql-injection",
+    "category": "coding-standards/per-language",
+    "description": "Python-specific SQL injection prevention using SQLAlchemy ORM or parameterized psycopg2/asyncpg queries; audit text() and execute() calls; never use % or .format() in SQL strings.",
+    "globs": [
+      "**/*.py"
+    ],
+    "id": "no-sql-injection-python",
+    "name": "No SQL Injection \u2014 Python",
+    "path": "registry/rules/coding-standards/per-language/no-sql-injection-python.rule.yaml",
+    "summary": "Use SQLAlchemy ORM or core with bound parameters; use psycopg2/asyncpg with %s or $N placeholders. Never use % string formatting or .format() to build SQL. Audit SQLAlchemy text() calls for unsanitized variables. Prefer ORM over raw SQL.",
+    "tags": [
+      "sql-injection",
+      "python",
+      "sqlalchemy",
+      "psycopg2",
+      "asyncpg",
+      "django-orm"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: no-sql-injection-typescript name: No SQL Injection \u2014 TypeScript description: TypeScript-specific SQL injection prevention using Prisma, pg parameterized queries, or Knex query builder; audit raw Prisma $queryRaw usages; type-check query results. version: \"1.0.0\" tags: [sql-injection, t",
+    "category": "coding-standards/per-language",
+    "description": "TypeScript-specific SQL injection prevention using Prisma, pg parameterized queries, or Knex query builder; audit raw Prisma $queryRaw usages; type-check query results.",
+    "globs": [
+      "**/*.ts",
+      "**/*.tsx"
+    ],
+    "id": "no-sql-injection-typescript",
+    "name": "No SQL Injection \u2014 TypeScript",
+    "path": "registry/rules/coding-standards/per-language/no-sql-injection-typescript.rule.yaml",
+    "summary": "Use Prisma ORM, pg parameterized queries ($1 placeholders), or Knex query builder for all database access in TypeScript. Audit every Prisma.$queryRaw and pg.query(string) call for unsanitized interpolation. Never use template literals to build SQL.",
+    "tags": [
+      "sql-injection",
+      "typescript",
+      "prisma",
+      "pg",
+      "knex",
+      "drizzle"
+    ]
+  },
+  {
+    "body_preview": "# AGENTS.md > This file is the **IDE-agnostic consumer agent guideline** for projects that adopt the Secure AI Code Library. It is intentionally short. Long-form guidance lives in the registry and the docs; this file is the single entry point an agent reads when it lands in a workspace. This file fo",
+    "category": "docs",
+    "description": "# AGENTS.md > This file is the **IDE-agnostic consumer agent guideline** for projects that adopt the Secure AI Code Library. It is intentionally short. Long-form guidance lives in ",
+    "globs": [],
+    "id": "agents",
+    "name": "AGENTS.md",
+    "path": "AGENTS.md",
+    "summary": "# AGENTS.md > This file is the **IDE-agnostic consumer agent guideline** for projects that adopt the Secure AI Code Library. It is intentionally short. Long-form guidance lives in ",
+    "tags": [
+      "doc"
+    ]
+  },
+  {
+    "body_preview": "# Constitution > The Secure AI Code Library is governed by a fixed set of external standards. This document maps every governance anchor in this repository to its **primary source standard**, with explicit section identifiers. Every rule under `registry/rules/` declares its mapping to one or more of",
+    "category": "docs",
+    "description": "# Constitution > The Secure AI Code Library is governed by a fixed set of external standards. This document maps every governance anchor in this repository to its **primary source ",
+    "globs": [],
+    "id": "constitution",
+    "name": "Constitution",
+    "path": "CONSTITUTION.md",
+    "summary": "# Constitution > The Secure AI Code Library is governed by a fixed set of external standards. This document maps every governance anchor in this repository to its **primary source ",
+    "tags": [
+      "doc"
+    ]
+  },
+  {
+    "body_preview": "# AI Control Map > The elevator pitch in one page. This document is the single most important artefact in the library \u2014 it is the swim-lane that every other document, rule, subagent, adapter, and gate ultimately references. Read this first. The map answers one question: **\"At every stage of the AI-a",
+    "category": "docs",
+    "description": "# AI Control Map > The elevator pitch in one page. This document is the single most important artefact in the library \u2014 it is the swim-lane that every other document, rule, subagen",
+    "globs": [],
+    "id": "docs-ai-control-map",
+    "name": "AI Control Map",
+    "path": "docs/AI-CONTROL-MAP.md",
+    "summary": "# AI Control Map > The elevator pitch in one page. This document is the single most important artefact in the library \u2014 it is the swim-lane that every other document, rule, subagen",
+    "tags": [
+      "doc"
+    ]
+  },
+  {
+    "body_preview": "# Manthan Contract > Manthan is the ASOC (Application Security Orchestration and Correlation) gateway the library expects to satisfy the **scan-before-merge** gate. This document is the **contract**: endpoint definitions, payload examples, exit-code mapping, severity-threshold matrix, and the freshn",
+    "category": "docs",
+    "description": "# Manthan Contract > Manthan is the ASOC (Application Security Orchestration and Correlation) gateway the library expects to satisfy the **scan-before-merge** gate. This document i",
+    "globs": [],
+    "id": "docs-manthan-contract",
+    "name": "Manthan Contract",
+    "path": "docs/MANTHAN-CONTRACT.md",
+    "summary": "# Manthan Contract > Manthan is the ASOC (Application Security Orchestration and Correlation) gateway the library expects to satisfy the **scan-before-merge** gate. This document i",
+    "tags": [
+      "doc"
+    ]
+  },
+  {
+    "body_preview": "# Mythos > **Mythos-Aligned AI Control Plane.** This document is the library's honesty artefact. The first section is the **alignment matrix** \u2014 what is substantiated today, with evidence pointers. The second section is the **roadmap** \u2014 dated milestones M1 through M8 that turn today's honest gap in",
+    "category": "docs",
+    "description": "# Mythos > **Mythos-Aligned AI Control Plane.** This document is the library's honesty artefact. The first section is the **alignment matrix** \u2014 what is substantiated today, with e",
+    "globs": [],
+    "id": "docs-mythos",
+    "name": "Mythos",
+    "path": "docs/MYTHOS.md",
+    "summary": "# Mythos > **Mythos-Aligned AI Control Plane.** This document is the library's honesty artefact. The first section is the **alignment matrix** \u2014 what is substantiated today, with e",
+    "tags": [
+      "doc"
+    ]
+  },
+  {
+    "body_preview": "# Subagent Flows > Per-subagent two-tier execution flows. The library ships **6 subagents** with **two execution tiers**: Tier A (native agentic, inside an IDE) and Tier C (headless deterministic, in pre-commit / CI / air-gapped contexts). **Tier B chat-prompt fallback is deliberately not shipped** ",
+    "category": "docs",
+    "description": "# Subagent Flows > Per-subagent two-tier execution flows. The library ships **6 subagents** with **two execution tiers**: Tier A (native agentic, inside an IDE) and Tier C (headles",
+    "globs": [],
+    "id": "docs-subagent-flows",
+    "name": "Subagent Flows",
+    "path": "docs/SUBAGENT-FLOWS.md",
+    "summary": "# Subagent Flows > Per-subagent two-tier execution flows. The library ships **6 subagents** with **two execution tiers**: Tier A (native agentic, inside an IDE) and Tier C (headles",
+    "tags": [
+      "doc"
+    ]
+  },
+  {
+    "body_preview": "# Token Economics > Token-cost engineering, baked in \u2014 not bolted on. Mythos-class model pricing (\u2248$10 / million input tokens, \u2248$50 / million output tokens as of 2026-06) makes naive prompt bloat genuinely expensive at scale. The library ships ten strategies that, in combination, keep the cost of al",
+    "category": "docs",
+    "description": "# Token Economics > Token-cost engineering, baked in \u2014 not bolted on. Mythos-class model pricing (\u2248$10 / million input tokens, \u2248$50 / million output tokens as of 2026-06) makes nai",
+    "globs": [],
+    "id": "docs-token-economics",
+    "name": "Token Economics",
+    "path": "docs/TOKEN-ECONOMICS.md",
+    "summary": "# Token Economics > Token-cost engineering, baked in \u2014 not bolted on. Mythos-class model pricing (\u2248$10 / million input tokens, \u2248$50 / million output tokens as of 2026-06) makes nai",
+    "tags": [
+      "doc"
+    ]
+  },
+  {
+    "body_preview": "# Specification > The Secure AI Code Library defines an IDE-agnostic, secure-by-design AI control plane for the SDLC. This document is the **normative specification**: scope, contracts, acceptance criteria, explicit out-of-scope, and the registry / rule versioning policy. The single canonical view o",
+    "category": "docs",
+    "description": "# Specification > The Secure AI Code Library defines an IDE-agnostic, secure-by-design AI control plane for the SDLC. This document is the **normative specification**: scope, contr",
+    "globs": [],
+    "id": "spec",
+    "name": "Specification",
+    "path": "SPEC.md",
+    "summary": "# Specification > The Secure AI Code Library defines an IDE-agnostic, secure-by-design AI control plane for the SDLC. This document is the **normative specification**: scope, contr",
+    "tags": [
+      "doc"
+    ]
+  },
+  {
+    "body_preview": "# Threat Model > This document is the STRIDE threat model for the Secure AI Code Library itself \u2014 the **artefact**, not consumer projects that adopt it. It enumerates trust boundaries along the AI-assisted SDLC, threats per boundary, mitigations the library ships today, and the residual posture (the",
+    "category": "docs",
+    "description": "# Threat Model > This document is the STRIDE threat model for the Secure AI Code Library itself \u2014 the **artefact**, not consumer projects that adopt it. It enumerates trust boundar",
+    "globs": [],
+    "id": "threat_model",
+    "name": "Threat Model",
+    "path": "THREAT_MODEL.md",
+    "summary": "# Threat Model > This document is the STRIDE threat model for the Secure AI Code Library itself \u2014 the **artefact**, not consumer projects that adopt it. It enumerates trust boundar",
+    "tags": [
+      "doc"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: angular name: Angular version: \"1.0.0\" description: \"Security spec sheet for Angular SPAs. Covers DomSanitizer, XSRF strategy, HttpInterceptors, and CSP configuration.\" tags: [typescript, spa, frontend, angular, xsrf, dom-sanitizer] summary: \"Angular: enforce DomSanitizer for all HTML ",
+    "category": "framework-specs",
+    "description": "Security spec sheet for Angular SPAs. Covers DomSanitizer, XSRF strategy, HttpInterceptors, and CSP configuration.",
+    "globs": [
+      "angular.json",
+      "**/*.component.ts",
+      "**/*.component.html",
+      "src/app/**/*.ts"
+    ],
+    "id": "angular",
+    "name": "Angular",
+    "path": "registry/framework-specs/angular.spec.yaml",
+    "summary": "Angular: enforce DomSanitizer for all HTML rendering; never call bypassSecurityTrust* with unsanitized input; configure XSRF token strategy; use HttpInterceptors for auth headers; apply strict CSP. Extends input-validation-typescript.",
+    "tags": [
+      "typescript",
+      "spa",
+      "frontend",
+      "angular",
+      "xsrf",
+      "dom-sanitizer"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: aspnet-core name: ASP.NET Core version: \"1.0.0\" description: \"Security spec sheet for ASP.NET Core web applications and APIs. Covers antiforgery tokens, HSTS, Data Protection API, response encoding, and secrets management.\" tags: [csharp, dotnet, aspnet-core, antiforgery, hsts, data-pr",
+    "category": "framework-specs",
+    "description": "Security spec sheet for ASP.NET Core web applications and APIs. Covers antiforgery tokens, HSTS, Data Protection API, response encoding, and secrets management.",
+    "globs": [
+      "**/*.csproj",
+      "Program.cs",
+      "Startup.cs",
+      "appsettings*.json",
+      "**/*Controller*.cs",
+      "**/*.razor"
+    ],
+    "id": "aspnet-core",
+    "name": "ASP.NET Core",
+    "path": "registry/framework-specs/aspnet-core.spec.yaml",
+    "summary": "ASP.NET Core: enforce antiforgery tokens on form endpoints; configure HSTS and HTTPS redirection; use Data Protection API for secrets; HTML-encode before Response.WriteAsync; store config in env/Key Vault. No per-language parent (C# deferred to M8).",
+    "tags": [
+      "csharp",
+      "dotnet",
+      "aspnet-core",
+      "antiforgery",
+      "hsts",
+      "data-protection",
+      "secrets"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: django name: Django version: \"1.0.0\" description: \"Security spec sheet for Django web applications. Covers CSRF middleware, ORM parameterization, production security settings, SECRET_KEY management, and Django REST Framework auth.\" tags: [python, django, csrf, orm, drf, security-settin",
+    "category": "framework-specs",
+    "description": "Security spec sheet for Django web applications. Covers CSRF middleware, ORM parameterization, production security settings, SECRET_KEY management, and Django REST Framework auth.",
+    "globs": [
+      "manage.py",
+      "**/settings*.py",
+      "**/views.py",
+      "**/models.py",
+      "**/urls.py",
+      "requirements*.txt"
+    ],
+    "id": "django",
+    "name": "Django",
+    "path": "registry/framework-specs/django.spec.yaml",
+    "summary": "Django: keep CSRF middleware; use ORM parameterized queries (never .raw() with interpolation); set SECURE_* settings in production; externalize SECRET_KEY; use DRF auth not CSRF-exempt decorators. Extends input-validation-python.",
+    "tags": [
+      "python",
+      "django",
+      "csrf",
+      "orm",
+      "drf",
+      "security-settings",
+      "secret-key"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: express name: Express.js version: \"1.0.0\" description: \"Security spec sheet for Express.js Node.js web applications. Covers helmet security headers, CORS allowlisting, middleware ordering, input validation, and rate limiting.\" tags: [javascript, nodejs, backend, express, helmet, cors, ",
+    "category": "framework-specs",
+    "description": "Security spec sheet for Express.js Node.js web applications. Covers helmet security headers, CORS allowlisting, middleware ordering, input validation, and rate limiting.",
+    "globs": [
+      "**/*.{js,ts}",
+      "package.json",
+      "app.{js,ts}",
+      "server.{js,ts}",
+      "src/routes/**",
+      "src/middleware/**"
+    ],
+    "id": "express",
+    "name": "Express.js",
+    "path": "registry/framework-specs/express.spec.yaml",
+    "summary": "Express: apply helmet() as first middleware; configure CORS with explicit origin allowlist; validate all req.body/req.params with express-validator or zod; add rate limiting on auth routes; never eval() request data. Extends input-validation-javascript.",
+    "tags": [
+      "javascript",
+      "nodejs",
+      "backend",
+      "express",
+      "helmet",
+      "cors",
+      "rate-limiting",
+      "middleware"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: fastapi name: FastAPI version: \"1.0.0\" description: \"Security spec sheet for FastAPI applications. Covers Pydantic validators, OAuth2 with HTTPS, CORS restriction, rate limiting, and HTTPS-only token transmission.\" tags: [python, fastapi, pydantic, oauth2, cors, rate-limiting, async] s",
+    "category": "framework-specs",
+    "description": "Security spec sheet for FastAPI applications. Covers Pydantic validators, OAuth2 with HTTPS, CORS restriction, rate limiting, and HTTPS-only token transmission.",
+    "globs": [
+      "main.py",
+      "app/main.py",
+      "**/routers/**/*.py",
+      "**/dependencies/**/*.py",
+      "**/schemas/**/*.py",
+      "requirements*.txt"
+    ],
+    "id": "fastapi",
+    "name": "FastAPI",
+    "path": "registry/framework-specs/fastapi.spec.yaml",
+    "summary": "FastAPI: apply Pydantic constraints on all path/query/body params; restrict CORS origins; use OAuth2PasswordBearer with HTTPS-only; add rate limiting via slowapi; validate Pydantic output models. Extends input-validation-python.",
+    "tags": [
+      "python",
+      "fastapi",
+      "pydantic",
+      "oauth2",
+      "cors",
+      "rate-limiting",
+      "async"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: flask name: Flask version: \"1.0.0\" description: \"Security spec sheet for Flask web applications. Covers SECRET_KEY management, CSRF protection via Flask-WTF, SSTI prevention, CSP via Flask-Talisman, and debug mode restrictions.\" tags: [python, flask, secret-key, csrf, ssti, csp, flask-",
+    "category": "framework-specs",
+    "description": "Security spec sheet for Flask web applications. Covers SECRET_KEY management, CSRF protection via Flask-WTF, SSTI prevention, CSP via Flask-Talisman, and debug mode restrictions.",
+    "globs": [
+      "app.py",
+      "wsgi.py",
+      "application.py",
+      "**/blueprints/**/*.py",
+      "**/routes/**/*.py",
+      "**/templates/**/*.html",
+      "requirements*.txt"
+    ],
+    "id": "flask",
+    "name": "Flask",
+    "path": "registry/framework-specs/flask.spec.yaml",
+    "summary": "Flask: load SECRET_KEY from env (never hardcode); enable Flask-WTF CSRF; avoid render_template_string() with user input (SSTI); add Flask-Talisman for CSP/HTTPS; disable debug mode in production. Extends input-validation-python.",
+    "tags": [
+      "python",
+      "flask",
+      "secret-key",
+      "csrf",
+      "ssti",
+      "csp",
+      "flask-wtf",
+      "flask-talisman"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: gin name: Gin (Go) version: \"1.0.0\" description: \"Security spec sheet for Go Gin web framework applications. Covers struct binding with validation tags, CORS allowlisting, path traversal prevention, rate limiting, and debug mode controls.\" tags: [go, gin, binding, validation, cors, rat",
+    "category": "framework-specs",
+    "description": "Security spec sheet for Go Gin web framework applications. Covers struct binding with validation tags, CORS allowlisting, path traversal prevention, rate limiting, and debug mode controls.",
+    "globs": [
+      "go.mod",
+      "go.sum",
+      "main.go",
+      "**/*_handler*.go",
+      "**/handlers/**/*.go",
+      "**/routes/**/*.go",
+      "**/middleware/**/*.go"
+    ],
+    "id": "gin",
+    "name": "Gin (Go)",
+    "path": "registry/framework-specs/gin.spec.yaml",
+    "summary": "Gin: bind all requests to structs with binding:'required' tags; configure CORS with explicit origin allowlist; never use c.Param() in file paths; disable debug mode in production; add rate limiting middleware. Extends input-validation-go.",
+    "tags": [
+      "go",
+      "gin",
+      "binding",
+      "validation",
+      "cors",
+      "rate-limiting",
+      "path-traversal"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: rails name: Ruby on Rails version: \"1.0.0\" description: \"Security spec sheet for Ruby on Rails applications. Covers CSRF protection, strong_parameters, html_safe risks, Content-Security-Policy, and ActiveRecord parameterization.\" tags: [ruby, rails, ruby-on-rails, csrf, strong-paramete",
+    "category": "framework-specs",
+    "description": "Security spec sheet for Ruby on Rails applications. Covers CSRF protection, strong_parameters, html_safe risks, Content-Security-Policy, and ActiveRecord parameterization.",
+    "globs": [
+      "Gemfile",
+      "config/application.rb",
+      "config/routes.rb",
+      "app/controllers/**/*.rb",
+      "app/models/**/*.rb",
+      "app/views/**/*.html.erb"
+    ],
+    "id": "rails",
+    "name": "Ruby on Rails",
+    "path": "registry/framework-specs/rails.spec.yaml",
+    "summary": "Rails: never use params.permit! (mass assignment); never call html_safe without explicit sanitize(); protect_from_forgery must stay on; configure CSP via DSL; use AR parameterized queries. No Ruby per-language parent rule (deferred to M8).",
+    "tags": [
+      "ruby",
+      "rails",
+      "ruby-on-rails",
+      "csrf",
+      "strong-parameters",
+      "mass-assignment",
+      "html-safe",
+      "csp"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: react-native name: React Native version: \"1.0.0\" description: \"Security spec sheet for React Native mobile applications. Covers secure storage, WebView configuration, certificate pinning, deep-link validation, and production logging controls.\" tags: [javascript, react-native, mobile, s",
+    "category": "framework-specs",
+    "description": "Security spec sheet for React Native mobile applications. Covers secure storage, WebView configuration, certificate pinning, deep-link validation, and production logging controls.",
+    "globs": [
+      "package.json",
+      "android/app/src/main/**",
+      "ios/**/*.{swift,m}",
+      "**/*.tsx",
+      "**/*.ts",
+      "app.json",
+      "metro.config.*"
+    ],
+    "id": "react-native",
+    "name": "React Native",
+    "path": "registry/framework-specs/react-native.spec.yaml",
+    "summary": "React Native: use react-native-keychain for sensitive data (not AsyncStorage); configure WebView with originWhitelist; implement certificate pinning; validate deep-link URLs; disable console in production. Extends input-validation-javascript.",
+    "tags": [
+      "javascript",
+      "react-native",
+      "mobile",
+      "secure-storage",
+      "webview",
+      "certificate-pinning",
+      "deep-links"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: spring-boot name: Spring Boot version: \"1.0.0\" description: \"Security spec sheet for Spring Boot applications. Covers Spring Security auto-config, CSRF, actuator endpoint security, @PreAuthorize coverage, and Jackson deserialization.\" tags: [java, spring, spring-boot, spring-security, ",
+    "category": "framework-specs",
+    "description": "Security spec sheet for Spring Boot applications. Covers Spring Security auto-config, CSRF, actuator endpoint security, @PreAuthorize coverage, and Jackson deserialization.",
+    "globs": [
+      "pom.xml",
+      "build.gradle",
+      "build.gradle.kts",
+      "src/main/resources/application*.{yaml,yml,properties}",
+      "src/main/java/**/*Controller*.java",
+      "src/main/java/**/*Config*.java"
+    ],
+    "id": "spring-boot",
+    "name": "Spring Boot",
+    "path": "registry/framework-specs/spring-boot.spec.yaml",
+    "summary": "Spring Boot: enable Spring Security; restrict actuator endpoints; apply @PreAuthorize on all controllers; configure CSRF for form endpoints; disable Jackson polymorphic deserialization; externalize secrets. Extends input-validation-java.",
+    "tags": [
+      "java",
+      "spring",
+      "spring-boot",
+      "spring-security",
+      "actuator",
+      "csrf",
+      "preauthorize"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: svelte name: Svelte / SvelteKit version: \"1.0.0\" description: \"Security spec sheet for Svelte and SvelteKit apps. Covers {@html} risks, SvelteKit CSRF protection, server-action validation, and CSP nonce for SSR.\" tags: [javascript, spa, frontend, svelte, sveltekit, html-tag, csrf, ssr]",
+    "category": "framework-specs",
+    "description": "Security spec sheet for Svelte and SvelteKit apps. Covers {@html} risks, SvelteKit CSRF protection, server-action validation, and CSP nonce for SSR.",
+    "globs": [
+      "**/*.svelte",
+      "svelte.config.*",
+      "src/hooks.server.*",
+      "src/routes/**/*server*"
+    ],
+    "id": "svelte",
+    "name": "Svelte / SvelteKit",
+    "path": "registry/framework-specs/svelte.spec.yaml",
+    "summary": "Svelte: prohibit {@html} with user data; SvelteKit CSRF protection is opt-in \u2014 verify hooks.server.ts; validate all +server.ts and form-action inputs; configure CSP nonce for SSR. Extends input-validation-javascript.",
+    "tags": [
+      "javascript",
+      "spa",
+      "frontend",
+      "svelte",
+      "sveltekit",
+      "html-tag",
+      "csrf",
+      "ssr"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: vue name: Vue.js version: \"1.0.0\" description: \"Security spec sheet for Vue.js SPAs. Covers v-html risks, CSRF header configuration, reactive-data sanitization, and CSP for SSR.\" tags: [javascript, spa, frontend, vue, vuejs, v-html, csrf] summary: \"Vue.js: prohibit v-html with unsaniti",
+    "category": "framework-specs",
+    "description": "Security spec sheet for Vue.js SPAs. Covers v-html risks, CSRF header configuration, reactive-data sanitization, and CSP for SSR.",
+    "globs": [
+      "**/*.vue",
+      "vite.config.*",
+      "nuxt.config.*",
+      "src/main.{js,ts}"
+    ],
+    "id": "vue",
+    "name": "Vue.js",
+    "path": "registry/framework-specs/vue.spec.yaml",
+    "summary": "Vue.js: prohibit v-html with unsanitized data; configure axios CSRF headers; sanitize reactive state that originates from untrusted sources; apply CSP for SSR (Nuxt). Extends input-validation-javascript.",
+    "tags": [
+      "javascript",
+      "spa",
+      "frontend",
+      "vue",
+      "vuejs",
+      "v-html",
+      "csrf"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: ai-disclosure name: AI Content Disclosure Policy description: Pull requests that include AI-generated content must disclose this in the PR description; auto-detectable from Co-Authored-By git trailers. version: \"1.0.0\" tags: [policies, ai-disclosure, attribution, transparency, co-autho",
+    "category": "policies",
+    "description": "Pull requests that include AI-generated content must disclose this in the PR description; auto-detectable from Co-Authored-By git trailers.",
+    "globs": [
+      ".github/PULL_REQUEST_TEMPLATE*",
+      "CONTRIBUTING.md",
+      "hooks/config.yaml"
+    ],
+    "id": "ai-disclosure",
+    "name": "AI Content Disclosure Policy",
+    "path": "registry/rules/policies/ai-disclosure.rule.yaml",
+    "summary": "PRs containing AI-generated content MUST disclose this in the PR description. Auto-detected via 'Co-Authored-By:' git trailers. Disclosure enables reviewers to apply appropriate scrutiny. Non-disclosure warns; blocking enforced by ai-attribution-check precommit rule.",
+    "tags": [
+      "policies",
+      "ai-disclosure",
+      "attribution",
+      "transparency",
+      "co-authored-by"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: freshness-window name: Artifact Freshness Window Policy description: Required governance artifacts (SBOM, SPEC, ADR, threat model) must be regenerated within N commits of the HEAD they describe; defaults and overrides configurable via hooks/config.yaml. version: \"1.0.0\" tags: [policies",
+    "category": "policies",
+    "description": "Required governance artifacts (SBOM, SPEC, ADR, threat model) must be regenerated within N commits of the HEAD they describe; defaults and overrides configurable via hooks/config.yaml.",
+    "globs": [
+      "sbom.cdx.json",
+      "SPEC.md",
+      "THREAT_MODEL.md",
+      "docs/adr/*.md",
+      "hooks/config.yaml"
+    ],
+    "id": "freshness-window",
+    "name": "Artifact Freshness Window Policy",
+    "path": "registry/rules/policies/freshness-window.rule.yaml",
+    "summary": "Governance artifacts (sbom.cdx.json, SPEC.md, ADRs, THREAT_MODEL.md) must be updated within N commits (default 10) or 30 days of HEAD. Stale artifacts warn; severely stale (>20 commits) blocks. Configurable via hooks/config.yaml.",
+    "tags": [
+      "policies",
+      "freshness",
+      "sbom",
+      "artifacts",
+      "supply-chain"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: gaps-risk-classification name: GAPS Risk Classification Policy description: Maps compliance findings from pre-commit scans to C/H/M/L bands; AI-augmented commits raise classification one band. version: \"1.0.0\" tags: [policies, gaps, risk-classification, ai-assistance, compliance] categ",
+    "category": "policies",
+    "description": "Maps compliance findings from pre-commit scans to C/H/M/L bands; AI-augmented commits raise classification one band.",
+    "globs": [
+      "**/.securecode/audit.log",
+      "hooks/config.yaml"
+    ],
+    "id": "gaps-risk-classification",
+    "name": "GAPS Risk Classification Policy",
+    "path": "registry/rules/policies/gaps-risk-classification.rule.yaml",
+    "summary": "Classify every pre-commit compliance finding as CRITICAL/HIGH/MEDIUM/LOW using engine class, CWE, and ASVS criticality. AI-augmented commits raise classification one band. Findings are input to severity-gate and Manthan quality-gate.",
+    "tags": [
+      "policies",
+      "gaps",
+      "risk-classification",
+      "ai-assistance",
+      "compliance"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: merge-gate-policy name: Merge Gate Policy description: When CI fails any blocking-mode rule OR Manthan returns exit code 1, the merge is gated. Override requires a named approver from the configured list. version: \"1.0.0\" tags: [policies, merge-gate, ci, blocking, override, manthan] ca",
+    "category": "policies",
+    "description": "When CI fails any blocking-mode rule OR Manthan returns exit code 1, the merge is gated. Override requires a named approver from the configured list.",
+    "globs": [
+      ".github/workflows/merge-gate.yml",
+      "hooks/config.yaml"
+    ],
+    "id": "merge-gate-policy",
+    "name": "Merge Gate Policy",
+    "path": "registry/rules/policies/merge-gate-policy.rule.yaml",
+    "summary": "Gate merges when any blocking-mode rule fires OR Manthan returns decision:block (exit 1). Override requires a named approver from hooks/config.yaml merge_gate.override_approvers. No silent bypasses.",
+    "tags": [
+      "policies",
+      "merge-gate",
+      "ci",
+      "blocking",
+      "override",
+      "manthan"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: required-artifacts name: Required Artifacts Policy description: Every PR must include up-to-date sbom.cdx.json, SPEC.md reference, at least one ADR (when architecture changed), and THREAT_MODEL.md reference (when trust boundary changed). version: \"1.0.0\" tags: [policies, artifacts, sbo",
+    "category": "policies",
+    "description": "Every PR must include up-to-date sbom.cdx.json, SPEC.md reference, at least one ADR (when architecture changed), and THREAT_MODEL.md reference (when trust boundary changed).",
+    "globs": [
+      "**/*.md",
+      "sbom.cdx.json",
+      "docs/adr/*.md",
+      "THREAT_MODEL.md",
+      "SPEC.md"
+    ],
+    "id": "required-artifacts",
+    "name": "Required Artifacts Policy",
+    "path": "registry/rules/policies/required-artifacts.rule.yaml",
+    "summary": "PRs must include: sbom.cdx.json (always), SPEC.md reference (always), an ADR when architecture changes, and THREAT_MODEL.md update when a trust boundary changes. Missing artifacts warn; CI enforces presence.",
+    "tags": [
+      "policies",
+      "artifacts",
+      "sbom",
+      "adr",
+      "threat-model",
+      "pr-gate"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: severity-thresholds name: Severity Thresholds Policy description: Defines blocking severity floors for merge gates and CI; AI-assisted commits raise the floor by one band per ADR 0003. version: \"1.0.0\" tags: [policies, severity, merge-gate, ci, ai-assistance] category: policies severit",
+    "category": "policies",
+    "description": "Defines blocking severity floors for merge gates and CI; AI-assisted commits raise the floor by one band per ADR 0003.",
+    "globs": [
+      "hooks/config.yaml",
+      ".github/workflows/*.yml",
+      "**/.securecode/**"
+    ],
+    "id": "severity-thresholds",
+    "name": "Severity Thresholds Policy",
+    "path": "registry/rules/policies/severity-thresholds.rule.yaml",
+    "summary": "Block merges and fail CI on any finding >= configured severity floor (default: HIGH). AI-assisted commits raise the floor one band (e.g. MEDIUM\u2192HIGH). Override requires a named approver from the configured list. Per ADR 0003.",
+    "tags": [
+      "policies",
+      "severity",
+      "merge-gate",
+      "ci",
+      "ai-assistance"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: adr-presence name: ADR Presence Check description: When the architecture-impact heuristic triggers (new top-level dir, new dependency, schema change), at least one new ADR is required in docs/adr/. version: \"1.0.0\" tags: [precommit, adr, architecture, governance, documentation] categor",
+    "category": "precommit",
+    "description": "When the architecture-impact heuristic triggers (new top-level dir, new dependency, schema change), at least one new ADR is required in docs/adr/.",
+    "globs": [
+      "docs/adr/*.md",
+      "package.json",
+      "pyproject.toml",
+      "Cargo.toml",
+      "go.mod",
+      "pom.xml",
+      "build.gradle"
+    ],
+    "id": "adr-presence",
+    "name": "ADR Presence Check",
+    "path": "registry/rules/precommit/adr-presence.rule.yaml",
+    "summary": "Require at least one new ADR in docs/adr/ when architecture-impact heuristics fire: new top-level directory, new external dependency, or schema change. Warn; pair with required-artifacts policy for full enforcement.",
+    "tags": [
+      "precommit",
+      "adr",
+      "architecture",
+      "governance",
+      "documentation"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: ai-attribution-check name: AI Attribution Check description: \"BLOCKING by default. Verifies Co-Authored-By: git trailer is present on any commit containing AI-generated content signals. Maps to Manthan exit code 78.\" version: \"1.0.0\" tags: [precommit, ai-attribution, blocking, co-autho",
+    "category": "precommit",
+    "description": "BLOCKING by default. Verifies Co-Authored-By: git trailer is present on any commit containing AI-generated content signals. Maps to Manthan exit code 78.",
+    "globs": [
+      "**/.aiflags/**",
+      "src/**/*",
+      "lib/**/*"
+    ],
+    "id": "ai-attribution-check",
+    "name": "AI Attribution Check",
+    "path": "registry/rules/precommit/ai-attribution-check.rule.yaml",
+    "summary": "BLOCKING. Require 'Co-Authored-By:' git trailer on commits containing AI-generated content (detected via .aiflags/ files, AI-characteristic diff heuristics, or configured patterns). Missing attribution exits with Manthan code 78.",
+    "tags": [
+      "precommit",
+      "ai-attribution",
+      "blocking",
+      "co-authored-by",
+      "provenance",
+      "aiflags"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: compliance-checks-executed name: Compliance Checks Executed description: .securecode/audit.log must show all required Tier 0 and scope-activated subagents ran for the changed files; warns if audit log is missing or incomplete. version: \"1.0.0\" tags: [precommit, compliance, audit-log, s",
+    "category": "precommit",
+    "description": ".securecode/audit.log must show all required Tier 0 and scope-activated subagents ran for the changed files; warns if audit log is missing or incomplete.",
+    "globs": [
+      "**/.securecode/audit.log",
+      "src/**/*",
+      "lib/**/*"
+    ],
+    "id": "compliance-checks-executed",
+    "name": "Compliance Checks Executed",
+    "path": "registry/rules/precommit/compliance-checks-executed.rule.yaml",
+    "summary": "Warn if .securecode/audit.log does not contain entries for required Tier 0 subagents (ai-governance-auditor, coding-standards-reviewer) covering the changed files in this commit. Audit completeness is the evidence trail for compliance.",
+    "tags": [
+      "precommit",
+      "compliance",
+      "audit-log",
+      "subagents",
+      "tier0"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: constitution-presence name: CONSTITUTION.md Presence Check description: CONSTITUTION.md must exist and be referenced in commits; advisory (not blocking) \u2014 signals library governance health to reviewers. version: \"1.0.0\" tags: [precommit, constitution, governance, advisory, artifacts] c",
+    "category": "precommit",
+    "description": "CONSTITUTION.md must exist and be referenced in commits; advisory (not blocking) \u2014 signals library governance health to reviewers.",
+    "globs": [
+      "CONSTITUTION.md"
+    ],
+    "id": "constitution-presence",
+    "name": "CONSTITUTION.md Presence Check",
+    "path": "registry/rules/precommit/constitution-presence.rule.yaml",
+    "summary": "Advisory: verify CONSTITUTION.md exists and is schema-valid. Non-blocking. A missing or invalid CONSTITUTION.md is flagged as a governance health warning; does not block commit or merge.",
+    "tags": [
+      "precommit",
+      "constitution",
+      "governance",
+      "advisory",
+      "artifacts"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: freshness-check name: Artifact Freshness Check description: Wraps freshness-window policy; checks file modification times against HEAD commit distance; blocks if any required artifact is stale beyond 2x the configured window. version: \"1.0.0\" tags: [precommit, freshness, sbom, artifact",
+    "category": "precommit",
+    "description": "Wraps freshness-window policy; checks file modification times against HEAD commit distance; blocks if any required artifact is stale beyond 2x the configured window.",
+    "globs": [
+      "sbom.cdx.json",
+      "SPEC.md",
+      "THREAT_MODEL.md",
+      "CONSTITUTION.md",
+      "docs/adr/*.md",
+      "hooks/config.yaml"
+    ],
+    "id": "freshness-check",
+    "name": "Artifact Freshness Check",
+    "path": "registry/rules/precommit/freshness-check.rule.yaml",
+    "summary": "Warn or block when required artifacts (sbom.cdx.json, SPEC.md, ADRs, THREAT_MODEL.md) exceed freshness window commits from HEAD. Reads hooks/config.yaml (Wave 4). 2x window = block; 1x window = warn.",
+    "tags": [
+      "precommit",
+      "freshness",
+      "sbom",
+      "artifacts",
+      "supply-chain",
+      "config"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: sbom-presence name: SBOM Presence Check description: sbom.cdx.json must exist, be valid CycloneDX 1.5+, and be fresh per the freshness-window policy. Blocks if missing or stale. version: \"1.0.0\" tags: [precommit, sbom, supply-chain, cyclonedx, freshness] category: precommit severity: h",
+    "category": "precommit",
+    "description": "sbom.cdx.json must exist, be valid CycloneDX 1.5+, and be fresh per the freshness-window policy. Blocks if missing or stale.",
+    "globs": [
+      "sbom.cdx.json",
+      "package-lock.json",
+      "poetry.lock",
+      "Cargo.lock",
+      "go.sum",
+      "Gemfile.lock",
+      "requirements.txt"
+    ],
+    "id": "sbom-presence",
+    "name": "SBOM Presence Check",
+    "path": "registry/rules/precommit/sbom-presence.rule.yaml",
+    "summary": "Block commit if sbom.cdx.json is absent, fails CycloneDX 1.5 schema validation, or is stale per freshness-window policy. Regenerate with 'make sbom'. Maps to Manthan exit code 78.",
+    "tags": [
+      "precommit",
+      "sbom",
+      "supply-chain",
+      "cyclonedx",
+      "freshness"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: severity-gate name: Severity Gate description: Wraps severity-thresholds policy; reads hooks/config.yaml for the configured floor; blocks on any finding at or above the configured severity threshold. version: \"1.0.0\" tags: [precommit, severity, blocking, merge-gate, manthan, config] ca",
+    "category": "precommit",
+    "description": "Wraps severity-thresholds policy; reads hooks/config.yaml for the configured floor; blocks on any finding at or above the configured severity threshold.",
+    "globs": [
+      "hooks/config.yaml",
+      "src/**/*",
+      "lib/**/*"
+    ],
+    "id": "severity-gate",
+    "name": "Severity Gate",
+    "path": "registry/rules/precommit/severity-gate.rule.yaml",
+    "summary": "Block commit and merge when any finding meets or exceeds the severity floor in hooks/config.yaml (default: HIGH). Wraps severity-thresholds policy. AI-assisted commits raise floor one band. References hooks/config.yaml (Wave 4).",
+    "tags": [
+      "precommit",
+      "severity",
+      "blocking",
+      "merge-gate",
+      "manthan",
+      "config"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: spec-presence name: SPEC.md Presence Check description: SPEC.md must exist and be referenced from changed code paths; validates that architectural scope is documented before code review. version: \"1.0.0\" tags: [precommit, spec, documentation, governance, artifacts] category: precommit ",
+    "category": "precommit",
+    "description": "SPEC.md must exist and be referenced from changed code paths; validates that architectural scope is documented before code review.",
+    "globs": [
+      "SPEC.md",
+      "src/**/*",
+      "lib/**/*",
+      "pkg/**/*",
+      "app/**/*"
+    ],
+    "id": "spec-presence",
+    "name": "SPEC.md Presence Check",
+    "path": "registry/rules/precommit/spec-presence.rule.yaml",
+    "summary": "Block commit if SPEC.md is absent. Warn if changed code paths under src/ lack a reference to a SPEC.md section in the commit message or PR description. SPEC.md is the scope contract for reviewers.",
+    "tags": [
+      "precommit",
+      "spec",
+      "documentation",
+      "governance",
+      "artifacts"
+    ]
+  },
+  {
+    "body_preview": "metadata: id: threat-model-presence name: Threat Model Presence Check description: When trust-boundary heuristic triggers (new public endpoint, new MCP server, new auth path), THREAT_MODEL.md must be updated. version: \"1.0.0\" tags: [precommit, threat-model, trust-boundary, mcp, auth, security-archit",
+    "category": "precommit",
+    "description": "When trust-boundary heuristic triggers (new public endpoint, new MCP server, new auth path), THREAT_MODEL.md must be updated.",
+    "globs": [
+      "THREAT_MODEL.md",
+      "src/**/*.ts",
+      "src/**/*.py",
+      "src/**/*.go",
+      "src/**/*.java",
+      "**/*.mcp.json",
+      "**/*.mcp.yaml"
+    ],
+    "id": "threat-model-presence",
+    "name": "Threat Model Presence Check",
+    "path": "registry/rules/precommit/threat-model-presence.rule.yaml",
+    "summary": "Require THREAT_MODEL.md to be updated when trust-boundary heuristics fire: new public endpoint, new MCP server definition, or new authentication path. Blocks on heuristic match without matching THREAT_MODEL.md update.",
+    "tags": [
+      "precommit",
+      "threat-model",
+      "trust-boundary",
+      "mcp",
+      "auth",
+      "security-architecture"
+    ]
+  },
+  {
+    "body_preview": "# yaml-language-server: $schema=../../schemas/subagent.schema.json # Canonical Tier-A + Tier-C subagent specification for `adr-author`. # Field ordering follows registry/schemas/subagent.schema.json property order # (cache-stable per ADR 0005 \u00a78). Do not reorder top-level keys. metadata: id: adr-aut",
+    "category": "subagents",
+    "description": "Scaffolds and reviews Architectural Decision Records (MADR format) when an architecture-impact heuristic fires on a staged diff (new top-level dir, new runtime dependency, schema change, new trust boundary). Drafts are surfaced for human review; nothing is committed without approval.",
+    "globs": [],
+    "id": "adr-author",
+    "name": "ADR Author",
+    "path": "registry/subagents/adr-author/subagent.yaml",
+    "summary": "Scaffolds and reviews Architectural Decision Records (MADR format) when an architecture-impact heuristic fires on a staged diff (new top-level dir, new runtime dependency, schema change, new trust boundary). Drafts are surfaced for human review; nothing is committed without approval.",
+    "tags": [
+      "subagent"
+    ]
+  },
+  {
+    "body_preview": "# yaml-language-server: $schema=../../schemas/subagent.schema.json # Canonical Tier-A + Tier-C subagent specification for `ai-governance-auditor`. # Field ordering follows registry/schemas/subagent.schema.json property order # (cache-stable per ADR 0005 \u00a78). Do not reorder top-level keys. metadata: ",
+    "category": "subagents",
+    "description": "Audits AI-touching code for ISO 42001 / NIST AI RMF compliance gaps. Walks changed files matching the AI-globs (**/llm/**, **/agents/**, **/prompts/**, **/mcp/**) and checks each Tier 0 + scope-activated AI-governance rule. Emits SARIF findings keyed to rule IDs plus a markdown gap summary on request. Required before action \u2014 high-impact findings block the gate.",
+    "globs": [],
+    "id": "ai-governance-auditor",
+    "name": "AI Governance Auditor",
+    "path": "registry/subagents/ai-governance-auditor/subagent.yaml",
+    "summary": "Audits AI-touching code for ISO 42001 / NIST AI RMF compliance gaps. Walks changed files matching the AI-globs (**/llm/**, **/agents/**, **/prompts/**, **/mcp/**) and checks each Tier 0 + scope-activated AI-governance rule. Emits SARIF findings keyed to rule IDs plus a markdown gap summary on request. Required before action \u2014 high-impact findings block the gate.",
+    "tags": [
+      "subagent"
+    ]
+  },
+  {
+    "body_preview": "# yaml-language-server: $schema=../../schemas/subagent.schema.json # Canonical Tier-A + Tier-C subagent specification for `coding-standards-reviewer`. # Field ordering follows registry/schemas/subagent.schema.json property order # (cache-stable per ADR 0005 \u00a78). Do not reorder top-level keys. metada",
+    "category": "subagents",
+    "description": "Reviews changed code against the language-appropriate coding-standards rules. Detects language by extension, loads the matching cross-language + per-language rules, optionally a framework-spec, and runs deterministic pattern checks. Emits SARIF with rule-keyed findings. Tier C is invoked by pre-commit; Tier A is invoked from Cursor with --lang hints.",
+    "globs": [],
+    "id": "coding-standards-reviewer",
+    "name": "Coding Standards Reviewer",
+    "path": "registry/subagents/coding-standards-reviewer/subagent.yaml",
+    "summary": "Reviews changed code against the language-appropriate coding-standards rules. Detects language by extension, loads the matching cross-language + per-language rules, optionally a framework-spec, and runs deterministic pattern checks. Emits SARIF with rule-keyed findings. Tier C is invoked by pre-commit; Tier A is invoked from Cursor with --lang hints.",
+    "tags": [
+      "subagent"
+    ]
+  },
+  {
+    "body_preview": "# yaml-language-server: $schema=../../schemas/subagent.schema.json # Canonical Tier-A subagent specification for `mcp-builder`. Tier C is # `not_applicable` \u2014 this subagent is interactive-only because scaffolding an # MCP server requires a human to confirm tool scope, auth model, and target # path. ",
+    "category": "subagents",
+    "description": "Scaffolds a NEW Model Context Protocol server conforming to mcp-server-safety, agentic-tool-scoping, and agentic-obo-auth. Interactive-only: prompts for server purpose, tools, language (Python or TypeScript), and auth model; emits a project skeleton under a user-confirmed path. Writes are bounded to **/mcp/** or the explicit --out directory; nothing outside that scope is touched. Tier C runner is intentionally not provided.",
+    "globs": [],
+    "id": "mcp-builder",
+    "name": "MCP Builder",
+    "path": "registry/subagents/mcp-builder/subagent.yaml",
+    "summary": "Scaffolds a NEW Model Context Protocol server conforming to mcp-server-safety, agentic-tool-scoping, and agentic-obo-auth. Interactive-only: prompts for server purpose, tools, language (Python or TypeScript), and auth model; emits a project skeleton under a user-confirmed path. Writes are bounded to **/mcp/** or the explicit --out directory; nothing outside that scope is touched. Tier C runner is intentionally not provided.",
+    "tags": [
+      "subagent"
+    ]
+  },
+  {
+    "body_preview": "# yaml-language-server: $schema=../../schemas/subagent.schema.json # Canonical Tier-A subagent specification for `secure-developer-mentor`. Tier C # is `not_applicable` \u2014 this subagent is the interactive catch-all Q&A agent. # It has no closed `references.rules` set by design: it can read any rule i",
+    "category": "subagents",
+    "description": "Catch-all secure-coding pair-programmer. Answers \"is this safe?\", explains a rule by ID, suggests a fix, recommends a framework spec sheet, or routes to the right subagent. Has full read access to the rule registry by design \u2014 it is the catch-all for topics not yet covered by a dedicated subagent. Tier C runner is intentionally not provided; this is interactive only.",
+    "globs": [],
+    "id": "secure-developer-mentor",
+    "name": "Secure Developer Mentor",
+    "path": "registry/subagents/secure-developer-mentor/subagent.yaml",
+    "summary": "Catch-all secure-coding pair-programmer. Answers \"is this safe?\", explains a rule by ID, suggests a fix, recommends a framework spec sheet, or routes to the right subagent. Has full read access to the rule registry by design \u2014 it is the catch-all for topics not yet covered by a dedicated subagent. Tier C runner is intentionally not provided; this is interactive only.",
+    "tags": [
+      "subagent"
+    ]
+  },
+  {
+    "body_preview": "# yaml-language-server: $schema=../../schemas/subagent.schema.json # Canonical Tier-A + Tier-C subagent specification for `threat-modeler`. # Field ordering follows registry/schemas/subagent.schema.json property order # (cache-stable per ADR 0005 \u00a78). Do not reorder top-level keys. metadata: id: thr",
+    "category": "subagents",
+    "description": "Produces and updates STRIDE threat models when trust boundaries change. Also the single source of truth for Mermaid DFD/data-flow diagrams in this library \u2014 the diagram-generator capability lives here per Phase 5d. Output is a proposed delta to THREAT_MODEL.md plus a Mermaid diagram; nothing is committed without human review.",
+    "globs": [],
+    "id": "threat-modeler",
+    "name": "Threat Modeler",
+    "path": "registry/subagents/threat-modeler/subagent.yaml",
+    "summary": "Produces and updates STRIDE threat models when trust boundaries change. Also the single source of truth for Mermaid DFD/data-flow diagrams in this library \u2014 the diagram-generator capability lives here per Phase 5d. Output is a proposed delta to THREAT_MODEL.md plus a Mermaid diagram; nothing is committed without human review.",
+    "tags": [
+      "subagent"
+    ]
+  }
+]
