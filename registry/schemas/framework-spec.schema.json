@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/arvindiyu/SecureAICodeLibrary/registry/schemas/framework-spec.schema.json",
+  "title": "Secure AI Code Library — Framework Spec Sheet",
+  "description": "JSON Schema for files under registry/framework-specs/*.spec.yaml. Framework spec sheets carry framework-specific metadata that language rules cannot infer (CSRF middleware names, default cookie settings, template autoescape defaults, secret-loading conventions). They MUST extend an existing language rule via 'extends'.",
+  "type": "object",
+  "required": ["metadata", "summary", "applies_to"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["id", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "description": "Kebab-case identifier; matches the filename without .spec.yaml."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        }
+      }
+    },
+
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300,
+      "description": "Layer 1 always-on surface. <=300 chars. Same constraint as rule summaries (per ADR 0005)."
+    },
+
+    "applies_to": {
+      "type": "object",
+      "required": ["language", "framework"],
+      "additionalProperties": false,
+      "properties": {
+        "language": {
+          "type": "string",
+          "description": "Primary language (e.g. 'typescript', 'java', 'python')."
+        },
+        "framework": {
+          "type": "string",
+          "description": "Framework name (e.g. 'spring-boot', 'fastapi', 'express')."
+        },
+        "min_version": {
+          "type": "string",
+          "description": "Optional minimum framework version this spec applies to."
+        }
+      }
+    },
+
+    "extends": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "OPTIONAL. Per-language rule ID this spec extends. Framework spec sheets typically extend the corresponding per-language rule (e.g. spring-boot extends java-security)."
+    },
+
+    "globs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "description": "File patterns indicating this framework is in use (e.g. ['pom.xml', 'build.gradle', '**/*.java'])."
+    },
+
+    "security_relevant_defaults": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Framework-specific defaults that affect security posture. Examples: csrf_middleware name, session_cookie_secure_default boolean, template_autoescape default, secret_loading_convention string."
+    },
+
+    "authoritative_refs": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "URLs or named references to authoritative security docs (OWASP cheat sheet, vendor security docs, CIS benchmark). Must be on docs/SOURCES.md allowlist."
+    },
+
+    "applicable_rules": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+      },
+      "uniqueItems": true,
+      "description": "Cross-language and per-language rule IDs that compose with this framework spec. CI cross-link lint validates each ID exists."
+    },
+
+    "subagent_hints": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Per-subagent extra checks that go beyond what the rules express. The coding-standards-reviewer subagent loads this object when the framework is detected.",
+      "properties": {
+        "coding-standards-reviewer": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "extra_checks": {
+              "type": "array",
+              "items": { "type": "string" },
+              "uniqueItems": true
+            }
+          }
+        },
+        "secure-developer-mentor": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "extra_checks": {
+              "type": "array",
+              "items": { "type": "string" },
+              "uniqueItems": true
+            }
+          }
+        }
+      }
+    },
+
+    "content": {
+      "type": "string",
+      "description": "OPTIONAL. Layer 2 on-demand surface. Markdown body if the spec ships additional guidance beyond structured fields."
+    },
+
+    "deprecated": {
+      "type": "boolean",
+      "default": false
+    },
+    "deprecated_in": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    }
+  }
+}

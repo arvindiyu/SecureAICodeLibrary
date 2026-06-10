@@ -1,0 +1,40 @@
+# Secure AI Code Library — .gitignore
+#
+# Runtime artefacts written by subagents at runtime in consumer projects.
+# The library ships the FORMAT spec for these files (see registry/.securecode/.gitkeep
+# and docs/SUBAGENT-FLOWS.md "Audit-log invariant"); the runtime content is gitignored.
+
+# Subagent audit log (JSON-lines).
+.securecode/audit.log
+
+# Ephemeral runtime state written by subagent runners.
+.securecode/runtime/
+
+# Per-run findings produced by hooks/pre-commit.sh and CI; regenerated every run.
+.securecode/findings.sarif.json
+
+# Preserve the placeholder so the directory exists in fresh clones.
+!.securecode/.gitkeep
+
+# Common transient files (defensive — does not hurt to ignore them).
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Python virtual environment bootstrapped by scripts/*.sh on first run.
+# (See scripts/validate.sh, scripts/build-*.sh — they pip-install jsonschema, PyYAML
+# into a local .venv so they work hermetically without polluting system Python.)
+.venv/
+__pycache__/
+*.pyc
+
+# Local IDE state.
+.idea/
+.vscode/
+
+# Local override of hooks config (Phase 4).
+hooks/config.local.yaml
+
+# Local override of adapter install state.
+adapters/.installed

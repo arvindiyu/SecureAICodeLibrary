@@ -1,0 +1,250 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/arvindiyu/SecureAICodeLibrary/registry/schemas/subagent.schema.json",
+  "title": "Secure AI Code Library — Subagent",
+  "description": "JSON Schema for files at registry/subagents/<id>/subagent.yaml. Enforces the 2-tier execution contract (native + headless), token budgets, audit-log spec, and explicit tool scope. See docs/SUBAGENT-FLOWS.md and ADR 0001/0004.",
+  "type": "object",
+  "required": [
+    "metadata",
+    "tiers",
+    "token_budget",
+    "audit_log",
+    "tool_scope"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["id", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "description": "Kebab-case id; matches the parent directory name."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        }
+      }
+    },
+
+    "classification": {
+      "type": "string",
+      "enum": ["low-impact", "medium-impact", "high-impact"],
+      "description": "Per agentic-action-classification rule. Drives the human-approval gate."
+    },
+
+    "human_approval": {
+      "type": "string",
+      "enum": ["not_required", "required_before_commit", "required_before_action"],
+      "description": "Per agentic-human-approval rule."
+    },
+
+    "tiers": {
+      "type": "object",
+      "required": ["native", "headless"],
+      "additionalProperties": false,
+      "description": "REQUIRED. Declares the two execution tiers. Tier B chat-prompt fallback is intentionally not supported (ADR 0004).",
+      "properties": {
+        "native": {
+          "type": "object",
+          "description": "Tier A — native agentic IDE invocations.",
+          "additionalProperties": false,
+          "properties": {
+            "cursor": { "type": "string", "description": "Cursor invocation pattern (e.g. '@adr-author <diff>')." },
+            "agents_md": { "type": "string", "description": "AGENTS.md invocation pattern." },
+            "copilot_coding_agent": { "type": "string", "description": "GitHub Copilot Coding Agent issue-label pattern." },
+            "claude_code": { "type": "string", "description": "Reserved for Phase 8 M8." },
+            "windsurf": { "type": "string", "description": "Reserved for Phase 8 M8." }
+          }
+        },
+        "headless": {
+          "oneOf": [
+            {
+              "type": "string",
+              "const": "not_applicable",
+              "description": "Allowed when the subagent is interactive-only (e.g. secure-developer-mentor)."
+            },
+            {
+              "type": "object",
+              "required": ["runner"],
+              "additionalProperties": false,
+              "properties": {
+                "runner": {
+                  "type": "string",
+                  "pattern": "^registry/subagents/[a-z0-9-]+/run\\.sh$",
+                  "description": "Path to the Tier C runner from the repo root."
+                },
+                "deps": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "Runtime tool dependencies (e.g. rg, yq, jq, git)."
+                },
+                "optional_llm_env": {
+                  "type": "string",
+                  "description": "Environment variable that, when set, enables opt-in LLM-backed prose remediation. Conventionally SECUREAI_LLM_ENDPOINT. Gate decisions remain deterministic."
+                },
+                "output_format": {
+                  "type": "string",
+                  "enum": ["sarif", "jsonl", "markdown"],
+                  "default": "sarif"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+
+    "token_budget": {
+      "type": "object",
+      "required": ["input_max", "output_max", "warn_at"],
+      "additionalProperties": false,
+      "description": "REQUIRED. CI uses tiktoken to enforce. Warn at warn_at fraction; block at 100% of input_max; block on summary >300 chars upstream (per rule schema).",
+      "properties": {
+        "input_max": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 200000,
+          "description": "Total input tokens budget = system prompt + context."
+        },
+        "output_max": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 50000
+        },
+        "warn_at": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 1.0,
+          "default": 0.8,
+          "description": "Fraction of input_max at which CI warns (default 0.8)."
+        },
+        "system_prompt": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 10000,
+          "description": "OPTIONAL. Sub-budget for the subagent's system prompt alone."
+        },
+        "context_max": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 200000,
+          "description": "OPTIONAL. Sub-budget for context window beyond system prompt. If both system_prompt and context_max are set, input_max should equal their sum."
+        }
+      }
+    },
+
+    "audit_log": {
+      "type": "object",
+      "required": ["enabled", "path"],
+      "additionalProperties": false,
+      "description": "REQUIRED. Per ai-audit-logging rule. Subagents append one JSON-lines entry per invocation.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "path": {
+          "type": "string",
+          "default": ".securecode/audit.log",
+          "description": "Path relative to the consumer repo root."
+        },
+        "format": {
+          "type": "string",
+          "enum": ["jsonl"],
+          "default": "jsonl"
+        },
+        "fields": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [
+            "timestamp",
+            "subagent_id",
+            "tier",
+            "user",
+            "inputs_hash",
+            "model",
+            "token_in",
+            "token_out",
+            "decision",
+            "finding_count"
+          ],
+          "description": "Mandatory fields per entry."
+        }
+      }
+    },
+
+    "tool_scope": {
+      "type": "object",
+      "required": ["allowed"],
+      "additionalProperties": false,
+      "description": "REQUIRED. Per agentic-tool-scoping rule. The denied list MUST include shell and network unless explicitly allow-listed for opt-in LLM.",
+      "properties": {
+        "allowed": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "denied": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true,
+          "default": ["shell", "network", "write_any_other_path"]
+        }
+      }
+    },
+
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "required": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        },
+        "optional": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        }
+      }
+    },
+
+    "outputs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true,
+      "description": "Output artefacts produced (e.g. docs/adr/NNNN-<slug>.md)."
+    },
+
+    "references": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+          },
+          "uniqueItems": true,
+          "description": "OPTIONAL. Closed set of rule IDs this subagent will load (bounded blast radius). CI cross-link lint validates each ID exists."
+        }
+      }
+    }
+  }
+}
