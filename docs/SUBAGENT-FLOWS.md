@@ -125,7 +125,7 @@ Walks the repo for trust-boundary indicators (`@RestController`, `Express()`, `F
 
 ### 3. `ai-governance-auditor`
 
-Audits a PR against AI-governance rules (the 20+ SCEC rules + 2 Mythos-era).
+Audits a PR against AI-governance rules (the 20+ baseline rules + 2 Mythos-era).
 
 **Tier A — Native**
 

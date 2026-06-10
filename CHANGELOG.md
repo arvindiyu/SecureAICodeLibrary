@@ -26,7 +26,7 @@ Delivered across 8 phases and integrated by Wave 4.
 - `registry/schemas/` — 4 JSON Schemas (rule, subagent, framework-spec, constitution); CI-validated.
 
 **Phase 2 — Rules (Wave 2)**
-- 23 AI-governance rules under `registry/rules/ai-governance/` (20 SCEC + `llm-output-sanitization`, `ai-kill-switch`, `ai-code-provenance`).
+- 23 AI-governance rules under `registry/rules/ai-governance/` (20 baseline + `llm-output-sanitization`, `ai-kill-switch`, `ai-code-provenance`).
 - 14 cross-language coding-standards rules + 10 per-language rules (uses `extends:` inheritance).
 - 6 policy rules (`severity-thresholds`, `scan-before-merge`, etc.) + 9 pre-commit rules including `ai-attribution-check` (BLOCKING by default).
 - `registry/INDEX.md` auto-generated from rule summaries (≤3K tokens total).

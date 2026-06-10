@@ -14,7 +14,7 @@ The substantiation matrix below maps each CSA "Mythos-Ready Security Program" pi
 
 | Pillar | Substantiation | In-tree evidence | Gap → roadmap |
 |---|---|---|---|
-| **AI Governance** | **substantiated** | 20 SCEC + 2 Mythos-era rules under `registry/rules/ai-governance/` (Phase 2); 6 subagents under `registry/subagents/` (Phase 3); `ai-audit-logging`, `agentic-obo-auth`, `agentic-tool-scoping` Tier 0 rules; ISO/IEC 42001:2023 control mapping in [`CONSTITUTION.md`](../CONSTITUTION.md) §D | — |
+| **AI Governance** | **substantiated** | 20 baseline + 2 Mythos-era rules under `registry/rules/ai-governance/` (Phase 2); 6 subagents under `registry/subagents/` (Phase 3); `ai-audit-logging`, `agentic-obo-auth`, `agentic-tool-scoping` Tier 0 rules; ISO/IEC 42001:2023 control mapping in [`CONSTITUTION.md`](../CONSTITUTION.md) §D | — |
 | **Secure-by-Design** | **substantiated** | 14 cross-language coding-standards rules + 10 per-language rules (Phase 2); ~12 framework spec sheets (Phase 5); `coding-standards-reviewer` and `secure-developer-mentor` subagents; pre-commit hook (Phase 4); OWASP ASVS v5 control mapping in [`CONSTITUTION.md`](../CONSTITUTION.md) §A–C | — |
 | **Supply Chain** | **aligned** | `sbom-check` (precommit), `sbom-freshness` (policy), `dependency-management` rule, `sbom.cdx.json`, SBOM regen in `registry-ci.yml`; NIST SSDF + CycloneDX 1.5 references | M3 (SLSA L3 attestation template, Sigstore signing, CycloneDX VEX, auto-remediation bot) |
 | **Proactive Defense** | **aligned** | Commit-time scan-gate via Manthan documented in [`docs/MANTHAN-CONTRACT.md`](./MANTHAN-CONTRACT.md); `severity-thresholds` policy with configurable threshold | M1 (runtime telemetry, MTTD/MTTR), M4 (time-to-patch SLA enforcement) |

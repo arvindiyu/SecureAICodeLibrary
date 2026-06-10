@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-06-10
 - **Deciders:** Secure AI Code Library maintainers
-- **Consulted:** Cursor and Copilot adapter prototypes; SCEC (`securecode-enterprise-control`) reference architecture
+- **Consulted:** Cursor and Copilot adapter prototypes; canonical rule-registry patterns from OWASP Top-10 mappings
 - **Informed:** Consumer-project integrators
 
 ## Context
@@ -85,6 +85,5 @@ Claude Code and Windsurf adapters are deferred to Phase 8 M8 (per [`docs/MYTHOS.
 - [`registry/schemas/rule.schema.json`](../../registry/schemas/rule.schema.json)
 - [`registry/schemas/subagent.schema.json`](../../registry/schemas/subagent.schema.json)
 - [`registry/schemas/framework-spec.schema.json`](../../registry/schemas/framework-spec.schema.json)
-- [SCEC reference architecture](https://github.com/arvindiyu/SecureCodeEnterpriseControl) — original rule-shape inspiration.
 - [Cursor Rules documentation](https://docs.cursor.com/context/rules-for-ai).
 - [AGENTS.md convention](https://agents.md/).

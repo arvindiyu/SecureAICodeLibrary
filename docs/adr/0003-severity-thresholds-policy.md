@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-06-10
 - **Deciders:** Secure AI Code Library maintainers
-- **Consulted:** SCEC severity-thresholds policy; OWASP risk-rating discussion; consumer-project security leads (OSS, regulated)
+- **Consulted:** OWASP risk-rating discussion; CVSS v3.1 qualitative severity tiers; consumer-project security leads (OSS, regulated)
 - **Informed:** Consumer-project integrators
 
 ## Context

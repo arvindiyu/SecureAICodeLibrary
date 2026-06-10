@@ -156,7 +156,7 @@ The library is "v1.0.0" when **all** of the following are true:
 
 ### 3.2 Registry content (Phase 2)
 
-- [ ] 20 SCEC AI-governance rules ported.
+- [ ] 20 baseline AI-governance rules shipped.
 - [ ] 2 Mythos-era AI-governance rules added (`llm-output-sanitization`, `ai-kill-switch`).
 - [ ] 14 cross-language coding-standards rules ported.
 - [ ] 10 per-language coding-standards rules ported using `extends:`.

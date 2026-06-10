@@ -187,7 +187,7 @@ Non-zero exit always emits a single-line SARIF-style summary on stderr plus the 
 
 ## Severity-threshold matrix
 
-The standard matrix, mirroring [SCEC](https://github.com/arvindiyu/SecureCodeEnterpriseControl)-style gating. Lives here so the contract has a single home; `hooks/config.yaml` exposes the threshold as a configurable knob.
+The standard matrix, mirroring common ASOC-style severity gating. Lives here so the contract has a single home; `hooks/config.yaml` exposes the threshold as a configurable knob.
 
 | Severity | Merge block | CI fail | SLA (default) | Rationale |
 |---|---|---|---|---|

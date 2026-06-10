@@ -63,7 +63,7 @@
     "severity": {
       "type": "string",
       "enum": ["critical", "high", "medium", "low", "info"],
-      "description": "Default severity for this rule's findings. Top-level (fixes SCEC's metadata.severity bug)."
+      "description": "Default severity for this rule's findings. Top-level (must not be nested inside metadata)."
     },
 
     "summary": {
