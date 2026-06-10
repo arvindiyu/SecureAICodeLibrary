@@ -1,0 +1,169 @@
+# hooks/config.yaml — Secure AI Code Library hook configuration
+#
+# Consumer repos override only the keys they need; all others use the defaults below.
+# Schema: all enum values are validated at hook startup (exit 65 on invalid value).
+# Reference: docs/MANTHAN-CONTRACT.md, ADR 0002, ADR 0003
+#
+# ---------------------------------------------------------------------------
+# Severity gating
+# (docs/MANTHAN-CONTRACT.md § Severity-threshold matrix; ADR 0003 § Decision)
+# ---------------------------------------------------------------------------
+severity:
+  # Minimum severity that causes a blocking exit (exit 1).
+  # Valid values: critical | high | medium | low | info
+  #
+  # Effective gating per threshold value:
+  #   critical: critical=block;  high/medium/low/info=warn
+  #   high:     critical+high=block;  medium/low/info=warn        (default)
+  #   medium:   critical+high+medium=block;  low/info=warn
+  #   low:      critical+high+medium+low=block;  info=warn
+  #   info:     all=warn  (not recommended; produces noisy gates)
+  #
+  # Recommended per workload:
+  #   OSS / low-risk:    critical
+  #   Enterprise default: high
+  #   PCI/SOX/HIPAA:      medium
+  block_floor: high
+
+  # When is_ai_assisted is detected (Co-Authored-By AI agent trailer in commit),
+  # raise each finding's severity by this many bands before applying block_floor.
+  # 0 = disabled; 1 = raise one band (e.g. Medium → High); 2 = raise two bands.
+  # Example: ai_assisted_raise_band: 1 → a Medium SAST finding on AI-authored code
+  #          is treated as High, which blocks at block_floor: high.
+  # Rationale: ADR 0003 § AI-assistance risk floor; THREAT_MODEL.md Glasswing posture.
+  ai_assisted_raise_band: 1
+
+  # How to act when AI attribution is detected.
+  # blocking: apply ai_assisted_raise_band to findings (default, doctrinal)
+  # warning:  log only; do not raise floor
+  # advisory: log only; no gate effect
+  # Per AGENTS.md hard-rule #1: do not bypass ai-attribution-check.
+  ai_attribution_check: blocking
+
+# ---------------------------------------------------------------------------
+# Artifact freshness
+# (docs/MANTHAN-CONTRACT.md § Freshness definition)
+# ---------------------------------------------------------------------------
+freshness:
+  # Maximum number of commits between HEAD and the last commit that touched a
+  # required artifact before the freshness check emits a WARNING.
+  # At 2× this value (20 commits) the check BLOCKS (exit 78).
+  window_commits: 10
+
+  # Maximum calendar days since the last touch of a required artifact before
+  # a WARNING is emitted. Independent of window_commits; either threshold fires.
+  window_days: 30
+
+  # Artifacts that must remain fresh relative to HEAD.
+  # Entries ending in "/" are treated as directories — at least one file inside
+  # must have been touched within the freshness window.
+  required_artifacts:
+    - sbom.cdx.json
+    - SPEC.md
+    - THREAT_MODEL.md
+    - docs/adr/
+  # Note: CONSTITUTION.md is checked unconditionally in the compliance checks
+  # (compliance step 1) rather than here, because its absence is a hard failure
+  # (exit 78) not a freshness warning. See pre-commit.sh run_compliance_checks().
+
+# ---------------------------------------------------------------------------
+# Manthan ASOC gateway
+# (docs/MANTHAN-CONTRACT.md § Endpoints; ADR 0002)
+# ---------------------------------------------------------------------------
+manthan:
+  # Manthan endpoint base URL (no trailing slash).
+  # Set to "" (empty string, the default) to disable the Manthan scan-gate entirely.
+  # Disabling is only acceptable for personal / local-only projects.
+  # Local development: http://localhost:8080
+  # Remote:            https://manthan.example.com/api/v1
+  endpoint: ""
+
+  # Name of the environment variable that holds the Manthan API key.
+  # The hook reads ${!api_key_env}; never hard-code the key in this file.
+  api_key_env: MANTHAN_API_KEY
+
+  # Seconds to wait for a Manthan response before timing out. Applies to
+  # POST /v1/events/commit (the synchronous scan-gate call).
+  timeout_seconds: 60
+
+  # Behaviour when Manthan is unreachable (network error or /healthz non-200).
+  # warn:  emit warning to stderr and continue; pre-commit.sh exits 0 (pass)
+  # block: fail closed; pre-commit.sh exits 3
+  #
+  # Default is block (fail-closed) per docs/MANTHAN-CONTRACT.md § Failure modes
+  # and the MANTHAN-CONTRACT vs config.yaml reconciliation (Wave 4). Security
+  # tools should fail closed by default; set on_unreachable: warn only for local
+  # dev environments where Manthan is not always running.
+  on_unreachable: block
+
+  # Behaviour when Manthan is reachable but returns 5xx or decision:error.
+  # warn:  emit warning and continue; pre-commit.sh exits 0
+  # block: fail closed; pre-commit.sh exits 2
+  on_internal_error: block
+
+# ---------------------------------------------------------------------------
+# Subagents
+# (AGENTS.md; docs/SUBAGENT-FLOWS.md)
+# ---------------------------------------------------------------------------
+subagents:
+  # Subagents whose Tier C run.sh will be invoked against the scope.
+  # mcp-builder and secure-developer-mentor have tiers.headless: not_applicable
+  # and are automatically skipped regardless of this list.
+  # ai-governance-auditor covers all five Tier 0 rules (AGENTS.md § Tier 0 rules).
+  enabled:
+    - adr-author
+    - threat-modeler
+    - ai-governance-auditor
+    - coding-standards-reviewer
+
+  # Subagents explicitly disabled (takes precedence over the enabled list).
+  # Add an entry here to skip a subagent without removing it from enabled.
+  disabled: []
+
+# ---------------------------------------------------------------------------
+# Optional headless LLM endpoint for prose remediation (Tier C opt-in)
+# (docs/INSTALL.md § Optional Ollama / vLLM endpoint)
+# ---------------------------------------------------------------------------
+headless_llm:
+  # Name of the environment variable that holds the LLM endpoint URL.
+  # Canonical name (binding across all scripts): SECUREAI_LLM_ENDPOINT
+  # Set this env var (not this key) to enable prose remediation:
+  #   export SECUREAI_LLM_ENDPOINT="http://localhost:11434/v1/chat/completions"
+  # Gate decisions remain deterministic (rule-pattern matches) regardless.
+  # LLM is used only to generate prose explanation of findings. Zero cost by default.
+  endpoint_env: SECUREAI_LLM_ENDPOINT
+
+  # Flag appended to run.sh invocations when the LLM endpoint env var is set.
+  # Subagent run.sh scripts must support this flag to emit prose remediation.
+  remediate_flag: --remediate
+
+# ---------------------------------------------------------------------------
+# Audit log
+# (AGENTS.md § ai-audit-logging; AGENTS.md § Tier 0 rules)
+# ---------------------------------------------------------------------------
+audit_log:
+  # Path (relative to the consumer repo root) for the JSON-lines audit trail.
+  # Each subagent invocation and each scan-gate call appends one entry.
+  # Required fields (10): timestamp, subagent_id, tier, user, inputs_hash,
+  #   model, token_in, token_out, decision, finding_count.
+  # This library ships only the format spec; consumer repos manage the file.
+  path: .securecode/audit.log
+
+  # Rotate (rename to audit.log.N and start fresh) when log reaches this size.
+  rotate_at_mb: 100
+
+# ---------------------------------------------------------------------------
+# Reporting
+# ---------------------------------------------------------------------------
+reporting:
+  # Stream for the human-readable gate summary printed at the end of each run.
+  # stderr (default) keeps it separate from any stdout output of pre-commit.sh.
+  human_summary_stream: stderr
+
+  # Path for the machine-readable last-run summary (JSON).
+  # Parent dir .securecode/runtime/ is gitignored; this file is NOT committed.
+  machine_output_path: .securecode/runtime/last-run.json
+
+  # Path for the aggregated SARIF findings document (merged from all subagent runs).
+  # Written on every run; overwritten (not appended). NOT committed.
+  sarif_output_path: .securecode/findings.sarif.json

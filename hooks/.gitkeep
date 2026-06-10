@@ -1,0 +1,5 @@
+# Placeholder. Phase 4 populates this directory with:
+#   hooks/pre-commit.sh   -> single script for pre-commit AND CI (detects via CI env var)
+#   hooks/config.yaml     -> severity_threshold, freshness_window_commits, manthan_endpoint,
+#                           required_artifacts, headless_llm_endpoint (null by default)
+# Contracts in docs/MANTHAN-CONTRACT.md, docs/INSTALL.md, and ADR 0002/0003.
