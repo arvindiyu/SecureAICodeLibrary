@@ -1,0 +1,120 @@
+metadata:
+  id: dependency-management
+  name: Dependency Management
+  description: Pin dependencies with exact versions and integrity hashes; scan for known CVEs in CI; keep an SBOM; remove unused dependencies promptly.
+  version: "1.0.0"
+  tags: [dependencies, sca, sbom, supply-chain, cve, lockfile]
+
+category: coding-standards
+severity: high
+summary: "Pin all dependencies with exact versions and integrity hashes. Scan for CVEs in CI. Maintain a CycloneDX SBOM. Remove unused packages. Never install packages from untrusted sources."
+
+asvs_controls: ["10.2.1", "10.3.1"]
+iso_controls: ["A.8.8", "A.8.30"]
+nist_ai_rmf: ["GOVERN-1.1", "MAP-2.3"]
+cwe: ["CWE-1104", "CWE-937"]
+
+mythos_alignment:
+  pillar: supply-chain
+  substantiation: aligned
+  roadmap_milestone: M3
+
+sources:
+  primary:
+    - "OWASP ASVS v5 §10.2.1"
+    - "OWASP ASVS v5 §10.3.1"
+    - "CWE-1104"
+    - "ISO/IEC 27001:2022 A.8.8"
+    - "NIST SP 800-218 PS.3"
+    - "SLSA v1.0 Build.L2"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/package.json"
+    - "**/package-lock.json"
+    - "**/yarn.lock"
+    - "**/pnpm-lock.yaml"
+    - "**/requirements.txt"
+    - "**/Pipfile.lock"
+    - "**/pyproject.toml"
+    - "**/poetry.lock"
+    - "**/pom.xml"
+    - "**/build.gradle"
+    - "**/go.mod"
+    - "**/go.sum"
+    - "**/Cargo.toml"
+    - "**/Cargo.lock"
+    - "**/*.csproj"
+  exclude: []
+
+enforcement:
+  mode: warning
+  pre_commit: false
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Principle
+
+  Every direct and transitive dependency must be pinned at an exact version with a verified integrity hash. Automated CVE scanning must run in CI and block on high-severity findings. Maintain a machine-readable SBOM (CycloneDX 1.5) that is regenerated on every dependency change. Remove unused packages. Never install packages from untrusted or unresolvable registries.
+
+  ## Rationale
+
+  Third-party dependencies are the most common vector for supply-chain compromises. Using version ranges (`^1.0`, `>=2`) allows a compromised release to silently enter the build without a code review. Integrity hashes (SRI, `integrity` fields in lock files, `go.sum`) detect tampering after a package is published.
+
+  OWASP ASVS §10 (Malicious Code) and §10.3 (Deployed Application Integrity) require that dependencies are reviewed and that integrity verification is in place. NIST SP 800-218 PS.3 mandates software composition analysis. An SBOM in CycloneDX format supports vulnerability management and regulatory compliance.
+
+  Unused dependencies unnecessarily expand the attack surface and increase SBOM noise, making it harder to triage new CVEs. CI scanning tools (Dependabot, `npm audit`, `pip-audit`, `govulncheck`, Trivy) can automate detection.
+
+  ## BAD example
+
+  ```json
+  {
+    "dependencies": {
+      "express": "^4.0.0",
+      "lodash": "*"
+    }
+  }
+  ```
+
+  ## GOOD example
+
+  ```json
+  {
+    "dependencies": {
+      "express": "4.19.2",
+      "lodash": "4.17.21"
+    },
+    "scripts": {
+      "audit": "npm audit --audit-level=high"
+    }
+  }
+  ```
+
+  Lock file committed (`package-lock.json` / `yarn.lock`) with `integrity` hashes present.
+
+  CI step:
+  ```yaml
+  - name: Dependency audit
+    run: npm audit --audit-level=high
+  ```
+
+  ## Checklist
+
+  - [ ] Lock file committed and up to date (all `integrity` hashes present)
+  - [ ] No floating version ranges (`*`, `^`, `~`, `>=`) in direct dependencies
+  - [ ] CVE scan runs in CI and blocks on high-severity findings
+  - [ ] CycloneDX SBOM regenerated on every dependency change and committed
+  - [ ] Unused dependencies identified and removed each sprint
+  - [ ] Private registry or registry mirror is configured (no unintended public-registry fallback)
+  - [ ] Dependency update automation (Dependabot / Renovate) enabled and reviewing PRs
+  - [ ] Transitive dependencies reviewed for license compatibility
+
+  ## References
+
+  - https://owasp.org/www-project-application-security-verification-standard/ (ASVS v5 §10)
+  - https://cyclonedx.org/specification/overview/
+  - https://slsa.dev/
+  - https://cheatsheetseries.owasp.org/cheatsheets/Vulnerable_Dependency_Management_Cheat_Sheet.html
+  - https://cwe.mitre.org/data/definitions/1104.html

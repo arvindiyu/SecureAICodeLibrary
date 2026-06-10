@@ -1,0 +1,117 @@
+metadata:
+  id: secure-configuration
+  name: Secure Configuration
+  description: Disable debug features in production, enforce HTTPS, set security headers, use allowlisted configurations, and separate config from code.
+  version: "1.0.0"
+  tags: [secure-configuration, hardening, security-headers, https, debug-mode]
+
+category: coding-standards
+severity: high
+summary: "Disable debug mode, verbose errors, and admin interfaces in production. Enforce HTTPS with HSTS. Set security headers (CSP, HSTS, X-Frame-Options). Separate configuration from code. Remove default credentials and unused features."
+
+asvs_controls: ["14.1.1", "14.1.2", "14.2.1"]
+iso_controls: ["A.8.8", "A.8.9"]
+nist_ai_rmf: ["GOVERN-1.1", "MAP-1.5"]
+cwe: ["CWE-16", "CWE-1188"]
+
+mythos_alignment:
+  pillar: secure-by-design
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "OWASP ASVS v5 §14.1.1"
+    - "OWASP ASVS v5 §14.1.2"
+    - "OWASP ASVS v5 §14.2.1"
+    - "CWE-16"
+    - "CWE-1188"
+    - "ISO/IEC 27001:2022 A.8.9"
+    - "NIST SP 800-218 PO.2"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/*.ts"
+    - "**/*.js"
+    - "**/*.py"
+    - "**/*.java"
+    - "**/*.go"
+    - "**/*.cs"
+    - "**/*.rb"
+    - "**/*.php"
+    - "**/*.yaml"
+    - "**/*.yml"
+    - "**/*.json"
+    - "**/Dockerfile"
+    - "**/*.conf"
+    - "**/*.ini"
+    - "**/*.toml"
+  exclude:
+    - "**/test/**"
+    - "**/*.test.*"
+    - "**/__tests__/**"
+
+enforcement:
+  mode: warning
+  pre_commit: false
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Principle
+
+  Production systems must run with the minimum feature set required. Debug modes, verbose error pages, admin consoles, and development-only endpoints must be disabled or removed before deployment. Default credentials must be changed or removed. Configuration must be separated from code (12-factor app principle). Security headers must be set on all HTTP responses. HTTPS must be enforced with a minimum TLS 1.2 and HSTS.
+
+  ## Rationale
+
+  Security misconfiguration (OWASP Top 10 A05) is one of the most common root causes of breaches. Debug modes expose stack traces, environment variables, and internal state. Default credentials (admin/admin) are universally known. Unnecessary features increase the attack surface. CWE-16 (Configuration) and CWE-1188 (Initialization of a Resource with an Insecure Default) both describe how permissive or unchanged defaults directly enable exploitation.
+
+  ISO/IEC 27001:2022 A.8.9 requires security hardening procedures for all platforms. OWASP ASVS §14.1 requires that debug features are disabled in production and that security configuration is auditable.
+
+  Separating configuration from code (environment variables, external config files not committed to version control) prevents accidental exposure of production credentials and allows independent security review of configuration.
+
+  ## BAD example
+
+  ```python
+  # Flask in production
+  app.run(debug=True, host='0.0.0.0', port=5000)
+  # BAD: debug=True exposes Werkzeug interactive debugger — RCE risk
+  ```
+
+  ## GOOD example
+
+  ```python
+  import os
+
+  debug = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
+  # debug must be False in production; fail-closed
+  if os.environ.get('FLASK_ENV') == 'production' and debug:
+      raise RuntimeError('Debug mode must not be enabled in production')
+
+  app.run(debug=debug, host='127.0.0.1', port=int(os.environ.get('PORT', '8000')))
+  ```
+
+  Express security headers:
+  ```typescript
+  import helmet from 'helmet';
+  app.use(helmet()); // sets CSP, HSTS, X-Frame-Options, X-Content-Type-Options, etc.
+  ```
+
+  ## Checklist
+
+  - [ ] `DEBUG=False` / debug mode disabled in all production environments
+  - [ ] HTTPS enforced; HTTP redirects to HTTPS; HSTS header set (min `max-age=31536000`)
+  - [ ] Security headers set: `Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options`, `Content-Security-Policy`
+  - [ ] Default credentials changed or removed before first deployment
+  - [ ] Unused features, endpoints, and services disabled or removed
+  - [ ] Configuration loaded from environment variables or external config, not hardcoded
+  - [ ] Admin interfaces restricted to internal networks or require MFA
+  - [ ] TLS version pinned to ≥1.2; TLS 1.0 and 1.1 disabled
+
+  ## References
+
+  - https://owasp.org/www-project-application-security-verification-standard/ (ASVS v5 §14)
+  - https://cheatsheetseries.owasp.org/cheatsheets/Infrastructure_as_Code_Security_Cheat_Sheet.html
+  - https://cwe.mitre.org/data/definitions/16.html
+  - https://cwe.mitre.org/data/definitions/1188.html

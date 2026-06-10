@@ -1,0 +1,119 @@
+metadata:
+  id: ai-regulatory-compliance
+  name: AI Regulatory Compliance
+  description: Engage Legal before deploying AI subject to regulation; classify AI systems under EU AI Act; complete data classification; require Secure-by-Design review; assess third-party AI vendors; screen for prohibited use cases.
+  version: "1.0.0"
+  tags: [ai-governance, compliance, regulatory, eu-ai-act, legal, privacy]
+
+category: ai-governance
+severity: high
+
+summary: "Engage Legal before deploying regulated AI; classify under EU AI Act tiers; complete data classification; require Secure-by-Design review; assess third-party AI; prohibit unauthorized surveillance, discrimination, and deepfakes. (EU AI Act Art. 5)"
+
+asvs_controls: ["1.6.1"]
+iso_controls: ["A.5.31", "A.5.36"]
+iso42001_controls: ["A.5.1", "A.5.4", "A.6.2"]
+nist_ai_rmf: ["GOVERN-1.1", "GOVERN-1.2", "MAP-1.1"]
+cwe: ["CWE-693"]
+
+mythos_alignment:
+  pillar: ai-governance
+  substantiation: aligned
+  roadmap_milestone: M7
+
+sources:
+  primary:
+    - "EU AI Act Art. 5"
+    - "EU AI Act Art. 9"
+    - "ISO/IEC 42001:2023 A.5.1"
+    - "NIST AI RMF GOVERN-1.2"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/ai/**"
+    - "**/compliance/**"
+    - "**/legal/**"
+    - "**/governance/**"
+
+enforcement:
+  mode: warning
+  pre_commit: false
+  merge_gate: false
+  ci: false
+
+content: |
+  ## Principle
+
+  Before deploying any AI system in a regulated context, engage Legal to assess applicable requirements (EU AI Act, GDPR, HIPAA, PCI DSS, sector-specific law). Classify the AI system under the EU AI Act risk tiers. Complete data classification for all data sources the AI system uses. Require Secure-by-Design review for every AI/ML implementation. Conduct AI-specific vendor assessment for every third-party model or API. Screen all use cases against a prohibited-use list. No AI system that performs unauthorized surveillance, enables discrimination, produces deceptive deepfakes, or uses prohibited manipulation techniques may be deployed.
+
+  ## Rationale
+
+  The EU AI Act (Regulation (EU) 2024/1689) creates binding obligations for AI systems deployed in or affecting the EU market. Art. 5 lists prohibited AI practices—these are not risk-acceptance options; they are categorical bans. Art. 9 requires a risk management system for high-risk AI throughout the lifecycle. Non-compliance can result in fines up to €35M or 7% of global annual turnover.
+
+  GDPR Art. 5 applies to any AI system that processes personal data, adding data minimisation, purpose limitation, and accountability requirements on top of the AI Act. Regulatory exposure compounds when multiple frameworks apply simultaneously and gaps are not identified until after deployment.
+
+  Legal engagement early in the design phase prevents rework; a system architected without regulatory awareness may require fundamental redesign to comply. Documented regulatory review is also an audit artifact that demonstrates due diligence to regulators and auditors.
+
+  ## BAD example
+
+  ```pseudo
+  # AI decision system for EU market (credit scoring, HR, law enforcement support)
+  # No Legal review; no EU AI Act classification
+  # Third-party model integrated without AI-specific vendor assessment
+  # No data classification for training data
+  # No Secure-by-Design review
+  # Use case not screened against prohibited-use list
+  deploy(ai_system, region="EU")
+  # Potential: high-risk AI without required conformity assessment — REGULATORY FAIL
+  ```
+
+  Red flags: no Legal engagement; no EU AI Act classification; no data classification; no SbD review; no third-party vendor assessment; prohibited use cases not screened.
+
+  ## GOOD example
+
+  ```pseudo
+  # 1. Legal engagement (early in design phase)
+  legal_review = Legal.assess(use_case="credit_scoring", regions=["EU", "UK"])
+  # legal_review.classification: "high-risk (Annex III, 5b)"
+  # legal_review.conditions: ["human oversight required", "logging required", "bias audit required"]
+
+  # 2. EU AI Act classification and conformity
+  eu_ai_class = "high_risk"
+  conformity_assessment = ConformityAssessment.perform(ai_system, class_=eu_ai_class)
+
+  # 3. Data classification for all AI data sources
+  data_sources = classify_ai_data(training_data, inference_inputs, logs)
+
+  # 4. Secure-by-Design review
+  sbd_review = SecurityReview.complete(ai_system)
+
+  # 5. Third-party AI vendor assessment
+  vendor_assessment = AIVendorAssessment.conduct(vendor="provider", product="model")
+
+  # 6. Prohibited use screening
+  prohibited_uses = ["unauthorized_surveillance", "social_scoring", "emotion_recognition_workplace"]
+  assert use_case not in prohibited_uses, "Use case is prohibited under EU AI Act Art. 5"
+
+  deploy(ai_system)   # all gates passed; compliance documented
+  ```
+
+  Why this works: Legal engaged before design is committed; EU AI Act classification drives conformity requirements; every data source is classified; SbD and vendor assessments are documented; prohibited uses are screened before development begins.
+
+  ## Checklist
+
+  - [ ] Legal has been engaged for any AI use case in a regulated domain or geography.
+  - [ ] The AI system is classified under EU AI Act (prohibited/high-risk/limited/minimal).
+  - [ ] A conformity assessment is completed for high-risk AI before deployment.
+  - [ ] All AI data sources are classified for sensitivity (per `ai-data-classification`).
+  - [ ] A Secure-by-Design review is completed and documented before production deployment.
+  - [ ] Third-party AI vendors are assessed with AI-specific criteria (per `ai-third-party-ai`).
+  - [ ] The use case is screened against the prohibited-use list (EU AI Act Art. 5).
+  - [ ] Regulatory review is refreshed annually and when use case or data changes materially.
+
+  ## References
+
+  - EU AI Act Art. 5 (Prohibited AI practices): https://eur-lex.europa.eu/eli/reg/2024/1689/oj
+  - EU AI Act Art. 9 (Risk management system): https://eur-lex.europa.eu/eli/reg/2024/1689/oj
+  - ISO/IEC 42001:2023 A.5.1 (AI policies): https://www.iso.org/standard/81230.html
+  - NIST AI RMF GOVERN-1.2: https://www.nist.gov/itl/ai-risk-management-framework

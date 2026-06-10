@@ -1,0 +1,99 @@
+metadata:
+  id: no-sql-injection-python
+  name: No SQL Injection — Python
+  description: Python-specific SQL injection prevention using SQLAlchemy ORM or parameterized psycopg2/asyncpg queries; audit text() and execute() calls; never use % or .format() in SQL strings.
+  version: "1.0.0"
+  tags: [sql-injection, python, sqlalchemy, psycopg2, asyncpg, django-orm]
+  languages: [python]
+
+category: coding-standards/per-language
+severity: critical
+summary: "Use SQLAlchemy ORM or core with bound parameters; use psycopg2/asyncpg with %s or $N placeholders. Never use % string formatting or .format() to build SQL. Audit SQLAlchemy text() calls for unsanitized variables. Prefer ORM over raw SQL."
+
+extends: no-sql-injection
+
+asvs_controls: ["5.3.4", "5.3.5"]
+iso_controls: ["A.8.28"]
+nist_ai_rmf: ["GOVERN-1.1"]
+cwe: ["CWE-89"]
+
+mythos_alignment:
+  pillar: ide-coverage
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "OWASP ASVS v5 §5.3.4"
+    - "CWE-89"
+    - "ISO/IEC 27001:2022 A.8.28"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/*.py"
+  exclude:
+    - "**/test/**"
+    - "**/*_test.py"
+    - "**/tests/**"
+
+enforcement:
+  mode: blocking
+  pre_commit: true
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Delta from parent
+
+  This rule extends `no-sql-injection` with Python-specific guidance on SQLAlchemy, psycopg2, and Django ORM raw query escape hatches.
+
+  ## BAD example
+
+  ```python
+  # BAD: % string formatting — SQL injection
+  user_id = request.args.get('id')
+  cursor.execute("SELECT * FROM users WHERE id = %s" % user_id)
+
+  # BAD: .format() — SQL injection
+  query = "SELECT * FROM users WHERE name = '{}'".format(name)
+  db.execute(query)
+
+  # BAD: SQLAlchemy text() with f-string interpolation
+  from sqlalchemy import text
+  result = session.execute(text(f"SELECT * FROM users WHERE id = {user_id}"))
+  ```
+
+  ## GOOD example
+
+  ```python
+  # GOOD: psycopg2 with %s placeholders (positional parameters)
+  cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+
+  # GOOD: SQLAlchemy ORM (preferred)
+  from sqlalchemy.orm import Session
+  user = session.get(User, user_id)
+
+  # GOOD: SQLAlchemy text() with named bindparams
+  from sqlalchemy import text
+  result = session.execute(
+      text("SELECT * FROM users WHERE id = :user_id"),
+      {"user_id": user_id}
+  )
+
+  # GOOD: Django ORM with parameterized raw() when ORM is insufficient
+  users = User.objects.raw("SELECT * FROM users WHERE id = %s", [user_id])
+  ```
+
+  ## Checklist
+
+  - [ ] `cursor.execute(query % ...)` and `cursor.execute(query.format(...))` absent
+  - [ ] SQLAlchemy `text()` calls always use `:param` bind variables, never f-strings
+  - [ ] Django `extra()` and `RawSQL()` audited for unsanitized input
+  - [ ] psycopg2 / asyncpg queries always pass parameters as a tuple/list argument
+
+  ## References
+
+  - https://owasp.org/www-project-application-security-verification-standard/ (ASVS v5 §5.3)
+  - https://cwe.mitre.org/data/definitions/89.html
+  - https://docs.sqlalchemy.org/en/20/core/sqlelement.html#sqlalchemy.sql.expression.text

@@ -1,0 +1,116 @@
+metadata:
+  id: secure-deserialization
+  name: Secure Deserialization
+  description: Never deserialize untrusted data with unsafe deserializers; validate types after deserialization; avoid Java native, Python pickle, and PHP unserialize with user data.
+  version: "1.0.0"
+  tags: [deserialization, pickle, java-serialization, remote-code-execution, insecure-deserialization]
+
+category: coding-standards
+severity: critical
+summary: "Never deserialize untrusted data with gadget-chain-prone formats (Java native serialization, Python pickle, PHP unserialize). Use JSON or Protobuf; validate structure and types after parsing. Integrity-check serialized blobs before deserializing."
+
+asvs_controls: ["5.5.1", "5.5.3"]
+iso_controls: ["A.8.28"]
+nist_ai_rmf: ["GOVERN-1.1"]
+cwe: ["CWE-502"]
+
+mythos_alignment:
+  pillar: secure-by-design
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "OWASP ASVS v5 §5.5.1"
+    - "OWASP ASVS v5 §5.5.3"
+    - "CWE-502"
+    - "ISO/IEC 27001:2022 A.8.28"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/*.py"
+    - "**/*.java"
+    - "**/*.kt"
+    - "**/*.php"
+    - "**/*.ts"
+    - "**/*.js"
+    - "**/*.go"
+    - "**/*.cs"
+    - "**/*.rb"
+  exclude:
+    - "**/test/**"
+    - "**/*.test.*"
+    - "**/__tests__/**"
+
+enforcement:
+  mode: blocking
+  pre_commit: false
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Principle
+
+  Insecure deserialization of untrusted data must not occur. Formats with native object reconstruction that can trigger arbitrary code via gadget chains (Java `ObjectInputStream`, Python `pickle`, PHP `unserialize`, Ruby `Marshal`) must not be used to process data from untrusted sources. Use data-only formats (JSON, Protobuf, MessagePack) and validate structure and types after parsing. If a binary format is required, sign or MAC the blob and verify the signature before deserializing.
+
+  ## Rationale
+
+  CWE-502 (Deserialization of Untrusted Data) regularly leads to remote code execution. Java gadget chains (Commons Collections, Spring, etc.) and Python pickle abuse the object reconstruction lifecycle to execute arbitrary code during the deserialization call itself — before any validation logic runs. OWASP ASVS §5.5.1 prohibits deserializing untrusted data using native deserialization mechanisms.
+
+  The safest fix is to not use these formats for external input. If an existing system uses them internally, add an HMAC or digital signature over the serialized bytes and validate before deserializing. Restrict deserialized class types using an allowlist (Java's `ObjectInputFilter`, introduced in JDK 9) as a defense-in-depth measure.
+
+  JSON parsers are not immune: large payloads, deeply nested structures, and zip-bomb-style payloads can cause DoS. Apply payload size limits and maximum depth settings.
+
+  ## BAD example
+
+  ```python
+  import pickle
+
+  # BAD: deserializing user-supplied pickle data — arbitrary code execution
+  def load_session(session_data: bytes):
+      return pickle.loads(session_data)
+  ```
+
+  ## GOOD example
+
+  ```python
+  import json
+  from pydantic import BaseModel
+
+  class SessionData(BaseModel):
+      user_id: int
+      roles: list[str]
+
+  def load_session(raw: str) -> SessionData:
+      # Parse JSON first, then validate schema — no code execution possible
+      return SessionData.model_validate_json(raw)
+  ```
+
+  Java — class filtering:
+  ```java
+  ObjectInputStream ois = new ObjectInputStream(inputStream);
+  // Allowlist only known-safe classes
+  ois.setObjectInputFilter(info -> {
+      if (info.serialClass() == null) return ObjectInputFilter.Status.ALLOWED;
+      return TrustedClasses.ALLOWLIST.contains(info.serialClass().getName())
+          ? ObjectInputFilter.Status.ALLOWED
+          : ObjectInputFilter.Status.REJECTED;
+  });
+  ```
+
+  ## Checklist
+
+  - [ ] Java `ObjectInputStream`, Python `pickle`, PHP `unserialize`, Ruby `Marshal` not used with untrusted input
+  - [ ] All external data uses JSON, Protobuf, or another data-only format
+  - [ ] JSON payload size and depth limits configured in the parser
+  - [ ] Deserialized data is schema-validated immediately after parsing
+  - [ ] If binary serialization is unavoidable, HMAC or signature is verified before deserialization
+  - [ ] Java `ObjectInputFilter` configured to allowlist expected classes
+  - [ ] Deserialization errors are logged with the source of the malformed data
+
+  ## References
+
+  - https://owasp.org/www-project-application-security-verification-standard/ (ASVS v5 §5.5)
+  - https://cheatsheetseries.owasp.org/cheatsheets/Deserialization_Cheat_Sheet.html
+  - https://cwe.mitre.org/data/definitions/502.html

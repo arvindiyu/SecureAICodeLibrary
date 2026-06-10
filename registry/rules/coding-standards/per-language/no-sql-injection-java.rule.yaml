@@ -1,0 +1,95 @@
+metadata:
+  id: no-sql-injection-java
+  name: No SQL Injection — Java
+  description: Java-specific SQL injection prevention using PreparedStatement, JPA JPQL named parameters, or Hibernate Criteria API; never use Statement with string concatenation.
+  version: "1.0.0"
+  tags: [sql-injection, java, prepared-statement, jpa, hibernate, spring-data]
+  languages: [java]
+
+category: coding-standards/per-language
+severity: critical
+summary: "Use PreparedStatement with positional parameters, JPA named parameters (:param), or Spring Data derived queries. Never use Statement.execute(string) with user input. Audit @Query annotations and entityManager.createNativeQuery() calls for concatenation."
+
+extends: no-sql-injection
+
+asvs_controls: ["5.3.4", "5.3.5"]
+iso_controls: ["A.8.28"]
+nist_ai_rmf: ["GOVERN-1.1"]
+cwe: ["CWE-89"]
+
+mythos_alignment:
+  pillar: ide-coverage
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "OWASP ASVS v5 §5.3.4"
+    - "CWE-89"
+    - "ISO/IEC 27001:2022 A.8.28"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/*.java"
+  exclude:
+    - "**/test/**"
+    - "**/*Test.java"
+    - "**/src/test/**"
+
+enforcement:
+  mode: blocking
+  pre_commit: true
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Delta from parent
+
+  This rule extends `no-sql-injection` with Java-specific guidance on JDBC `PreparedStatement`, JPA JPQL parameters, and Spring Data patterns.
+
+  ## BAD example
+
+  ```java
+  // BAD: Statement with string concatenation — SQL injection
+  String userId = request.getParameter("id");
+  Statement stmt = conn.createStatement();
+  ResultSet rs = stmt.executeQuery("SELECT * FROM users WHERE id = " + userId);
+
+  // BAD: JPA native query with string concatenation
+  String query = "SELECT * FROM users WHERE name = '" + name + "'";
+  entityManager.createNativeQuery(query, User.class).getResultList();
+  ```
+
+  ## GOOD example
+
+  ```java
+  // GOOD: PreparedStatement with positional parameters
+  String userId = request.getParameter("id");
+  PreparedStatement ps = conn.prepareStatement("SELECT * FROM users WHERE id = ?");
+  ps.setString(1, userId);
+  ResultSet rs = ps.executeQuery();
+
+  // GOOD: JPA JPQL with named parameter
+  TypedQuery<User> query = entityManager.createQuery(
+      "SELECT u FROM User u WHERE u.id = :userId", User.class);
+  query.setParameter("userId", userId);
+  User user = query.getSingleResult();
+
+  // GOOD: Spring Data JPA derived query (preferred — no SQL needed)
+  Optional<User> user = userRepository.findById(Long.parseLong(userId));
+  ```
+
+  ## Checklist
+
+  - [ ] `Statement.execute(String)` with user input absent — use `PreparedStatement` instead
+  - [ ] `entityManager.createNativeQuery()` uses `?` or `:param` placeholders
+  - [ ] Spring Data `@Query` annotations use `:param` syntax, not string concatenation
+  - [ ] Hibernate `session.createQuery()` uses named parameters
+  - [ ] JDBC result set column names hardcoded — not sourced from user input
+
+  ## References
+
+  - https://owasp.org/www-project-application-security-verification-standard/ (ASVS v5 §5.3)
+  - https://cwe.mitre.org/data/definitions/89.html
+  - https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html

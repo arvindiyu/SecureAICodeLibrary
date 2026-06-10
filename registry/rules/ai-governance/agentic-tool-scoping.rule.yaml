@@ -1,0 +1,114 @@
+metadata:
+  id: agentic-tool-scoping
+  name: Agentic Tool Scoping
+  description: Provision each agent with only the minimum tools required for its specific task; document and review the tool inventory; avoid broad or catch-all MCP server access.
+  version: "1.0.0"
+  tags: [agentic, mcp, tool-calling, least-privilege, security]
+
+category: ai-governance
+severity: critical
+
+summary: "Grant each agent only the tools it actually needs (≤5 for narrow tasks); document each tool with a justification; reject catch-all or admin-scoped MCP servers; review tool inventories at least quarterly. (ISO 42001 A.9.1)"
+
+asvs_controls: ["8.1.1", "8.2.1", "4.1.3"]
+iso_controls: ["A.5.15", "A.8.2", "A.8.3"]
+iso42001_controls: ["A.6.1", "A.9.1"]
+nist_ai_rmf: ["GOVERN-1.4", "MAP-2.1", "MANAGE-2.3"]
+cwe: ["CWE-269", "CWE-272", "CWE-862"]
+mitre_atlas: ["AML.T0051", "AML.T0047"]
+
+mythos_alignment:
+  pillar: ai-governance
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "ISO/IEC 42001:2023 A.9.1"
+    - "OWASP ASVS v5 §4.1.3"
+    - "NIST AI RMF MAP-2.1"
+    - "OWASP Top 10 for LLM Applications (2025) LLM06"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/agents/**"
+    - "**/mcp/**"
+    - "**/subagents/**"
+    - "**/tools/**"
+    - "**/.cursor/rules/**"
+
+enforcement:
+  mode: blocking
+  pre_commit: false
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Principle
+
+  Apply least privilege to every agent's tool set: provision only the specific tools the agent requires to accomplish its defined task. Each tool must be justified, documented, and limited to the narrowest scope available (prefer read-only over read-write; prefer resource-scoped over org-wide). Catch-all MCP servers that expose "everything" or "admin" access are prohibited. Maintain a machine-readable tool inventory for each agent and review it on a defined cadence. The same agent must not be used for both low-risk and high-risk operations without separate scoping.
+
+  ## Rationale
+
+  Agents inherit every tool's blast radius. An over-provisioned agent that can "read a file" and also "deploy infrastructure" and "rotate secrets" is not a least-privilege design; it is an amplified credential waiting to be misused. LLM models make mistakes and can be manipulated through prompt injection (OWASP LLM06, 2025); the consequences of a mistake scale with the breadth of the agent's tool set.
+
+  MITRE ATLAS AML.T0047 (ML Supply Chain Compromise) identifies MCP servers as an emerging supply-chain attack vector: a compromised server with broad scope can exfiltrate data or execute arbitrary actions across every agent that integrates it. Tool scoping limits the blast radius of any single compromised MCP server to its declared, reviewed capabilities.
+
+  ISO/IEC 42001 A.9.1 requires that the use of AI systems is governed with appropriate controls; tool scoping is the principal mechanism for enforcing that governance at the capability level.
+
+  ## BAD example
+
+  ```pseudo
+  # Agent purpose: "Summarize PR comments"
+  # Provisioned tools: 20+ including:
+  agent_tools = [
+    github_admin,        # full org admin access
+    aws_full_access,     # EC2, S3, IAM, Lambda
+    jira_admin,          # all projects and workflows
+    slack_admin,         # all channels and user management
+    confluence_admin,    # all spaces
+    ... 13 more MCP servers
+  ]
+  # A summarization task has no need for IAM or Slack admin access
+  # Compromise of agent compromises all integrated systems
+  ```
+
+  Red flags: tool count far exceeds task requirements; admin-scoped MCP servers; no documented justification per tool; read-write access where read-only suffices.
+
+  ## GOOD example
+
+  ```pseudo
+  # Agent purpose: "Summarize PR comments"
+  # Tool inventory (machine-readable, co-located with agent spec):
+  tool_inventory:
+    - tool: github_read_pull_request
+      scope: "read-only, single repo: acme-org/backend"
+      justification: "Required to read PR metadata and diff"
+      reviewed: "2024-10-01"
+    - tool: github_read_pull_request_comments
+      scope: "read-only, single repo: acme-org/backend"
+      justification: "Required to read review comments"
+      reviewed: "2024-10-01"
+  # Total: 2 tools, read-only, scoped to one repo
+  # No write access; no infra access; no cross-repo access
+  ```
+
+  Why this works: tool set exactly matches task scope; read-only prevents accidental writes; single-repo scope limits data exposure; justification and review date enable governance.
+
+  ## Checklist
+
+  - [ ] Each agent has a documented tool inventory with tool name, scope, and justification.
+  - [ ] Tool count is proportionate to agent purpose (few narrow tools for narrow tasks).
+  - [ ] No catch-all or admin-scoped MCP servers are provisioned to any agent.
+  - [ ] Read-only scope is used wherever the task does not require writes.
+  - [ ] Resource scope (specific repo, project, table) is declared rather than org-wide.
+  - [ ] Tool inventories are reviewed at least quarterly for critical agents, annually for others.
+  - [ ] New tools require documented justification before being added to any agent.
+
+  ## References
+
+  - ISO/IEC 42001:2023 A.9.1 (Use of AI systems): https://www.iso.org/standard/81230.html
+  - OWASP Top 10 for LLM Applications (2025) LLM06 — Excessive Agency: https://genai.owasp.org/llm-top-10/
+  - NIST AI RMF MAP-2.1: https://www.nist.gov/itl/ai-risk-management-framework
+  - MITRE ATLAS AML.T0047 (ML Supply Chain Compromise): https://atlas.mitre.org/

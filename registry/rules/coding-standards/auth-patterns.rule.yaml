@@ -1,0 +1,128 @@
+metadata:
+  id: auth-patterns
+  name: Secure Authentication Patterns
+  description: Use Argon2id/bcrypt for passwords, validate JWTs fully, manage sessions securely; ban MD5/SHA-1 for password storage.
+  version: "1.0.0"
+  tags: [authentication, passwords, jwt, sessions, bcrypt, argon2]
+
+category: coding-standards
+severity: high
+summary: "Hash passwords with Argon2id or bcrypt (cost ≥12). Validate JWTs with signature, expiry, and issuer checks. Set session cookies httpOnly, secure, SameSite=strict. Ban MD5/SHA-1 for credentials."
+
+asvs_controls: ["2.1.1", "2.6.1", "3.3.1"]
+iso_controls: ["A.5.17", "A.8.5"]
+nist_ai_rmf: ["GOVERN-1.1", "MAP-1.5"]
+cwe: ["CWE-916", "CWE-347", "CWE-614"]
+
+mythos_alignment:
+  pillar: secure-by-design
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "OWASP ASVS v5 §2.1.1"
+    - "OWASP ASVS v5 §2.6.1"
+    - "OWASP ASVS v5 §3.3.1"
+    - "CWE-916"
+    - "CWE-347"
+    - "ISO/IEC 27001:2022 A.5.17"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/*.ts"
+    - "**/*.tsx"
+    - "**/*.js"
+    - "**/*.jsx"
+    - "**/*.mjs"
+    - "**/*.py"
+    - "**/*.java"
+    - "**/*.kt"
+    - "**/*.go"
+    - "**/*.cs"
+    - "**/*.rb"
+    - "**/*.php"
+  exclude:
+    - "**/test/**"
+    - "**/*.test.*"
+    - "**/__tests__/**"
+
+enforcement:
+  mode: blocking
+  pre_commit: true
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Principle
+
+  Use memory-hard password hashing (Argon2id preferred, bcrypt with cost ≥12 acceptable). Validate JWTs completely: verify signature, check expiry, pin the expected issuer and audience, and explicitly allow only intended algorithms to prevent `alg:none` attacks. Set session cookies with `httpOnly`, `Secure`, and `SameSite=strict`. Regenerate session identifiers on privilege elevation (login, role change) to prevent session fixation.
+
+  ## Rationale
+
+  Password hashing with weak algorithms (MD5, SHA-1, plain SHA-256 without salt) results in all accounts being compromised in bulk when a database is breached. Rainbow tables and GPU-accelerated cracking render these instantly reversible. Memory-hard algorithms (Argon2id, bcrypt) impose a work factor that makes mass cracking economically infeasible (OWASP ASVS §2.1, CWE-916).
+
+  JWT libraries that accept the `alg:none` claim or that skip expiry checks create authentication bypasses. The `jwt.decode()` / `jwt.decode` idiom in most languages does NOT verify the signature; callers must use `verify()` / `decode_with_verify()` and pin allowed algorithms (CWE-347).
+
+  Insecure cookie attributes allow session theft via XSS (`httpOnly` missing), downgrade to HTTP (`Secure` missing), or cross-site request forgery (`SameSite` missing). OWASP ASVS §3.3 and ISO/IEC 27001:2022 A.5.17 require that credential material is protected in transit and at rest.
+
+  ## BAD example
+
+  ```typescript
+  // BAD: MD5 for password storage
+  const hash = require('crypto').createHash('md5').update(password).digest('hex');
+
+  // BAD: JWT decoded without verification
+  const payload = jwt.decode(token); // does NOT verify signature
+  req.user = payload;
+
+  // BAD: insecure session cookie
+  res.cookie('session', sessionId); // no httpOnly, no Secure, no SameSite
+  ```
+
+  ## GOOD example
+
+  ```typescript
+  import bcrypt from 'bcrypt';
+  import jwt from 'jsonwebtoken';
+
+  // Password hashing — bcrypt cost 12
+  const hash = await bcrypt.hash(password, 12);
+  const ok = await bcrypt.compare(candidate, hash);
+
+  // JWT — verified with pinned algorithm, issuer, audience
+  const payload = jwt.verify(token, process.env.JWT_SECRET!, {
+    algorithms: ['HS256'],
+    issuer: 'my-app',
+    audience: 'my-app-users',
+  });
+  req.user = payload;
+
+  // Session cookie — hardened attributes
+  res.cookie('session', sessionId, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'strict',
+    maxAge: 3_600_000,
+  });
+  ```
+
+  ## Checklist
+
+  - [ ] Passwords hashed with Argon2id, bcrypt (cost ≥12), or scrypt — never MD5 or plain SHA
+  - [ ] `jwt.verify()` (not `jwt.decode()`) used with pinned algorithm list
+  - [ ] JWT validation checks expiry (`exp`), issuer (`iss`), and audience (`aud`)
+  - [ ] `alg:none` and symmetric-with-asymmetric-key attacks mitigated by algorithm allowlist
+  - [ ] Session cookies have `httpOnly`, `Secure`, and `SameSite=strict`
+  - [ ] Session IDs regenerated after login and privilege elevation (prevents fixation)
+  - [ ] Failed authentication attempts are rate-limited and logged
+  - [ ] MFA recommended for privileged operations
+
+  ## References
+
+  - https://owasp.org/www-project-application-security-verification-standard/ (ASVS v5 §2)
+  - https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html
+  - https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_for_Java_Cheat_Sheet.html
+  - https://cwe.mitre.org/data/definitions/916.html
+  - https://cwe.mitre.org/data/definitions/347.html

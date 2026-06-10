@@ -1,0 +1,4 @@
+# Placeholder. Phase 2 populates this directory with the pre-commit rules:
+# constitution-check, spec-check, sbom-check, adr-check, threat-model-check,
+# gaps-risk-classification, freshness-check, scan-gate,
+# ai-attribution-check (BLOCKING by default — verifies Co-Authored-By trailer on AI-flagged commits).

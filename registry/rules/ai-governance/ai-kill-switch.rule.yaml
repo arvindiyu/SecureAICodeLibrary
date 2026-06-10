@@ -1,0 +1,125 @@
+metadata:
+  id: ai-kill-switch
+  name: AI Kill Switch
+  description: Every agentic system must have a documented, tested kill switch covering session termination, model rollback, and traffic gating; activation must be immediate, authorized, and produce an immutable audit entry.
+  version: "1.0.0"
+  tags: [ai-governance, kill-switch, incident-response, safety, agentic]
+
+category: ai-governance
+severity: critical
+
+summary: "Every agentic AI system must document and regularly test a kill switch at three layers (session terminate, model rollback, traffic gate); activation must halt processing within seconds, require authorized credentials, and produce an immutable audit entry. (ISO 42001 A.8.2)"
+
+asvs_controls: ["8.1.1"]
+iso_controls: ["A.5.24", "A.5.26", "A.5.30"]
+iso42001_controls: ["A.8.2", "A.9.2", "A.9.3"]
+nist_ai_rmf: ["MANAGE-2.4", "MANAGE-4.1", "GOVERN-1.4"]
+cwe: ["CWE-778", "CWE-284"]
+mitre_atlas: ["AML.T0051"]
+
+mythos_alignment:
+  pillar: incident-response
+  substantiation: roadmap
+  roadmap_milestone: M2
+
+sources:
+  primary:
+    - "ISO/IEC 42001:2023 A.8.2"
+    - "EU AI Act Art. 14"
+    - "NIST AI RMF MANAGE-2.4"
+    - "ISO/IEC 27001:2022 A.5.26"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/agents/**"
+    - "**/ai/**"
+    - "**/services/**"
+    - "**/deployments/**"
+    - "**/gateway/**"
+
+enforcement:
+  mode: advisory
+  pre_commit: false
+  merge_gate: false
+  ci: false
+
+content: |
+  ## Principle
+
+  Every agentic AI system must have a documented, tested, and regularly exercised kill switch. The kill switch must operate at three independent layers: (1) **session termination** — immediately halt all in-flight agent sessions; (2) **model rollback** — revert the active model to the last known-good version; (3) **traffic gate** — cut all traffic to the AI service endpoint. Activation must be achievable by an authorized operator within seconds, must not require the AI system's own cooperation (avoid circular dependencies), and must produce an immutable audit entry. Kill switches must be tested at least quarterly.
+
+  ## Rationale
+
+  ISO/IEC 42001 A.8.2 requires that AI systems can be halted or modified when necessary to prevent adverse outcomes. EU AI Act Art. 14 requires that operators of high-risk AI systems have the ability to intervene at any time. Without a tested kill switch, an AI system that is behaving adversarially, producing harmful outputs, or consuming unbounded resources cannot be stopped quickly—damage is bounded only by detection latency.
+
+  The three-layer design addresses different failure modes: session termination stops active harm from in-progress agent runs; model rollback addresses cases where a newly deployed model is producing bad outputs (without needing to restore the entire service); traffic gating addresses cases where the service itself must be taken offline immediately (security incident, data breach, regulatory order).
+
+  Circular dependency is a critical design risk: a kill switch that requires the AI system to process a "stop" command may fail if the system is in a degraded or adversarially-controlled state. The kill switch must be implemented at the infrastructure layer, not as an AI-layer capability.
+
+  **Note:** This rule defines the architecture and testing requirement. The operational runbooks, drill SOP, and tabletop materials that make this rule `substantiated` will land in Milestone M2. Until M2 is delivered, this rule is `roadmap`—the control architecture is defined here, not yet implemented end-to-end.
+
+  ## BAD example
+
+  ```pseudo
+  # No kill switch documented or implemented
+  # AI agent running in production making autonomous decisions
+  # Incident: agent begins making unauthorized API calls
+  # Response: "We'll update the prompt to tell it to stop"
+  # Agent continues because it cannot parse the "stop" instruction correctly
+  # Manual intervention requires pulling infrastructure with multi-hour SLA
+  # No audit trail of what happened during the incident
+  ```
+
+  Red flags: no kill switch documented; kill switch requires AI cooperation; activation SLA measured in hours; no immutable audit trail; kill switch has never been tested.
+
+  ## GOOD example
+
+  ```pseudo
+  # Three-layer kill switch architecture
+
+  # Layer 1: Session termination (immediate; infrastructure-level)
+  # Operator action: POST /admin/kill-switch/sessions?scope=all
+  # Effect: all in-flight agent sessions receive SIGTERM; no new sessions start
+  # SLA: <5 seconds to terminate all sessions
+
+  # Layer 2: Model rollback (minutes; model registry)
+  # Operator action: POST /admin/kill-switch/model-rollback?version=3.1.0
+  # Effect: model serving switches to pinned previous version
+  # Prerequisite: model registry per ai-model-lifecycle (version 3.1.0 artifacts available)
+
+  # Layer 3: Traffic gate (seconds; API gateway feature flag)
+  # Operator action: toggle kill_switch.ai_gateway = true
+  # Effect: gateway returns 503 for all AI endpoints; no traffic reaches AI service
+  # Human fallback: manual process or rules engine serves requests
+
+  # Activation requirements:
+  # - Multi-factor authorization (two operators must confirm for Layer 3)
+  # - Activation logged immutably with: operator_id, timestamp, layer, reason, scope
+  # - On-call and governance team alerted immediately
+
+  # Quarterly kill-switch drill: test all three layers; record results; address gaps
+  drill_record = KillSwitchDrill.run(date="2024-Q4",
+    layers=["session", "rollback", "traffic"],
+    results=drill_outcomes, action_items=gaps)
+  ```
+
+  Why this works: three independent layers address different failure modes; each layer is infrastructure-level (no AI cooperation needed); activation is authorized and fast; immutable audit trail; quarterly drills verify real capability.
+
+  ## Checklist
+
+  - [ ] A kill switch is documented at all three layers: session termination, model rollback, traffic gate.
+  - [ ] Each layer has a defined activation procedure and SLA (target: <30 seconds for session + traffic).
+  - [ ] Activation requires authorized credentials; multi-factor for full traffic gate.
+  - [ ] Kill switch activation produces an immutable audit entry (who, when, why, scope, layer).
+  - [ ] Activation triggers alerts to on-call and AI governance team.
+  - [ ] Kill switch is tested at least quarterly; drill results are documented.
+  - [ ] Kill switch does not depend on the AI system's own cooperation to function.
+  - [ ] Runbooks exist for common kill-switch activation scenarios (M2 deliverable).
+
+  ## References
+
+  - ISO/IEC 42001:2023 A.8.2 (Human oversight controls): https://www.iso.org/standard/81230.html
+  - EU AI Act Art. 14 (Human oversight measures): https://eur-lex.europa.eu/eli/reg/2024/1689/oj
+  - NIST AI RMF MANAGE-2.4: https://www.nist.gov/itl/ai-risk-management-framework
+  - ISO/IEC 27001:2022 A.5.26 (Response to information security incidents): https://www.iso.org/standard/27001

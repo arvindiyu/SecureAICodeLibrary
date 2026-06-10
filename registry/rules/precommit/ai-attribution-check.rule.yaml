@@ -1,0 +1,157 @@
+metadata:
+  id: ai-attribution-check
+  name: AI Attribution Check
+  description: "BLOCKING by default. Verifies Co-Authored-By: git trailer is present on any commit containing AI-generated content signals. Maps to Manthan exit code 78."
+  version: "1.0.0"
+  tags: [precommit, ai-attribution, blocking, co-authored-by, provenance, aiflags]
+
+category: precommit
+severity: high
+
+summary: "BLOCKING. Require 'Co-Authored-By:' git trailer on commits containing AI-generated content (detected via .aiflags/ files, AI-characteristic diff heuristics, or configured patterns). Missing attribution exits with Manthan code 78."
+
+asvs_controls: ["V1.1.2", "V7.1.2"]
+iso_controls: ["A.5.17", "A.8.26"]
+iso42001_controls: ["A.6.1", "A.9.1"]
+nist_ai_rmf: ["GOVERN-6.1", "MEASURE-2.9", "MAP-1.1"]
+cwe: ["CWE-284", "CWE-778"]
+
+mythos_alignment:
+  pillar: ai-governance
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "ISO/IEC 42001:2023 A.6.1"
+    - "NIST AI RMF GOVERN-6.1"
+    - "EU AI Act Art. 13"
+    - "OWASP ASVS v5 §V1.1"
+    - "docs/MANTHAN-CONTRACT.md §Exit-code mapping"
+
+scope:
+  always_apply: false
+  globs: ["**/.aiflags/**", "src/**/*", "lib/**/*"]
+
+enforcement:
+  mode: blocking
+  pre_commit: true
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Principle
+
+  Any commit that contains AI-generated or AI-assisted content MUST include a `Co-Authored-By:` git trailer attributing the AI tool. Missing attribution is a blocking pre-commit failure mapped to **Manthan exit code 78** (pre-Manthan compliance check failure). This is non-negotiable by default; configuring it to advisory requires an explicit ADR.
+
+  ## Rationale
+
+  AI-generated code carries provenance information that affects downstream security review, license compliance, and regulatory obligations (EU AI Act Art. 13). Without machine-readable attribution in the git history, there is no reliable way to audit which commits contain AI-generated content, identify AI-introduced bugs retroactively, or comply with transparency obligations.
+
+  The `Co-Authored-By:` trailer is the established convention (GitHub, GitLab, and major CI systems parse it). It is version-controlled, immutable after push, and does not require changes to workflow tooling. AI-flag files (`**/.aiflags/**`) provide an explicit opt-in signal for tools that cannot inject trailers automatically.
+
+  **Manthan exit code 78** is the designated code for pre-Manthan compliance check failures (see `docs/MANTHAN-CONTRACT.md` §Exit-code mapping). This rule is one of the seven compliance checks that run before the Manthan call; failure here exits with 78 without invoking Manthan.
+
+  ## Detection signals
+
+  The following signals trigger the attribution requirement:
+
+  | Signal | Detection method |
+  |---|---|
+  | `Co-Authored-By:` trailer present | Trailer already present → check passes (attribution is the required output, not a disqualifier) |
+  | `.aiflags/` file in staged changeset | Any file matching `**/.aiflags/**` is staged |
+  | Explicit AI comment markers | Staged diff contains `# AI-Generated`, `// @ai-generated`, `/* AI-assisted */` |
+  | Cursor / Copilot commit integration | Tool injects `Co-Authored-By: GitHub Copilot <...>` or `Co-Authored-By: Claude <noreply@anthropic.com>` automatically |
+
+  When any of the non-trailer signals are detected AND no `Co-Authored-By:` trailer is found in the pending commit message, the hook blocks with exit code 78.
+
+  ## Configuration (hooks/config.yaml — Wave 4)
+
+  ```yaml
+  ai_attribution:
+    enabled: true            # default; set false only with ADR justification
+    blocking: true           # default BLOCKING; set false to advisory (requires ADR)
+    heuristics:
+      - pattern: "**/.aiflags/**"
+        confidence: high
+      - pattern_diff: "# AI-Generated|// @ai-generated|/\\* AI-assisted"
+        confidence: high
+    trailer_pattern: "Co-Authored-By:.*noreply"
+    exit_code: 78            # Manthan contract: pre-check compliance failure
+  ```
+
+  ## BAD example
+
+  ```bash
+  # Developer uses Cursor + Claude to write a new authentication module
+  # The IDE does not inject a Co-Authored-By trailer automatically
+  # No .aiflags/ file created
+  git add src/auth/oauth.ts
+  git commit -m "feat: add OAuth2 authentication module"
+  # ai-attribution-check: BLOCK — AI-characteristic diff detected but no Co-Authored-By trailer.
+  # Add to commit message:
+  #   Co-Authored-By: Claude <noreply@anthropic.com>
+  # Exit code: 78
+  ```
+
+  ## GOOD example
+
+  ```bash
+  # Developer adds the trailer explicitly, or IDE injects it
+  git add src/auth/oauth.ts
+  git commit -m "feat: add OAuth2 authentication module
+
+  Implements SPEC.md §5.1 — Authentication.
+  AI-assisted: initial scaffold generated with Claude via Cursor.
+
+  Co-Authored-By: Claude <noreply@anthropic.com>"
+  # ai-attribution-check: PASS — Co-Authored-By trailer found
+  # Commit proceeds; trailer preserved in git history
+  ```
+
+  `hooks/pre-commit.sh` attribution check excerpt:
+
+  ```bash
+  # Check for AI signals in staged content
+  AIFLAGS=$(git diff --staged --name-only | grep -E '^\.aiflags/' | head -1)
+  AI_MARKERS=$(git diff --staged -U0 | grep -E '^\+.*(# AI-Generated|// @ai-generated|/\* AI-assisted)' | head -1)
+
+  if [ -n "$AIFLAGS$AI_MARKERS" ]; then
+    # Check pending commit message for Co-Authored-By trailer
+    COMMIT_MSG_FILE="${GIT_DIR}/COMMIT_EDITMSG"
+    if [ -f "$COMMIT_MSG_FILE" ]; then
+      TRAILER=$(grep -iE '^Co-Authored-By:.*noreply' "$COMMIT_MSG_FILE")
+    else
+      TRAILER=""
+    fi
+
+    if [ -z "$TRAILER" ]; then
+      echo "BLOCK: ai-attribution-check — AI-generated content detected but no Co-Authored-By trailer." >&2
+      echo "  Add to your commit message:" >&2
+      echo "    Co-Authored-By: <AI-tool> <noreply@...>" >&2
+      echo "  Manthan exit code: 78 (pre-commit compliance failure)" >&2
+      exit 78
+    fi
+  fi
+  ```
+
+  ## Checklist
+
+  - [ ] `hooks/config.yaml` has `ai_attribution.enabled: true` and `blocking: true`.
+  - [ ] IDE is configured to inject `Co-Authored-By:` trailers automatically (Cursor, Copilot).
+  - [ ] `.aiflags/` convention is documented in `CONTRIBUTING.md`.
+  - [ ] Commit message template includes a `Co-Authored-By:` placeholder.
+  - [ ] Override to advisory mode requires an ADR documenting the justification.
+  - [ ] Exit code 78 is used (Manthan contract: pre-check compliance failure).
+  - [ ] Audit log entry includes `"rule": "ai-attribution-check"` and `"decision": "block"`.
+
+  ## References
+
+  - `docs/MANTHAN-CONTRACT.md` §Exit-code mapping — exit code 78 definition
+  - ISO/IEC 42001:2023 A.6.1 — Transparency
+  - NIST AI RMF GOVERN-6.1 — Policies, processes, procedures for AI organisational responsibilities
+  - EU AI Act Art. 13 — Transparency and provision of information to users
+  - OWASP ASVS v5 §V1.1 — Secure Software Development Lifecycle
+  - `registry/rules/policies/ai-disclosure.rule.yaml`
+  - `hooks/config.yaml` (Wave 4)
+  - `hooks/pre-commit.sh` (Wave 4)

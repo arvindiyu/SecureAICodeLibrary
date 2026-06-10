@@ -1,0 +1,141 @@
+metadata:
+  id: freshness-check
+  name: Artifact Freshness Check
+  description: Wraps freshness-window policy; checks file modification times against HEAD commit distance; blocks if any required artifact is stale beyond 2x the configured window.
+  version: "1.0.0"
+  tags: [precommit, freshness, sbom, artifacts, supply-chain, config]
+
+category: precommit
+severity: medium
+
+summary: "Warn or block when required artifacts (sbom.cdx.json, SPEC.md, ADRs, THREAT_MODEL.md) exceed freshness window commits from HEAD. Reads hooks/config.yaml (Wave 4). 2x window = block; 1x window = warn."
+
+asvs_controls: ["V10.3.2", "V14.2.1"]
+iso_controls: ["A.8.8", "A.8.32"]
+nist_ai_rmf: ["MANAGE-2.4", "MEASURE-2.7"]
+cwe: ["CWE-1104"]
+
+mythos_alignment:
+  pillar: supply-chain
+  substantiation: aligned
+  roadmap_milestone: M3
+
+sources:
+  primary:
+    - "NIST SP 800-218 PO.4.1"
+    - "CycloneDX 1.5 §Metadata"
+    - "OWASP ASVS v5 §V14.2"
+    - "ISO/IEC 27001:2022 A.8.8"
+    - "docs/MANTHAN-CONTRACT.md §Freshness definition"
+
+scope:
+  always_apply: false
+  globs: ["sbom.cdx.json", "SPEC.md", "THREAT_MODEL.md", "CONSTITUTION.md", "docs/adr/*.md", "hooks/config.yaml"]
+
+enforcement:
+  mode: blocking
+  pre_commit: true
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Principle
+
+  Governance artifacts must be kept current with `HEAD`. This rule is the enforcement counterpart to the `freshness-window` policy: it reads the configured window from `hooks/config.yaml`, computes the commit distance for each required artifact, and blocks or warns based on the dual threshold (warn at N commits, block at 2N commits).
+
+  `hooks/config.yaml` is delivered in Wave 4. Until then, the check defaults to `freshness_window_commits: 10`.
+
+  ## Rationale
+
+  The commit-distance metric is more reliable than calendar time for low-velocity codebases. A SBOM that was last regenerated 90 calendar days ago may still be current if only 2 commits have landed. Conversely, a high-velocity repo might land 30 commits in a week, making a 5-day-old SBOM already stale. Commits are the right unit.
+
+  ## Configuration (hooks/config.yaml — Wave 4)
+
+  ```yaml
+  freshness_window_commits: 10       # warn at N; block at 2N
+  freshness_window_days: 30          # secondary calendar check
+  required_artifacts:
+    - CONSTITUTION.md
+    - SPEC.md
+    - sbom.cdx.json
+    - docs/adr/
+    - THREAT_MODEL.md
+  ```
+
+  ## BAD example
+
+  ```bash
+  # Team has not touched THREAT_MODEL.md in 25 commits; freshness_window_commits = 10
+  # distance = 25 > 2 * 10 = 20 → BLOCK threshold exceeded
+  ./hooks/pre-commit.sh
+  # freshness-check: BLOCK — THREAT_MODEL.md is 25 commits stale (limit: 20)
+  # Run: update THREAT_MODEL.md and stage it, or adjust freshness_window_commits
+  # Exit code: 78
+  ```
+
+  ## GOOD example
+
+  ```bash
+  # THREAT_MODEL.md was updated 8 commits ago; window = 10 → within warn threshold
+  ./hooks/pre-commit.sh
+  # freshness-check: WARN — THREAT_MODEL.md is 8 commits stale (window: 10)
+  #   Consider updating THREAT_MODEL.md soon.
+  # (commit proceeds)
+
+  # Or: all artifacts are within the window → PASS
+  # freshness-check: PASS — all required artifacts fresh within 10-commit window
+  ```
+
+  `hooks/pre-commit.sh` freshness check excerpt:
+
+  ```bash
+  WINDOW=$(yq '.freshness_window_commits // 10' hooks/config.yaml 2>/dev/null || echo 10)
+  BLOCK_WINDOW=$((WINDOW * 2))
+
+  ARTIFACTS=$(yq -r '.required_artifacts[]' hooks/config.yaml 2>/dev/null || \
+    echo -e "CONSTITUTION.md\nSPEC.md\nsbom.cdx.json\nTHREAT_MODEL.md")
+
+  HEAD_HASH=$(git rev-parse HEAD)
+
+  echo "$ARTIFACTS" | while read artifact; do
+    if [ -d "$artifact" ]; then
+      # For directories (e.g. docs/adr/), check if any file was touched
+      LAST_TOUCH=$(git log -1 --format=%H -- "${artifact}*" 2>/dev/null)
+    else
+      LAST_TOUCH=$(git log -1 --format=%H -- "$artifact" 2>/dev/null)
+    fi
+
+    if [ -z "$LAST_TOUCH" ]; then
+      echo "WARN: freshness-check: $artifact has no git history." >&2
+      continue
+    fi
+
+    DISTANCE=$(git rev-list "${LAST_TOUCH}..${HEAD_HASH}" --count 2>/dev/null || echo 999)
+
+    if [ "$DISTANCE" -gt "$BLOCK_WINDOW" ]; then
+      echo "BLOCK: freshness-check: $artifact is $DISTANCE commits stale (limit: $BLOCK_WINDOW)" >&2
+      exit 78
+    elif [ "$DISTANCE" -gt "$WINDOW" ]; then
+      echo "WARN: freshness-check: $artifact is $DISTANCE commits stale (window: $WINDOW)" >&2
+    fi
+  done
+  ```
+
+  ## Checklist
+
+  - [ ] `hooks/config.yaml` declares `freshness_window_commits` (default: 10).
+  - [ ] `freshness_window_days` is also set for secondary calendar check.
+  - [ ] `required_artifacts` list is complete and matches the project's governance set.
+  - [ ] SBOM lockfile-change trigger runs before this check (per `sbom-presence` rule).
+  - [ ] Block threshold is 2× warn threshold.
+  - [ ] Exit code 78 is used for pre-Manthan compliance failures (per Manthan contract).
+
+  ## References
+
+  - `registry/rules/policies/freshness-window.rule.yaml`
+  - `docs/MANTHAN-CONTRACT.md` §Freshness definition and §Exit-code mapping
+  - NIST SP 800-218 (SSDF) PO.4.1 — Define and use criteria for software security checks
+  - CycloneDX 1.5 §Metadata — timestamp and version fields
+  - OWASP ASVS v5 §V14.2 — Dependency requirements
+  - ISO/IEC 27001:2022 A.8.8 — Management of technical vulnerabilities
+  - `hooks/config.yaml` (Wave 4)

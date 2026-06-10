@@ -1,0 +1,107 @@
+metadata:
+  id: cryptography-standards-java
+  name: Cryptography Standards — Java
+  description: Java-specific cryptography guidance using JCA/JCE, Bouncy Castle, Spring Security Crypto; ban MessageDigest.getInstance("MD5/SHA1") for security, SecureRandom misuse, and ECB mode.
+  version: "1.0.0"
+  tags: [cryptography, java, jca, bouncy-castle, spring-security, securerandom]
+  languages: [java]
+
+category: coding-standards/per-language
+severity: critical
+summary: "Use SecureRandom for all random material; AES/GCM/NoPadding for encryption; BCryptPasswordEncoder or Argon2PasswordEncoder (Spring Security) for passwords. Ban MessageDigest.getInstance('MD5' or 'SHA-1') in security contexts and Cipher.getInstance('AES/ECB/...')."
+
+extends: cryptography-standards
+
+asvs_controls: ["6.2.1", "6.2.2", "6.3.1"]
+iso_controls: ["A.8.24"]
+nist_ai_rmf: ["GOVERN-1.1"]
+cwe: ["CWE-327", "CWE-338", "CWE-916"]
+
+mythos_alignment:
+  pillar: ide-coverage
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "OWASP ASVS v5 §6.2.1"
+    - "OWASP ASVS v5 §6.3.1"
+    - "CWE-327"
+    - "CWE-338"
+    - "ISO/IEC 27001:2022 A.8.24"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/*.java"
+  exclude:
+    - "**/test/**"
+    - "**/*Test.java"
+    - "**/src/test/**"
+
+enforcement:
+  mode: blocking
+  pre_commit: false
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Delta from parent
+
+  This rule extends `cryptography-standards` with Java-specific guidance on JCA/JCE algorithm strings, Spring Security crypto utilities, and SecureRandom usage.
+
+  ## BAD example
+
+  ```java
+  // BAD: MD5 for any security purpose
+  MessageDigest md = MessageDigest.getInstance("MD5");
+  byte[] hash = md.digest(password.getBytes());
+
+  // BAD: ECB mode — deterministic, leaks data patterns
+  Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+
+  // BAD: weak password encoding
+  String hash = DigestUtils.md5Hex(password);
+  ```
+
+  ## GOOD example
+
+  ```java
+  import java.security.SecureRandom;
+  import javax.crypto.Cipher;
+  import javax.crypto.spec.GCMParameterSpec;
+  import javax.crypto.spec.SecretKeySpec;
+  import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
+  import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+
+  // CSPRNG-generated nonce
+  byte[] nonce = new byte[12];
+  new SecureRandom().nextBytes(nonce);
+
+  // AES-256-GCM
+  Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+  GCMParameterSpec spec = new GCMParameterSpec(128, nonce);
+  cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(key, "AES"), spec);
+  byte[] ciphertext = cipher.doFinal(plaintext);
+
+  // Password hashing — Argon2 (Spring Security)
+  Argon2PasswordEncoder encoder = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
+  String hash = encoder.encode(rawPassword);
+  boolean matches = encoder.matches(rawPassword, hash);
+  ```
+
+  ## Checklist
+
+  - [ ] `MessageDigest.getInstance("MD5")` and `"SHA-1"` absent from security-sensitive paths
+  - [ ] `Cipher.getInstance("AES/ECB/...")` absent — use `"AES/GCM/NoPadding"` instead
+  - [ ] `SecureRandom` used for nonces, tokens, and key material (not `Math.random()`)
+  - [ ] Spring Security `Argon2PasswordEncoder` or `BCryptPasswordEncoder` used for passwords
+  - [ ] `KeyStore` or KMS used for long-lived key storage — never hardcoded `SecretKeySpec`
+  - [ ] GCM tag length set to 128 bits; nonce is 12 bytes and unique per encryption
+
+  ## References
+
+  - https://owasp.org/www-project-application-security-verification-standard/ (ASVS v5 §6)
+  - https://cwe.mitre.org/data/definitions/327.html
+  - https://docs.oracle.com/en/java/javase/21/security/java-cryptography-architecture-jca-reference-guide.html
+  - https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html

@@ -1,0 +1,93 @@
+metadata:
+  id: no-sql-injection-typescript
+  name: No SQL Injection — TypeScript
+  description: TypeScript-specific SQL injection prevention using Prisma, pg parameterized queries, or Knex query builder; audit raw Prisma $queryRaw usages; type-check query results.
+  version: "1.0.0"
+  tags: [sql-injection, typescript, prisma, pg, knex, drizzle]
+  languages: [typescript]
+
+category: coding-standards/per-language
+severity: critical
+summary: "Use Prisma ORM, pg parameterized queries ($1 placeholders), or Knex query builder for all database access in TypeScript. Audit every Prisma.$queryRaw and pg.query(string) call for unsanitized interpolation. Never use template literals to build SQL."
+
+extends: no-sql-injection
+
+asvs_controls: ["5.3.4", "5.3.5"]
+iso_controls: ["A.8.28"]
+nist_ai_rmf: ["GOVERN-1.1"]
+cwe: ["CWE-89"]
+
+mythos_alignment:
+  pillar: ide-coverage
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "OWASP ASVS v5 §5.3.4"
+    - "CWE-89"
+    - "ISO/IEC 27001:2022 A.8.28"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/*.ts"
+    - "**/*.tsx"
+  exclude:
+    - "**/test/**"
+    - "**/*.test.ts"
+    - "**/*.spec.ts"
+    - "**/__tests__/**"
+
+enforcement:
+  mode: blocking
+  pre_commit: true
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Delta from parent
+
+  This rule extends `no-sql-injection` with TypeScript ecosystem specifics: Prisma raw query escape hatches, the `pg` driver's parameterization syntax, and template-literal SQL risks.
+
+  ## BAD example
+
+  ```typescript
+  // BAD: template literal in Prisma raw query — SQL injection
+  const userId = req.params.id;
+  const user = await prisma.$queryRaw`SELECT * FROM users WHERE id = ${userId}`;
+  // NOTE: Prisma tagged template literals ARE safe — but plain string interpolation is not:
+  const unsafe = await prisma.$queryRawUnsafe(`SELECT * FROM users WHERE id = ${userId}`);
+  // $queryRawUnsafe with interpolation = injection
+
+  // BAD: pg template literal
+  const { rows } = await pool.query(`SELECT * FROM orders WHERE user_id = '${userId}'`);
+  ```
+
+  ## GOOD example
+
+  ```typescript
+  import { Prisma } from '@prisma/client';
+
+  // GOOD: Prisma tagged template (automatically parameterized)
+  const user = await prisma.$queryRaw<User[]>`SELECT * FROM users WHERE id = ${userId}`;
+
+  // GOOD: Prisma typed query builder (preferred — no raw SQL)
+  const order = await prisma.order.findUnique({ where: { id: Number(orderId) } });
+
+  // GOOD: pg driver with $1 placeholder
+  const { rows } = await pool.query('SELECT * FROM orders WHERE user_id = $1', [userId]);
+  ```
+
+  ## Checklist
+
+  - [ ] `$queryRawUnsafe` absent or audited — every call uses bind variables, never string interpolation
+  - [ ] `pool.query(string, params)` format used — no template literals as the first argument
+  - [ ] Prisma ORM typed methods preferred over raw queries for standard CRUD
+  - [ ] Dynamic `ORDER BY` and `WHERE` column names validated against a literal allowlist before interpolation
+
+  ## References
+
+  - https://owasp.org/www-project-application-security-verification-standard/ (ASVS v5 §5.3)
+  - https://cwe.mitre.org/data/definitions/89.html
+  - https://www.prisma.io/docs/orm/prisma-client/queries/raw-database-access

@@ -1,0 +1,108 @@
+metadata:
+  id: severity-thresholds
+  name: Severity Thresholds Policy
+  description: Defines blocking severity floors for merge gates and CI; AI-assisted commits raise the floor by one band per ADR 0003.
+  version: "1.0.0"
+  tags: [policies, severity, merge-gate, ci, ai-assistance]
+
+category: policies
+severity: high
+
+summary: "Block merges and fail CI on any finding >= configured severity floor (default: HIGH). AI-assisted commits raise the floor one band (e.g. MEDIUM→HIGH). Override requires a named approver from the configured list. Per ADR 0003."
+
+asvs_controls: ["V1.1.2", "V15.1.1"]
+iso_controls: ["A.8.25", "A.8.26"]
+nist_ai_rmf: ["GOVERN-1.1", "MANAGE-2.2", "MEASURE-2.5"]
+cwe: ["CWE-693"]
+
+mythos_alignment:
+  pillar: proactive-defense
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "NIST SP 800-218 RV.1.1"
+    - "OWASP ASVS v5 §V15.1"
+    - "ISO/IEC 27001:2022 A.8.25"
+    - "docs/adr/0003-severity-thresholds-policy.md"
+    - "docs/MANTHAN-CONTRACT.md §Severity-threshold matrix"
+
+scope:
+  always_apply: false
+  globs: ["hooks/config.yaml", ".github/workflows/*.yml", "**/.securecode/**"]
+
+enforcement:
+  mode: blocking
+  pre_commit: false
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Principle
+
+  Every security finding produced by a scan engine or subagent runner is assigned a severity level (CRITICAL / HIGH / MEDIUM / LOW / INFO). This policy defines which levels block the merge gate and fail CI, and specifies that AI-assisted commits receive a one-band floor raise per ADR 0003.
+
+  ## Rationale
+
+  Without a documented, machine-enforced severity floor, teams inevitably negotiate on a per-finding basis — producing inconsistent outcomes and allowing critical findings to slip to main. A single configured floor (`hooks/config.yaml → severity_threshold`) eliminates ambiguity. The AI-assistance floor raise reflects the empirically-observed higher false-negative rate in AI-generated code (see `THREAT_MODEL.md` §Glasswing-era posture).
+
+  ADR 0003 records the decision to default to `high` rather than `critical` for regulated workloads, and requires a named approver from `hooks/config.yaml → merge_gate.override_approvers` to override any block.
+
+  ## Severity-threshold matrix
+
+  | Severity  | Merge block | CI fail | SLA (default) |
+  |-----------|-------------|---------|---------------|
+  | CRITICAL  | Yes         | Yes     | 24 hours      |
+  | HIGH      | Yes         | Yes     | 7 days        |
+  | MEDIUM    | No          | No      | 30 days       |
+  | LOW       | No          | No      | Backlog       |
+  | INFO      | No          | No      | Backlog       |
+
+  **AI-assistance adjustment (ADR 0003):** When `commit.is_ai_assisted: true` is set in the Manthan event payload, the effective floor raises by one band — a MEDIUM finding is treated as HIGH, HIGH as CRITICAL — unless `hooks/config.yaml → ai_assistance.floor_raise: false` explicitly disables this.
+
+  ## Anti-pattern
+
+  CI runs the scanner but never gates on the result. All severities are reported in the summary but no job step checks the count. A CRITICAL SQL-injection finding merges silently because the team assumed "someone will fix it later."
+
+  ## Correct policy
+
+  `hooks/config.yaml`:
+
+  ```yaml
+  severity_threshold: high       # default for regulated workloads
+  ai_assistance:
+    floor_raise: true            # ADR 0003: raise floor one band for AI commits
+  merge_gate:
+    override_approvers:
+      - security-lead@example.com
+  ```
+
+  `registry-ci.yml` / `merge-gate.yml` step:
+
+  ```yaml
+  - name: Severity gate
+    run: |
+      THRESHOLD=$(yq '.severity_threshold' hooks/config.yaml)
+      ./hooks/pre-commit.sh --severity-threshold "$THRESHOLD"
+  ```
+
+  The gate emits a SARIF-style one-liner on stderr and exits non-zero when findings meet or exceed the threshold.
+
+  ## Checklist
+
+  - [ ] `hooks/config.yaml` declares `severity_threshold` (default: `high`).
+  - [ ] `ai_assistance.floor_raise: true` is set (or explicitly set to `false` with ADR justification).
+  - [ ] `merge_gate.override_approvers` lists at least one named individual.
+  - [ ] CI workflow step checks exit code from the pre-commit script.
+  - [ ] SARIF output is uploaded as a workflow artifact on failure.
+  - [ ] ADR 0003 is referenced in the project's `docs/adr/` directory.
+
+  ## References
+
+  - ADR 0003 — Severity-thresholds policy (`docs/adr/0003-severity-thresholds-policy.md`)
+  - NIST SP 800-218 (SSDF) RV.1.1 — Review findings and remediate
+  - OWASP ASVS v5 §V15.1 — Security Build and Deployment
+  - ISO/IEC 27001:2022 A.8.25 — Secure development life cycle
+  - `docs/MANTHAN-CONTRACT.md` §Severity-threshold matrix
+  - `hooks/config.yaml` (Phase 4)

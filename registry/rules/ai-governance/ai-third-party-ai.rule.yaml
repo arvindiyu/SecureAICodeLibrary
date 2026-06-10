@@ -1,0 +1,127 @@
+metadata:
+  id: ai-third-party-ai
+  name: AI Third-Party AI Governance
+  description: Apply AI-specific vendor assessment beyond standard procurement; require AI-specific contractual clauses; monitor for drift and silent model updates; define subprocessor requirements and exit strategy.
+  version: "1.0.0"
+  tags: [ai-governance, third-party, vendor, supply-chain, compliance]
+
+category: ai-governance
+severity: high
+
+summary: "Assess third-party AI vendors with AI-specific criteria (data handling, model updates, bias SLAs, audit rights); require AI-specific contract clauses; monitor for silent model changes; document subprocessors; define exit strategy. (ISO 42001 A.10.1)"
+
+asvs_controls: ["1.6.1", "8.2.1"]
+iso_controls: ["A.5.19", "A.5.21", "A.5.22"]
+iso42001_controls: ["A.10.1", "A.10.2"]
+nist_ai_rmf: ["GOVERN-1.1", "GOVERN-1.2", "MAP-3.1"]
+cwe: ["CWE-829", "CWE-693"]
+mitre_atlas: ["AML.T0047"]
+
+mythos_alignment:
+  pillar: supply-chain
+  substantiation: aligned
+  roadmap_milestone: M3
+
+sources:
+  primary:
+    - "ISO/IEC 42001:2023 A.10.1"
+    - "NIST AI RMF GOVERN-1.2"
+    - "EU AI Act Art. 25"
+    - "OWASP ASVS v5 §1.6.1"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/llm/**"
+    - "**/vendors/**"
+    - "**/integrations/**"
+    - "**/third-party/**"
+    - "**/ai/**"
+
+enforcement:
+  mode: warning
+  pre_commit: false
+  merge_gate: false
+  ci: false
+
+content: |
+  ## Principle
+
+  Extend standard vendor management with AI-specific assessment criteria for every third-party AI system: commercial APIs, embedded models, open-source components, and MCP servers. Require AI-specific contractual protections: prohibition on training with customer data, mandatory model-update advance notice, bias audit sharing, audit rights, and certified data deletion. Monitor third-party AI outputs continuously for drift or silent behavioral changes. Document all subprocessors. Maintain and periodically test an exit strategy to avoid vendor lock-in. Apply the same rigor to open-source AI components via OSPO or equivalent review.
+
+  ## Rationale
+
+  Third-party AI vendors introduce unique risks not covered by standard vendor management: they may silently update their models (changing behavior without notice), train on customer data, propagate bias from their training pipelines, and create dependencies that are difficult to exit. MITRE ATLAS AML.T0047 (ML Supply Chain Compromise) identifies vendor AI APIs as an emerging supply-chain attack vector—a compromised third-party model API affects every consumer simultaneously.
+
+  EU AI Act Art. 25 assigns obligations to deployers of third-party AI, meaning that vendor non-compliance does not relieve the deployer of responsibility. ISO/IEC 42001 A.10.1 requires that AI-related supplier relationships are governed with appropriate controls.
+
+  Silent model updates are particularly insidious: a vendor can change model behavior, bias profile, or capability without triggering the deployer's change management process, causing production incidents that are attributed to the deploying team rather than the vendor.
+
+  ## BAD example
+
+  ```pseudo
+  # Third-party AI API integrated with no AI-specific assessment
+  response = third_party_api.generate(customer_data)
+  # No AI-specific vendor assessment (only standard procurement review)
+  # No contract clause: vendor may train on customer data
+  # No model update notification: behavior changes silently
+  # No monitoring of third-party output for drift or quality
+  # No exit plan; deeply embedded; no alternatives evaluated
+  # Open-source AI model pulled without license or security review
+  ```
+
+  Red flags: no AI-specific assessment; no data handling clause; no update notification; no output monitoring; no exit strategy; no open-source AI review.
+
+  ## GOOD example
+
+  ```pseudo
+  # 1. AI-specific vendor assessment (extends standard procurement)
+  assessment = AIVendorAssessment.conduct(vendor="provider", product="model_api",
+    criteria=["data_handling", "model_updates", "bias_fairness",
+              "transparency", "subprocessors", "security", "audit_rights"])
+  assessment.attach_to(procurement_record)
+
+  # 2. AI-specific contractual clauses
+  contract.require([
+    "no_training_on_customer_data",
+    "30_day_model_update_advance_notice",
+    "annual_bias_audit_results_shared",
+    "right_to_audit_annually",
+    "data_deletion_within_30_days_of_termination",
+    "subprocessor_disclosure_and_change_notification",
+  ])
+
+  # 3. Continuous monitoring for silent model changes
+  monitor = ThirdPartyAIMonitor.configure(vendor="provider",
+    baseline=production_baseline, alert_on_drift=True, cadence="weekly")
+
+  # 4. Exit strategy documented
+  exit_plan = ExitPlan(
+    alternatives=["alternative_vendor", "in_house_model"],
+    data_export=["embeddings", "fine_tuning_artifacts", "usage_logs"],
+    estimated_migration_weeks=12
+  )
+
+  # 5. Open-source AI: OSPO review completed; dependency tracked in SBOM
+  ospo_review = OSPO.review(oss_ai_component, check=["license", "cve_history", "maintenance"])
+  sbom.add(oss_ai_component, review_status=ospo_review.status)
+  ```
+
+  Why this works: AI-specific assessment covers unique risks; contractual clauses protect data and require transparency; drift monitoring catches silent changes; exit strategy prevents lock-in; open-source components are reviewed and tracked in SBOM.
+
+  ## Checklist
+
+  - [ ] An AI-specific vendor assessment is completed before any third-party AI integration.
+  - [ ] Contract includes: no training on customer data, model update notice, bias audit sharing, audit rights, data deletion.
+  - [ ] Third-party AI outputs are monitored for behavioral drift and quality degradation.
+  - [ ] All AI subprocessors are disclosed and assessed.
+  - [ ] An exit strategy with alternatives and estimated migration cost is documented.
+  - [ ] Open-source AI components are reviewed (license, CVE history, maintenance) and tracked in SBOM.
+  - [ ] Vendor assessments are repeated annually and on material vendor changes.
+
+  ## References
+
+  - ISO/IEC 42001:2023 A.10.1 (Third-party AI relationships): https://www.iso.org/standard/81230.html
+  - EU AI Act Art. 25 (Obligations of deployers): https://eur-lex.europa.eu/eli/reg/2024/1689/oj
+  - NIST AI RMF GOVERN-1.2: https://www.nist.gov/itl/ai-risk-management-framework
+  - MITRE ATLAS AML.T0047 (ML Supply Chain Compromise): https://atlas.mitre.org/

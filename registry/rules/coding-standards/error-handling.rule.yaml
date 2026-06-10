@@ -1,0 +1,123 @@
+metadata:
+  id: error-handling
+  name: Secure Error Handling
+  description: Return generic error messages to clients; log full details server-side; never expose stack traces, internal paths, or sensitive data in responses.
+  version: "1.0.0"
+  tags: [error-handling, information-disclosure, logging, exception-handling]
+
+category: coding-standards
+severity: medium
+summary: "Return generic error messages to clients. Log full error details server-side only. Never expose stack traces, internal paths, SQL errors, or sensitive data in API responses. Catch all unhandled rejections."
+
+asvs_controls: ["7.4.1", "7.4.2"]
+iso_controls: ["A.8.28"]
+nist_ai_rmf: ["GOVERN-1.1"]
+cwe: ["CWE-209", "CWE-390", "CWE-755"]
+
+mythos_alignment:
+  pillar: secure-by-design
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "OWASP ASVS v5 §7.4.1"
+    - "OWASP ASVS v5 §7.4.2"
+    - "CWE-209"
+    - "CWE-390"
+    - "ISO/IEC 27001:2022 A.8.28"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/*.ts"
+    - "**/*.tsx"
+    - "**/*.js"
+    - "**/*.jsx"
+    - "**/*.mjs"
+    - "**/*.py"
+    - "**/*.java"
+    - "**/*.kt"
+    - "**/*.go"
+    - "**/*.cs"
+    - "**/*.rb"
+    - "**/*.php"
+  exclude:
+    - "**/test/**"
+    - "**/*.test.*"
+    - "**/__tests__/**"
+
+enforcement:
+  mode: warning
+  pre_commit: false
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Principle
+
+  Always distinguish between internal error details (for operators) and external error messages (for API consumers). Internal details — stack traces, SQL query text, file system paths, internal service names — must never appear in HTTP responses or client-facing messages. Log full context server-side. Return a generic, correlation-ID-tagged message to the client. Catch all unhandled promise rejections and uncaught exceptions to prevent process crashes that leak information or create DoS conditions.
+
+  ## Rationale
+
+  Error messages that reveal internal structure give attackers reconnaissance data: stack traces expose library versions and code paths, SQL errors reveal schema details, and path disclosures expose directory layouts. CWE-209 (Information Exposure Through an Error Message) is a direct consequence. CWE-390 (Detection of Error Condition Without Action) and CWE-755 (Improper Handling of Exceptional Conditions) describe the consequences of swallowed errors — security events that go undetected.
+
+  OWASP ASVS §7.4 requires that error handling is consistent, that error messages do not leak implementation details, and that all exceptions result in a controlled failure that preserves application integrity.
+
+  A correlation ID in the response allows operators to match client-visible error codes to server-side log entries without embedding sensitive data in the response.
+
+  ## BAD example
+
+  ```typescript
+  app.post('/api/users', async (req, res) => {
+    try {
+      const user = await db.query('INSERT INTO users ...');
+      res.json(user);
+    } catch (e) {
+      // BAD: exposes stack trace and internal query details to the client
+      res.status(500).json({ error: e.message, stack: e.stack });
+    }
+  });
+  ```
+
+  ## GOOD example
+
+  ```typescript
+  import { randomUUID } from 'crypto';
+
+  app.post('/api/users', async (req, res) => {
+    const correlationId = randomUUID();
+    try {
+      const user = await db.query('INSERT INTO users ...');
+      res.json(user);
+    } catch (e) {
+      logger.error({ correlationId, err: e, path: req.path });
+      res.status(500).json({
+        error: 'An unexpected error occurred.',
+        correlationId,
+      });
+    }
+  });
+
+  // Global fallback — prevents unhandled rejection from crashing process
+  process.on('unhandledRejection', (reason) => {
+    logger.error({ event: 'unhandledRejection', reason });
+  });
+  ```
+
+  ## Checklist
+
+  - [ ] API error responses never include stack traces, SQL text, or internal paths
+  - [ ] Error responses include a correlation ID for log cross-referencing
+  - [ ] Full error context is logged server-side with structured logging
+  - [ ] Global unhandled-exception and unhandled-rejection handlers are registered
+  - [ ] Error handling middleware is centralized, not duplicated per route
+  - [ ] Error log entries include user ID (if available), path, and request ID
+  - [ ] 4xx and 5xx responses are distinct and do not differ in response time (avoid oracle attacks)
+
+  ## References
+
+  - https://owasp.org/www-project-application-security-verification-standard/ (ASVS v5 §7.4)
+  - https://cheatsheetseries.owasp.org/cheatsheets/Error_Handling_Cheat_Sheet.html
+  - https://cwe.mitre.org/data/definitions/209.html
+  - https://cwe.mitre.org/data/definitions/390.html

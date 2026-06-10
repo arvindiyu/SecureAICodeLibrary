@@ -1,0 +1,115 @@
+metadata:
+  id: merge-gate-policy
+  name: Merge Gate Policy
+  description: When CI fails any blocking-mode rule OR Manthan returns exit code 1, the merge is gated. Override requires a named approver from the configured list.
+  version: "1.0.0"
+  tags: [policies, merge-gate, ci, blocking, override, manthan]
+
+category: policies
+severity: high
+
+summary: "Gate merges when any blocking-mode rule fires OR Manthan returns decision:block (exit 1). Override requires a named approver from hooks/config.yaml merge_gate.override_approvers. No silent bypasses."
+
+asvs_controls: ["V1.1.2", "V1.6.1", "V15.1.1"]
+iso_controls: ["A.8.25", "A.8.26", "A.5.17"]
+nist_ai_rmf: ["GOVERN-1.1", "GOVERN-1.4", "MANAGE-2.2"]
+cwe: ["CWE-693", "CWE-284"]
+
+mythos_alignment:
+  pillar: proactive-defense
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "NIST SP 800-218 RV.1.1"
+    - "OWASP ASVS v5 §V1.1"
+    - "ISO/IEC 27001:2022 A.8.25"
+    - "docs/MANTHAN-CONTRACT.md §Exit-code mapping"
+    - "docs/adr/0002-manthan-scan-gate-contract.md"
+
+scope:
+  always_apply: false
+  globs: [".github/workflows/merge-gate.yml", "hooks/config.yaml"]
+
+enforcement:
+  mode: blocking
+  pre_commit: false
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Principle
+
+  No code merges to a protected branch unless all blocking-mode rules pass and Manthan returns `decision: pass` or `decision: warn`. A human override is always available but requires a named approver — it is never anonymous or self-approved.
+
+  ## Rationale
+
+  Merge gates without override governance create two failure modes: (a) gates that are routinely bypassed because they are too noisy, or (b) gates that block indefinitely when they false-positive and no override path exists. This policy provides both the gate and the governed override so neither failure mode is reachable.
+
+  The Manthan exit-code mapping (see `docs/MANTHAN-CONTRACT.md`) translates `decision: block` to exit code 1, which CI treats as a job failure. The `merge-gate.yml` workflow enforces this on every PR targeting a protected branch.
+
+  ## Exit-code semantics (from MANTHAN-CONTRACT.md)
+
+  | Exit code | Condition | Gate behaviour |
+  |---|---|---|
+  | `0` | `decision: pass` or `decision: warn` below threshold | Allow merge |
+  | `1` | `decision: block` — generic gating failure | Block merge |
+  | `2` | `decision: error` — Manthan internal failure | Block merge |
+  | `3` | Manthan unreachable | Block merge (fail closed) |
+  | `78` | Pre-Manthan compliance check failed | Block merge |
+
+  ## Override protocol
+
+  When a merge gate fires and the change must land urgently:
+
+  1. An approver from `hooks/config.yaml → merge_gate.override_approvers` reviews the finding(s).
+  2. If the finding is a confirmed false positive, it is documented in a triage record in `.securecode/audit.log` and the ADR or SPEC.
+  3. The approver re-triggers CI with an override flag or manually approves the branch protection bypass.
+  4. The override event is logged in `.securecode/audit.log` with approver identity and rationale.
+
+  No `--no-verify` bypass of the pre-commit hook is permitted without the same override protocol.
+
+  ## Anti-pattern
+
+  The CI workflow runs the security scanner but does not check its exit code. `continue-on-error: true` is set on the scan step so PRs never block regardless of findings. The security team learns about HIGH findings from the weekly scanner report after they have already merged.
+
+  ## Correct policy
+
+  `.github/workflows/merge-gate.yml`:
+
+  ```yaml
+  - name: Run merge gate
+    run: ./hooks/pre-commit.sh --ci
+    # No continue-on-error. Exit non-zero = workflow fails = PR blocked.
+  ```
+
+  `hooks/config.yaml`:
+
+  ```yaml
+  merge_gate:
+    override_approvers:
+      - security-lead@example.com
+      - cto@example.com
+    require_override_rationale: true
+    log_overrides_to_audit: true
+  ```
+
+  ## Checklist
+
+  - [ ] `merge-gate.yml` workflow does not use `continue-on-error: true` on the gate step.
+  - [ ] `hooks/config.yaml` lists at least one named `override_approver`.
+  - [ ] Override events are logged to `.securecode/audit.log`.
+  - [ ] Branch protection rules require the `merge-gate` CI check to pass before merging.
+  - [ ] `--no-verify` use is tracked and audited (git hooks policy documented in CONTRIBUTING.md).
+  - [ ] Manthan endpoint reachability is tested in `merge-gate.yml` before the gate step.
+
+  ## References
+
+  - `docs/MANTHAN-CONTRACT.md` §Exit-code mapping
+  - ADR 0002 — Manthan scan-gate contract (`docs/adr/0002-manthan-scan-gate-contract.md`)
+  - ADR 0003 — Severity-thresholds policy (`docs/adr/0003-severity-thresholds-policy.md`)
+  - NIST SP 800-218 (SSDF) RV.1.1 — Review findings and remediate
+  - OWASP ASVS v5 §V1.1 — Secure Software Development Lifecycle
+  - ISO/IEC 27001:2022 A.8.25 — Secure development life cycle
+  - `hooks/pre-commit.sh` (Phase 4)

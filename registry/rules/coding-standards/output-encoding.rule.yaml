@@ -1,0 +1,115 @@
+metadata:
+  id: output-encoding
+  name: Output Encoding
+  description: Context-sensitively encode all output rendered in HTML, JavaScript, CSS, URLs, or XML; use trusted sanitizer libraries; never use innerHTML with user data.
+  version: "1.0.0"
+  tags: [output-encoding, xss, html-encoding, content-security-policy, sanitization]
+
+category: coding-standards
+severity: high
+summary: "Encode all user-controlled output before rendering: HTML-encode for HTML context, JS-encode for script context, URL-encode for URLs. Use DOMPurify for HTML sanitization. Set Content-Security-Policy headers. Never use innerHTML with unsanitized input."
+
+asvs_controls: ["5.3.1", "5.3.3"]
+iso_controls: ["A.8.28"]
+nist_ai_rmf: ["GOVERN-1.1"]
+cwe: ["CWE-79", "CWE-116"]
+
+mythos_alignment:
+  pillar: secure-by-design
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "OWASP ASVS v5 §5.3.1"
+    - "OWASP ASVS v5 §5.3.3"
+    - "CWE-79"
+    - "CWE-116"
+    - "ISO/IEC 27001:2022 A.8.28"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/*.ts"
+    - "**/*.tsx"
+    - "**/*.js"
+    - "**/*.jsx"
+    - "**/*.html"
+    - "**/*.py"
+    - "**/*.java"
+    - "**/*.kt"
+    - "**/*.go"
+    - "**/*.cs"
+    - "**/*.rb"
+    - "**/*.php"
+  exclude:
+    - "**/test/**"
+    - "**/*.test.*"
+    - "**/__tests__/**"
+
+enforcement:
+  mode: blocking
+  pre_commit: false
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Principle
+
+  Every piece of user-controlled data must be encoded appropriately for the output context before it is rendered. Output contexts require different encodings: HTML body, HTML attribute, JavaScript string, CSS value, URL query parameter, and XML all have distinct encoding schemes. Using the wrong encoder for the context, or omitting encoding entirely, leads to cross-site scripting (XSS). Set a Content-Security-Policy header as a defense-in-depth measure.
+
+  ## Rationale
+
+  Cross-site scripting (CWE-79) is consistently in the OWASP Top 10 and allows attackers to execute arbitrary JavaScript in the victim's browser — stealing cookies, tokens, and credentials, or performing actions on behalf of the user. Improper neutralization of output (CWE-116) is the root cause.
+
+  Framework rendering engines (React JSX, Angular templates, Jinja2, Thymeleaf) auto-escape HTML output by default, but this protection is bypassed when developers use raw HTML injection escape hatches (`dangerouslySetInnerHTML`, `[innerHTML]`, `| safe`, `Markup()`, `th:utext`). These must be audited and restricted to cases where the content has been sanitized by a trusted library (DOMPurify, `org.owasp.encoder`).
+
+  Content-Security-Policy (`default-src 'self'`) is a defense-in-depth layer that limits the impact of any XSS that slips through. It does not replace output encoding.
+
+  OWASP ASVS §5.3.1 requires that output is context-sensitively encoded; §5.3.3 prohibits unverified user-supplied HTML in rendered output.
+
+  ## BAD example
+
+  ```typescript
+  // BAD: unsanitized user content injected as HTML
+  const userBio = req.body.bio;
+  document.getElementById('bio').innerHTML = userBio; // XSS
+  ```
+
+  ## GOOD example
+
+  ```typescript
+  import DOMPurify from 'dompurify';
+
+  // Sanitize HTML from user — only when HTML output is required
+  const safeBio = DOMPurify.sanitize(userBio, { ALLOWED_TAGS: ['b', 'i', 'em', 'strong'] });
+  document.getElementById('bio').innerHTML = safeBio;
+
+  // Prefer textContent when HTML is not required
+  document.getElementById('name').textContent = req.body.name;
+  ```
+
+  Server-side (Java with OWASP Java Encoder):
+  ```java
+  import org.owasp.encoder.Encode;
+
+  String safeName = Encode.forHtml(userInput);
+  String safeAttr = Encode.forHtmlAttribute(userInput);
+  ```
+
+  ## Checklist
+
+  - [ ] Template engine auto-escaping is enabled and never globally disabled
+  - [ ] Raw HTML output escape hatches (`innerHTML`, `dangerouslySetInnerHTML`, `| safe`) audited
+  - [ ] HTML sanitization uses DOMPurify or `org.owasp.encoder` — never hand-rolled regex
+  - [ ] URLs constructed from user input encode query parameters (`encodeURIComponent` / `urllib.parse`)
+  - [ ] JavaScript inline strings use JS-context encoding (not HTML encoding)
+  - [ ] `Content-Security-Policy: default-src 'self'` (or stricter) header set on all responses
+  - [ ] `X-Content-Type-Options: nosniff` header set to prevent MIME-sniffing XSS
+
+  ## References
+
+  - https://owasp.org/www-project-application-security-verification-standard/ (ASVS v5 §5.3)
+  - https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html
+  - https://cheatsheetseries.owasp.org/cheatsheets/Content_Security_Policy_Cheat_Sheet.html
+  - https://cwe.mitre.org/data/definitions/79.html

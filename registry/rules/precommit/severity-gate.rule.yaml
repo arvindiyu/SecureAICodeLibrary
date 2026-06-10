@@ -1,0 +1,125 @@
+metadata:
+  id: severity-gate
+  name: Severity Gate
+  description: Wraps severity-thresholds policy; reads hooks/config.yaml for the configured floor; blocks on any finding at or above the configured severity threshold.
+  version: "1.0.0"
+  tags: [precommit, severity, blocking, merge-gate, manthan, config]
+
+category: precommit
+severity: high
+
+summary: "Block commit and merge when any finding meets or exceeds the severity floor in hooks/config.yaml (default: HIGH). Wraps severity-thresholds policy. AI-assisted commits raise floor one band. References hooks/config.yaml (Wave 4)."
+
+asvs_controls: ["V15.1.1", "V1.1.2"]
+iso_controls: ["A.8.25", "A.8.26"]
+nist_ai_rmf: ["MANAGE-2.2", "MEASURE-2.5"]
+cwe: ["CWE-693"]
+
+mythos_alignment:
+  pillar: proactive-defense
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "NIST SP 800-218 RV.1.1"
+    - "OWASP ASVS v5 §V15.1"
+    - "ISO/IEC 27001:2022 A.8.25"
+    - "docs/MANTHAN-CONTRACT.md §Severity-threshold matrix"
+    - "docs/adr/0003-severity-thresholds-policy.md"
+
+scope:
+  always_apply: false
+  globs: ["hooks/config.yaml", "src/**/*", "lib/**/*"]
+
+enforcement:
+  mode: blocking
+  pre_commit: true
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Principle
+
+  The severity gate is the enforcement point for the `severity-thresholds` policy at commit time. It reads the configured floor from `hooks/config.yaml`, applies AI-assistance band raise when applicable, and exits non-zero if any finding from the Tier C subagent runners or Manthan response meets or exceeds the floor.
+
+  This rule exists as a distinct precommit rule (rather than relying solely on the policy rule) so that the pre-commit hook can reference it by ID and the GAPS classification can feed directly into the gate decision.
+
+  ## Rationale
+
+  Separating the policy (`severity-thresholds`) from the enforcement mechanism (`severity-gate`) allows per-repo configuration: the policy defines the semantics; `hooks/config.yaml` defines the actual threshold; the gate applies both. This is the same pattern Manthan uses for its `quality_gate.decision` — the threshold is a configuration concern, not a code concern.
+
+  `hooks/config.yaml` is delivered in Wave 4. Until then, the gate defaults to `high` (hardcoded fallback). The config file reference is forward-compatible.
+
+  ## Configuration (hooks/config.yaml — Wave 4)
+
+  ```yaml
+  severity_threshold: high     # default; options: critical | high | medium | low
+  ai_assistance:
+    floor_raise: true          # ADR 0003: +1 band for AI-assisted commits
+  ```
+
+  ## BAD example
+
+  ```bash
+  # hooks/config.yaml sets severity_threshold: medium
+  # Tier C coding-standards-reviewer finds a MEDIUM SQL injection candidate
+  # With is_ai_assisted: true, GAPS class raised to HIGH → at or above threshold
+  ./hooks/pre-commit.sh
+  # severity-gate: BLOCK — 1 HIGH finding (GAPS-raised from MEDIUM due to AI assistance)
+  # Rule: CWE-89, Path: src/db.ts:42, GAPS: HIGH
+  # Exit code: 1 (Manthan block) → commit blocked
+  ```
+
+  ## GOOD example
+
+  ```bash
+  # Developer remediates the SQL injection before committing
+  # Parameterised query replaces string concatenation
+  git add src/db.ts
+  # Tier C runner re-scans: 0 findings at or above threshold
+  ./hooks/pre-commit.sh
+  # severity-gate: PASS — 0 findings at or above HIGH threshold
+  # Exit code: 0 → commit proceeds
+  ```
+
+  `hooks/pre-commit.sh` severity gate excerpt:
+
+  ```bash
+  THRESHOLD=$(yq '.severity_threshold // "high"' hooks/config.yaml 2>/dev/null || echo "high")
+  AI_FLOOR_RAISE=$(yq '.ai_assistance.floor_raise // "true"' hooks/config.yaml 2>/dev/null || echo "true")
+
+  # ... subagent runners populate FINDINGS_JSON ...
+
+  BLOCKING_COUNT=$(echo "$FINDINGS_JSON" | jq --arg t "$THRESHOLD" '
+    .[] | select(.gaps_class | ascii_downcase |
+      if $t == "low" then . != "info"
+      elif $t == "medium" then (. == "high" or . == "critical" or . == "medium")
+      elif $t == "high" then (. == "high" or . == "critical")
+      else . == "critical" end
+    )' | jq -s 'length')
+
+  if [ "$BLOCKING_COUNT" -gt 0 ]; then
+    echo "BLOCK: $BLOCKING_COUNT finding(s) at or above '$THRESHOLD' threshold." >&2
+    exit 1
+  fi
+  ```
+
+  ## Checklist
+
+  - [ ] `hooks/config.yaml` declares `severity_threshold` (default: `high`).
+  - [ ] AI-assistance floor raise is enabled (`ai_assistance.floor_raise: true`) per ADR 0003.
+  - [ ] Gate exit code matches Manthan contract (exit 1 for `decision: block`).
+  - [ ] Blocking findings are emitted as SARIF-style summary on stderr.
+  - [ ] Override path is documented (see `merge-gate-policy` rule).
+  - [ ] Gate runs after GAPS classification, not before.
+
+  ## References
+
+  - `registry/rules/policies/severity-thresholds.rule.yaml`
+  - `registry/rules/precommit/gaps-risk-classification.rule.yaml`
+  - ADR 0003 — Severity-thresholds policy (`docs/adr/0003-severity-thresholds-policy.md`)
+  - `docs/MANTHAN-CONTRACT.md` §Severity-threshold matrix
+  - `hooks/config.yaml` (Wave 4)
+  - NIST SP 800-218 (SSDF) RV.1.1 — Review findings and remediate
+  - OWASP ASVS v5 §V15.1 — Security Build and Deployment

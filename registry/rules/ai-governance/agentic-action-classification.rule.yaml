@@ -1,0 +1,124 @@
+metadata:
+  id: agentic-action-classification
+  name: Agentic Action Classification
+  description: Classify every agent tool and action as High, Medium, or Low impact; maintain a documented matrix; use classification to drive approval requirements, audit depth, and capability grants.
+  version: "1.0.0"
+  tags: [agentic, impact-assessment, classification, security]
+
+category: ai-governance
+severity: high
+
+summary: "Classify every agent tool as High (financial, infra, secrets, prod-writes), Medium (PRs, internal comms, non-prod), or Low (read-only, public data); document the matrix; use classification to gate approval and audit. (NIST AI RMF MAP-2.1)"
+
+asvs_controls: ["8.1.1", "8.2.1"]
+iso_controls: ["A.5.15", "A.8.2"]
+iso42001_controls: ["A.6.1", "A.9.1"]
+nist_ai_rmf: ["MAP-2.1", "GOVERN-1.4", "MANAGE-2.3"]
+cwe: ["CWE-269", "CWE-862"]
+mitre_atlas: ["AML.T0051"]
+
+mythos_alignment:
+  pillar: ai-governance
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "NIST AI RMF MAP-2.1"
+    - "ISO/IEC 42001:2023 A.6.1"
+    - "OWASP ASVS v5 §8.1.1"
+    - "OWASP Top 10 for LLM Applications (2025) LLM06"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/agents/**"
+    - "**/agentic/**"
+    - "**/.cursor/rules/**"
+    - "**/subagents/**"
+
+enforcement:
+  mode: warning
+  pre_commit: false
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Principle
+
+  Before an agent is deployed, classify every tool and action it can invoke using a three-tier impact model: High (potentially irreversible, broad blast radius), Medium (internal workflow changes, reversible with effort), Low (read-only, no write side-effects). Maintain this classification in a machine-readable matrix co-located with the agent definition. Gate approval workflows, capability grants, and audit depth on the classification—High always requires human execution, Medium requires explicit per-action user permission, Low may proceed with ambient user context.
+
+  ## Rationale
+
+  Without a classification framework, all agent actions are treated equivalently regardless of blast radius. A "fix lint" task and a "deploy to production" task both become just "agent actions." This equivalence is dangerous: agents operate autonomously and incrementally; an agent that can deploy production infrastructure with the same friction as reading a file will eventually do so in an unintended context (OWASP LLM06, 2025).
+
+  Classification is the prerequisite for all other agentic controls: `agentic-human-approval` needs it to know which actions require human execution; `agentic-bulk-limits` needs it to set appropriate thresholds per action class; `agentic-obo-auth` needs it to determine when user-delegated credentials are required. Without a shared classification vocabulary, these controls cannot be consistently applied.
+
+  NIST AI RMF MAP-2.1 requires that AI system purpose and methods are understood before deployment; impact classification operationalises that understanding.
+
+  ## BAD example
+
+  ```pseudo
+  agent_tools = [
+    deploy_to_production,    # infrastructure change — no classification
+    create_pull_request,     # code workflow — no classification
+    read_public_repo,        # read-only — no classification
+    send_customer_email,     # external messaging — no classification
+    rotate_api_key,          # secret management — no classification
+  ]
+  # All tools granted uniformly; same approval flow for all
+  # "User said do it" interpreted as blanket permission
+  ```
+
+  Red flags: no classification matrix; new tools added without impact assessment; approval flow identical for read-only and production-deploy actions.
+
+  ## GOOD example
+
+  ```pseudo
+  # Impact classification matrix (machine-readable, co-located with agent spec)
+  action_matrix:
+    deploy_to_production:
+      impact: high
+      rationale: "Infrastructure change; potential downtime and data loss"
+      approval: human_executes  # per agentic-human-approval
+    create_pull_request:
+      impact: medium
+      rationale: "Code change; reversible; internal workflow"
+      approval: explicit_user_permission_per_action
+    rotate_api_key:
+      impact: high
+      rationale: "Secret management; credential exposure risk"
+      approval: human_executes
+    read_public_repo:
+      impact: low
+      rationale: "Read-only; no write side-effects"
+      approval: ambient_user_context
+
+  # Enforcement: agent tool loader enforces approval based on matrix
+  def execute_tool(tool_name, args):
+    impact = action_matrix[tool_name].impact
+    if impact == "high":
+        raise CapabilityDenied("Agent cannot execute High-Impact actions")
+    elif impact == "medium":
+        require_explicit_permission(tool_name)
+    return tool_registry[tool_name](args)
+  ```
+
+  Why this works: classification is explicit and documented; approval flows are derived from the matrix, not from ad-hoc decisions; new tools cannot be added without receiving a classification.
+
+  ## Checklist
+
+  - [ ] A classification matrix (High / Medium / Low) exists for every agent tool.
+  - [ ] The matrix is machine-readable and co-located with the agent definition.
+  - [ ] High-Impact actions are enforced by capability denial, not prompt-based permission.
+  - [ ] Medium-Impact actions require per-action explicit user permission.
+  - [ ] New tools are classified before they are wired into any agent.
+  - [ ] Classification is reviewed when tool capabilities or permissions change.
+  - [ ] The matrix is audited at least annually or after an incident.
+
+  ## References
+
+  - NIST AI RMF MAP-2.1: https://www.nist.gov/itl/ai-risk-management-framework
+  - ISO/IEC 42001:2023 A.6.1 (AI system life cycle): https://www.iso.org/standard/81230.html
+  - OWASP Top 10 for LLM Applications (2025) LLM06 — Excessive Agency: https://genai.owasp.org/llm-top-10/
+  - OWASP ASVS v5 §8 (Data Protection): https://owasp.org/www-project-application-security-verification-standard/

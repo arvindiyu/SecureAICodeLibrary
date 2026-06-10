@@ -1,0 +1,123 @@
+metadata:
+  id: cors-security
+  name: CORS Security
+  description: Configure CORS with explicit, minimal origin allowlists; never use wildcard (*) with credentials; reflect Origin header only after validation.
+  version: "1.0.0"
+  tags: [cors, cross-origin, http-headers, api-security]
+
+category: coding-standards
+severity: high
+summary: "Configure CORS with an explicit origin allowlist. Never use wildcard (*) when credentials are included. Validate the Origin header server-side; do not reflect arbitrary origins. Restrict allowed methods and headers."
+
+asvs_controls: ["14.4.1", "14.4.2"]
+iso_controls: ["A.8.28"]
+nist_ai_rmf: ["GOVERN-1.1", "MAP-1.5"]
+cwe: ["CWE-942", "CWE-346"]
+
+mythos_alignment:
+  pillar: secure-by-design
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "OWASP ASVS v5 §14.4.1"
+    - "OWASP ASVS v5 §14.4.2"
+    - "CWE-942"
+    - "CWE-346"
+    - "ISO/IEC 27001:2022 A.8.28"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/*.ts"
+    - "**/*.tsx"
+    - "**/*.js"
+    - "**/*.jsx"
+    - "**/*.mjs"
+    - "**/*.py"
+    - "**/*.java"
+    - "**/*.go"
+    - "**/*.cs"
+    - "**/*.rb"
+    - "**/*.php"
+  exclude:
+    - "**/test/**"
+    - "**/*.test.*"
+    - "**/__tests__/**"
+
+enforcement:
+  mode: blocking
+  pre_commit: false
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Principle
+
+  Define CORS policy with an explicit, minimal allowlist of trusted origins. Reject or ignore requests from unlisted origins. Never combine `Access-Control-Allow-Origin: *` with `Access-Control-Allow-Credentials: true` — browsers forbid this combination, and frameworks that work around it expose credential theft. Reflect the request Origin only after validating it against the allowlist. Restrict `Access-Control-Allow-Methods` and `Access-Control-Allow-Headers` to the minimum required.
+
+  ## Rationale
+
+  A permissive CORS policy allows attacker-controlled pages to issue authenticated cross-origin requests, reading responses and stealing session data or CSRF tokens. CWE-942 (Permissive Cross-domain Policy) and CWE-346 (Origin Validation Error) both arise when Origin checking is absent or bypassed. OWASP ASVS §14.4 requires that HTTP security headers, including CORS, are correctly configured.
+
+  Common mistakes: reflecting any Origin header unconditionally, treating the Origin as trusted because it contains a known substring (e.g., `if origin.endswith('.example.com')`), and allowing wildcard methods/headers. Substring matching is bypassable via `evil.example.com`.
+
+  Preflight caching (`Access-Control-Max-Age`) reduces latency but must not be set so high that policy changes take days to propagate. A maximum of 600 seconds is a reasonable balance.
+
+  ## BAD example
+
+  ```typescript
+  // BAD: wildcard with credentials — browsers block this but attackers find workarounds
+  app.use(cors({ origin: '*', credentials: true }));
+
+  // BAD: reflect any Origin unconditionally
+  app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', req.headers.origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+    next();
+  });
+  ```
+
+  ## GOOD example
+
+  ```typescript
+  import cors from 'cors';
+
+  const ALLOWED_ORIGINS = new Set([
+    'https://app.example.com',
+    'https://admin.example.com',
+  ]);
+
+  app.use(cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (curl, server-to-server) or allowlisted origins
+      if (!origin || ALLOWED_ORIGINS.has(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS blocked for origin: ${origin}`));
+      }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    maxAge: 600,
+  }));
+  ```
+
+  ## Checklist
+
+  - [ ] CORS origin is validated against an explicit allowlist, not a substring match
+  - [ ] `Access-Control-Allow-Origin: *` is never combined with `Allow-Credentials: true`
+  - [ ] Allowed methods are restricted to those actually used by the API
+  - [ ] Allowed headers are restricted to the minimum required
+  - [ ] Preflight `maxAge` is ≤600 seconds
+  - [ ] CORS configuration is centralized (not duplicated per route)
+  - [ ] CORS policy is tested in CI against known-bad origins
+
+  ## References
+
+  - https://owasp.org/www-project-application-security-verification-standard/ (ASVS v5 §14.4)
+  - https://cheatsheetseries.owasp.org/cheatsheets/CORS_Security_Cheat_Sheet.html
+  - https://cwe.mitre.org/data/definitions/942.html
+  - https://cwe.mitre.org/data/definitions/346.html

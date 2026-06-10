@@ -1,0 +1,119 @@
+metadata:
+  id: input-validation
+  name: Input Validation
+  description: Validate all user input server-side for type, length, format, and range; use allowlists; reject invalid input before processing.
+  version: "1.0.0"
+  tags: [input-validation, sanitization, allowlist, injection, xss]
+
+category: coding-standards
+severity: high
+summary: "Validate all user input server-side: type, length, format, and range. Use allowlists over blocklists. Reject invalid input before processing. Never trust client-side validation alone."
+
+asvs_controls: ["5.1.1", "5.1.3", "5.1.4"]
+iso_controls: ["A.8.28"]
+nist_ai_rmf: ["GOVERN-1.1", "MAP-1.5"]
+cwe: ["CWE-20", "CWE-79", "CWE-89"]
+
+mythos_alignment:
+  pillar: secure-by-design
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "OWASP ASVS v5 §5.1.1"
+    - "OWASP ASVS v5 §5.1.3"
+    - "OWASP ASVS v5 §5.1.4"
+    - "CWE-20"
+    - "CWE-79"
+    - "CWE-89"
+    - "ISO/IEC 27001:2022 A.8.28"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/*.ts"
+    - "**/*.tsx"
+    - "**/*.js"
+    - "**/*.jsx"
+    - "**/*.mjs"
+    - "**/*.py"
+    - "**/*.java"
+    - "**/*.kt"
+    - "**/*.go"
+    - "**/*.cs"
+    - "**/*.rb"
+    - "**/*.php"
+    - "**/*.rs"
+  exclude:
+    - "**/test/**"
+    - "**/*.test.*"
+    - "**/__tests__/**"
+
+enforcement:
+  mode: blocking
+  pre_commit: false
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Principle
+
+  Validate every piece of user-controlled input on the server before processing or persisting it. Apply allowlist validation: specify what is acceptable (expected type, minimum and maximum length, format pattern, valid enum values) rather than attempting to blocklist dangerous values. Reject and return an error for anything that does not conform. Never treat client-side validation as a substitute for server-side validation.
+
+  ## Rationale
+
+  Improper input validation is the root cause of a large fraction of injection vulnerabilities (SQL injection, XSS, command injection, path traversal) and is identified as CWE-20 in the MITRE catalog. Blocklist approaches are systematically bypassed through encoding tricks, Unicode normalization, and parser differences; allowlists are robust by construction.
+
+  OWASP ASVS §5.1 requires that all input is validated for data type, range, length, and format, and that validation is enforced on the server regardless of client-side checks. Client-side validation exists only for user experience, never for security.
+
+  Schema-based validation libraries (Zod, Pydantic, Jakarta Bean Validation, Go validator) reduce manual validation code, provide consistent error messages, and can be introspected for documentation generation.
+
+  ## BAD example
+
+  ```typescript
+  app.post('/users', async (req, res) => {
+    const { email, age, name } = req.body;
+    // BAD: no validation — any type, any length, any format accepted
+    await db.insertUser({ email, age, name });
+    res.json({ ok: true });
+  });
+  ```
+
+  ## GOOD example
+
+  ```typescript
+  import { z } from 'zod';
+
+  const CreateUserSchema = z.object({
+    email: z.string().email().max(255),
+    age: z.number().int().min(0).max(150),
+    name: z.string().min(1).max(100).regex(/^[\p{L}\s\-']+$/u),
+  });
+
+  app.post('/users', async (req, res) => {
+    const result = CreateUserSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ errors: result.error.flatten() });
+    }
+    await db.insertUser(result.data);
+    res.json({ ok: true });
+  });
+  ```
+
+  ## Checklist
+
+  - [ ] All input fields validated for type, length, format, and range server-side
+  - [ ] Allowlist validation used (not blocklist-only)
+  - [ ] Schema-based validation library used (Zod, Pydantic, Bean Validation, etc.)
+  - [ ] Invalid input returns 400 with structured error details; processing is aborted
+  - [ ] File upload size, MIME type, and extension validated
+  - [ ] Numeric input constrained to expected range (no negative IDs, no absurdly large values)
+  - [ ] Query-string and path parameters validated the same as request body fields
+  - [ ] Content-Type header validated before body parsing
+
+  ## References
+
+  - https://owasp.org/www-project-application-security-verification-standard/ (ASVS v5 §5.1)
+  - https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html
+  - https://cwe.mitre.org/data/definitions/20.html

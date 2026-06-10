@@ -1,0 +1,95 @@
+metadata:
+  id: spec-presence
+  name: SPEC.md Presence Check
+  description: SPEC.md must exist and be referenced from changed code paths; validates that architectural scope is documented before code review.
+  version: "1.0.0"
+  tags: [precommit, spec, documentation, governance, artifacts]
+
+category: precommit
+severity: medium
+
+summary: "Block commit if SPEC.md is absent. Warn if changed code paths under src/ lack a reference to a SPEC.md section in the commit message or PR description. SPEC.md is the scope contract for reviewers."
+
+asvs_controls: ["V1.1.1", "V1.1.2"]
+iso_controls: ["A.8.25", "A.8.26"]
+nist_ai_rmf: ["GOVERN-1.4", "MAP-1.1"]
+cwe: ["CWE-1059"]
+
+mythos_alignment:
+  pillar: secure-by-design
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "NIST SP 800-218 PO.1.1"
+    - "OWASP ASVS v5 §V1.1"
+    - "ISO/IEC 27001:2022 A.8.25"
+
+scope:
+  always_apply: false
+  globs: ["SPEC.md", "src/**/*", "lib/**/*", "pkg/**/*", "app/**/*"]
+
+enforcement:
+  mode: blocking
+  pre_commit: true
+  merge_gate: false
+  ci: true
+
+content: |
+  ## Principle
+
+  `SPEC.md` is the single authoritative statement of library scope, acceptance criteria, and versioning policy. Code that is not traceable to a `SPEC.md` section is either out-of-scope or represents an undocumented extension. Both conditions warrant attention before the change is reviewed.
+
+  ## Rationale
+
+  Requiring a `SPEC.md` reference in the commit message or PR description is low-friction but high-value: it forces the author to consciously place their change in the context of the library's documented scope. It also creates a machine-readable linkage that the cross-link lint in `registry-ci.yml` can validate.
+
+  The blocking condition is file absence (no `SPEC.md` at root) — a hard invariant. The reference check is advisory (warn) because a missing reference may be legitimate for housekeeping commits (dependency bumps, typo fixes).
+
+  ## BAD example
+
+  ```bash
+  # SPEC.md does not exist; developer adds a new API module
+  git add src/api/v2/routes.ts
+  git commit -m "feat: add v2 routes"
+  # hooks/pre-commit.sh: SPEC.md not found at root → exits 78
+  ```
+
+  ## GOOD example
+
+  ```bash
+  # SPEC.md exists; commit message references §3.2 (API surface)
+  git add src/api/v2/routes.ts
+  git commit -m "feat: add v2 routes
+
+  Implements SPEC.md §3.2 — Public API surface, v2 endpoint definitions.
+  No trust boundary change; no new external dependencies."
+  # hooks/pre-commit.sh: SPEC.md present, reference found in commit body → pass
+  ```
+
+  Commit message pattern matched by `hooks/pre-commit.sh`:
+
+  ```bash
+  SPEC_REF=$(git log -1 --format=%B | grep -iE 'SPEC\.md[[:space:]]*§')
+  if [ -z "$SPEC_REF" ] && echo "$CHANGED_PATHS" | grep -qE '^(src|lib|pkg|app)/'; then
+    echo "WARN: changed code paths present but no SPEC.md section reference in commit body." >&2
+    echo "  Add: 'Implements SPEC.md §<section>' to your commit message." >&2
+  fi
+  ```
+
+  ## Checklist
+
+  - [ ] `SPEC.md` exists at repository root.
+  - [ ] Commit messages for code changes include a `SPEC.md §` reference.
+  - [ ] PR description references the relevant SPEC.md section.
+  - [ ] `SPEC.md` is updated when new scope is introduced.
+  - [ ] Cross-link lint in `registry-ci.yml` validates SPEC references are not dead links.
+
+  ## References
+
+  - NIST SP 800-218 (SSDF) PO.1.1 — Define security requirements for software
+  - OWASP ASVS v5 §V1.1 — Secure Software Development Lifecycle
+  - ISO/IEC 27001:2022 A.8.25 — Secure development life cycle
+  - `SPEC.md` — library scope contract
+  - `registry/rules/policies/required-artifacts.rule.yaml`

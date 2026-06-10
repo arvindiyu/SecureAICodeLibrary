@@ -1,0 +1,117 @@
+metadata:
+  id: ai-guardrails
+  name: AI Guardrails
+  description: Implement input and output guardrails on all LLM interactions; use platform guardrail configs; apply stricter controls for public-facing AI; version guardrail configurations alongside model deployments.
+  version: "1.0.0"
+  tags: [ai-security, guardrails, content-filtering, output-validation, llm]
+
+category: ai-governance
+severity: high
+
+summary: "Apply input guardrails (PII detection, injection blocking, content policy) and output guardrails (harmful-content filter, PII redaction, topic validation) to every LLM interaction; use stricter configs for public-facing AI; version guardrail configs. (OWASP LLM01+LLM02)"
+
+asvs_controls: ["5.1.3", "5.3.1", "1.1.2"]
+iso_controls: ["A.8.26", "A.5.7"]
+iso42001_controls: ["A.6.1", "A.9.3"]
+nist_ai_rmf: ["GOVERN-1.1", "MAP-2.3", "MANAGE-2.2"]
+cwe: ["CWE-116", "CWE-79", "CWE-200"]
+mitre_atlas: ["AML.T0051", "AML.T0054"]
+
+mythos_alignment:
+  pillar: ai-governance
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "OWASP Top 10 for LLM Applications (2025) LLM01"
+    - "OWASP Top 10 for LLM Applications (2025) LLM02"
+    - "NIST AI RMF MAP-2.3"
+    - "OWASP ASVS v5 §5.3.1"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/llm/**"
+    - "**/prompts/**"
+    - "**/ai/**"
+    - "**/chatbot/**"
+    - "**/guardrails/**"
+
+enforcement:
+  mode: warning
+  pre_commit: false
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Principle
+
+  Guardrails are the application-layer boundary between user intent and model execution—and between model output and user consumption. Apply input guardrails to every prompt before the model call: detect PII, block injection patterns, enforce content policy, and validate that the request is within the system's intended scope. Apply output guardrails to every model response before returning it: filter harmful content, redact PII that may have been generated, ensure the response is on-topic, and block hallucinated citations. Use platform-native guardrail configurations where available, but apply custom rules for your specific use case and audience. Stricter configurations are mandatory for public-facing AI. Version guardrail configs alongside model deployments.
+
+  ## Rationale
+
+  Neither user inputs nor model outputs can be trusted without validation. Input guardrails prevent the model from being misused (OWASP LLM01, 2025); output guardrails prevent harmful or non-compliant content from reaching users (OWASP LLM02, 2025). Together they form a defence-in-depth that no single control can provide alone.
+
+  Public-facing AI requires stricter guardrails because the attack surface is larger (any internet user can probe it), the reputational stakes are higher (outputs reach customers, not just developers), and the regulatory expectations are clearer (EU AI Act transparency and safety requirements). Internal tools can tolerate more relaxed guardrails because users are authenticated, context is controlled, and the feedback loop for fixing problems is faster.
+
+  Guardrail configs that are not versioned silently drift: a configuration tuned for one model version may be inadequate for the next, or a configuration rollback may silently revert guardrail parameters.
+
+  ## BAD example
+
+  ```pseudo
+  # Raw model output returned to user with no validation
+  response = llm.generate(user_prompt)
+  return response
+  # Model may output PII, harmful content, off-topic material, or hallucinated citations
+  # Same treatment for internal developer and public customer — no differentiation
+  ```
+
+  Red flags: no input validation; no output filtering; identical config for internal and public; no PII detection; guardrail config not versioned.
+
+  ## GOOD example
+
+  ```pseudo
+  # 1. Input guardrails
+  filtered_input = input_guard.apply(user_prompt, config=audience_config)
+  if filtered_input.blocked:
+    log("input_blocked", filtered_input.reason, user_id=session.user_id)
+    return error("Your request was blocked by content policy.")
+
+  # 2. Model call with filtered input
+  response = llm.generate(filtered_input.content)
+
+  # 3. Output guardrails (stricter for public)
+  safe_output = output_guard.apply(response, config=audience_config)
+  if safe_output.blocked:
+    log("output_blocked", safe_output.reason)
+    return error("Unable to generate a safe response. Please rephrase.")
+
+  # 4. Topic validation: confirm response is in-scope
+  if not topic_validator.is_on_topic(safe_output.content, expected_domain="support"):
+    log("off_topic_response", user_id=session.user_id)
+    return fallback_response("I can only help with support questions.")
+
+  return safe_output.content
+
+  # audience_config versioned alongside model deployment (e.g., guardrails-v2.1.yaml)
+  ```
+
+  Why this works: both input and output are independently guarded; PII is detected and blocked; topic validation catches off-scope responses; public config is explicitly stricter; config is versioned.
+
+  ## Checklist
+
+  - [ ] Input guardrails are applied to every prompt: content policy, PII detection, injection patterns.
+  - [ ] Output guardrails are applied to every response: harmful content, PII redaction, topic validation.
+  - [ ] Public-facing guardrail config is explicitly stricter than internal config.
+  - [ ] Guardrail configurations are versioned and associated with model deployment versions.
+  - [ ] Guardrail decisions (pass/block) are logged with reason codes for audit and tuning.
+  - [ ] False-positive rates are reviewed monthly; thresholds are tuned to maintain usability.
+  - [ ] Guardrail effectiveness is re-evaluated when the underlying model is updated.
+
+  ## References
+
+  - OWASP Top 10 for LLM Applications (2025) LLM01 and LLM02: https://genai.owasp.org/llm-top-10/
+  - NIST AI RMF MAP-2.3: https://www.nist.gov/itl/ai-risk-management-framework
+  - OWASP ASVS v5 §5.3 (Output Encoding and Injection Prevention): https://owasp.org/www-project-application-security-verification-standard/
+  - ISO/IEC 42001:2023 A.6.1: https://www.iso.org/standard/81230.html

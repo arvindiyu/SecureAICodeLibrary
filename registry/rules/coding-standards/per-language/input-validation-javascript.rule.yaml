@@ -1,0 +1,107 @@
+metadata:
+  id: input-validation-javascript
+  name: Input Validation — JavaScript
+  description: JavaScript-specific input validation using Joi, Zod, or express-validator; validate before use; enforce type coercion awareness.
+  version: "1.0.0"
+  tags: [input-validation, javascript, joi, express-validator, node]
+  languages: [javascript]
+
+category: coding-standards/per-language
+severity: high
+summary: "Use Joi, Zod, or express-validator for all JavaScript API boundary inputs. Be explicit about type coercion (== vs ===); never rely on falsy checks alone for security decisions. Validate query params, path params, and headers as well as body."
+
+extends: input-validation
+
+asvs_controls: ["5.1.1", "5.1.3"]
+iso_controls: ["A.8.28"]
+nist_ai_rmf: ["GOVERN-1.1"]
+cwe: ["CWE-20", "CWE-843"]
+
+mythos_alignment:
+  pillar: ide-coverage
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "OWASP ASVS v5 §5.1.3"
+    - "CWE-20"
+    - "CWE-843"
+    - "ISO/IEC 27001:2022 A.8.28"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/*.js"
+    - "**/*.jsx"
+    - "**/*.mjs"
+    - "**/*.cjs"
+  exclude:
+    - "**/test/**"
+    - "**/*.test.js"
+    - "**/*.spec.js"
+    - "**/__tests__/**"
+    - "**/node_modules/**"
+
+enforcement:
+  mode: blocking
+  pre_commit: false
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Delta from parent
+
+  This rule extends `input-validation` with JavaScript-specific guidance on type-coercion pitfalls and ecosystem library choices.
+
+  ## BAD example
+
+  ```javascript
+  // BAD: loose equality allows type confusion attacks
+  app.post('/redeem', (req, res) => {
+    const code = req.body.code;
+    if (code == '12345') {   // == coerces: true == '1' is true
+      grantAccess();
+    }
+  });
+
+  // BAD: typeof check bypassed by prototype pollution
+  function mergeOptions(target, source) {
+    for (const key in source) {
+      target[key] = source[key];  // no hasOwnProperty check — prototype pollution
+    }
+  }
+  ```
+
+  ## GOOD example
+
+  ```javascript
+  const Joi = require('joi');
+
+  const redeemSchema = Joi.object({
+    code: Joi.string().length(5).pattern(/^\d+$/).required(),
+  });
+
+  app.post('/redeem', (req, res) => {
+    const { error, value } = redeemSchema.validate(req.body);
+    if (error) return res.status(400).json({ error: error.details[0].message });
+
+    if (value.code === '12345') {  // strict equality after schema validation
+      grantAccess();
+    }
+  });
+  ```
+
+  ## Checklist
+
+  - [ ] Validation library (Joi, Zod, or express-validator) used at all API entry points
+  - [ ] Strict equality (`===`) used everywhere for security-relevant comparisons
+  - [ ] Object merge functions use `Object.hasOwn()` or `Object.create(null)` to prevent prototype pollution
+  - [ ] Query-string parameters explicitly typed and length-bounded (not assumed to be strings)
+  - [ ] JSON.parse wrapped in try/catch with schema validation of the result
+
+  ## References
+
+  - https://owasp.org/www-project-application-security-verification-standard/ (ASVS v5 §5.1)
+  - https://cwe.mitre.org/data/definitions/20.html
+  - https://joi.dev/

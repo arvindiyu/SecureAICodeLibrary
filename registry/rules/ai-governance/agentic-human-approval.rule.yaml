@@ -1,0 +1,95 @@
+metadata:
+  id: agentic-human-approval
+  name: Agentic Human Approval
+  description: Agents must not autonomously execute High-Impact actions; the agent prepares, the human executes. Asking permission is insufficient—the agent must lack the capability.
+  version: "1.0.0"
+  tags: [agentic, human-in-the-loop, approval, high-impact, security]
+
+category: ai-governance
+severity: critical
+
+summary: "Deny agents execution capability for High-Impact actions (financial, infra, secrets, prod writes); agent prepares and drafts, human executes; permission-asking alone is insufficient—capability removal is the control. (ISO 42001 A.9.1)"
+
+asvs_controls: ["8.1.1", "8.2.1"]
+iso_controls: ["A.5.15", "A.8.2"]
+iso42001_controls: ["A.9.1", "A.9.2"]
+nist_ai_rmf: ["GOVERN-1.4", "MANAGE-2.3", "MANAGE-2.4"]
+cwe: ["CWE-862", "CWE-285"]
+mitre_atlas: ["AML.T0051"]
+
+mythos_alignment:
+  pillar: ai-governance
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "ISO/IEC 42001:2023 A.9.1"
+    - "NIST AI RMF GOVERN-1.4"
+    - "OWASP ASVS v5 §8.1.1"
+    - "OWASP Top 10 for LLM Applications (2025) LLM06"
+
+scope:
+  always_apply: true
+
+enforcement:
+  mode: blocking
+  pre_commit: true
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Principle
+
+  Every agentic system must classify its actions by impact level (High / Medium / Low) and enforce a hard capability boundary: agents are architecturally denied the ability to execute High-Impact actions. The agent's role is to prepare, draft, validate, and present; a human must perform the final execution. Relying solely on the agent asking permission is insufficient—permission-asking can be bypassed by adversarial prompts, model error, or race conditions. The control must be the absence of the capability, not the presence of a prompt.
+
+  ## Rationale
+
+  High-Impact actions—production deployments, financial transactions, secret rotation, authoritative-data writes, external customer messaging—can cause large-scale, sometimes irreversible harm. Agentic systems are susceptible to prompt injection, context confusion, and model hallucination (OWASP LLM06, 2025). A model that "asks permission" can still be tricked into interpreting an earlier ambiguous user response as consent for a scope it did not intend.
+
+  Capability removal is defence-in-depth: even if the agent is deceived, it cannot execute. This matches ISO/IEC 42001 A.9.1 (use of AI systems with appropriate human involvement) and the principle of least privilege from NIST AI RMF GOVERN-1.4.
+
+  Medium-Impact actions (PR creation, non-prod commits, internal messages) require explicit per-action user permission using the user's delegated credentials. Low-Impact actions (reading public data, local analysis) may proceed with the user's ambient context.
+
+  ## BAD example
+
+  ```pseudo
+  # Agent holds deploy_to_production and scale_cluster tools
+  # User: "Deploy the new build"
+  # Agent: "Shall I proceed? [implied yes from previous message]"
+  # Agent: calls deploy_to_production(version="main")   <-- FAIL
+  # No human performed the action; permission was inferred
+  ```
+
+  Red flags: agent has High-Impact execution tools; single prompt triggers production change; no human action required; permission is a runtime prompt, not a capability boundary.
+
+  ## GOOD example
+
+  ```pseudo
+  # Agent tools: generate_deploy_manifest (read-write), dry_run_deploy (read-only)
+  # NO tool for: apply_deploy, kubectl_apply, terraform_apply
+  # User: "Deploy the new build"
+  # Agent: generates manifest, runs dry-run, outputs:
+  #   "Manifest ready at deploy/v2.3.1.yaml. Dry-run passed. Run: kubectl apply -f deploy/v2.3.1.yaml"
+  # Human: reviews manifest, runs kubectl apply
+  # Audit log: actor = human_user_id, not agent_service
+  ```
+
+  Why this works: agent lacks execution capability by design; human is the executor; audit trail reflects true actor; adversarial prompt cannot override a missing tool.
+
+  ## Checklist
+
+  - [ ] An impact classification matrix (High/Medium/Low) exists and is maintained for every agent tool.
+  - [ ] Agents have no tools that execute High-Impact actions (deploy, pay, rotate secrets, write prod DB).
+  - [ ] Agents do have tools to prepare, draft, and validate High-Impact artifacts.
+  - [ ] Human instructions for completing High-Impact actions are clear and surfaced to the user.
+  - [ ] Audit logs record the human as the executor of High-Impact actions, not the agent.
+  - [ ] Medium-Impact actions require per-action explicit user permission and delegated credentials.
+  - [ ] Tool lists are reviewed whenever new capabilities are added to an agent.
+
+  ## References
+
+  - ISO/IEC 42001:2023 A.9.1 (Use of AI systems): https://www.iso.org/standard/81230.html
+  - NIST AI RMF GOVERN-1.4: https://www.nist.gov/itl/ai-risk-management-framework
+  - OWASP Top 10 for LLM Applications (2025) LLM06 — Excessive Agency: https://genai.owasp.org/llm-top-10/
+  - OWASP ASVS v5 §8.1 (Data Protection): https://owasp.org/www-project-application-security-verification-standard/

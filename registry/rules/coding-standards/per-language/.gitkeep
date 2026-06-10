@@ -1,0 +1,3 @@
+# Placeholder. Phase 2 populates this directory with 10 per-language rules
+# (typescript, javascript, python, java, go, rust, csharp, ruby, php, kotlin).
+# Each file uses `extends: <cross-language-rule-id>` and ships only the language-specific delta.

