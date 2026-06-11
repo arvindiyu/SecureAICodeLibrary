@@ -1,0 +1,94 @@
+metadata:
+  id: required-artifacts
+  name: Required Artifacts Policy
+  description: Every PR must include up-to-date sbom.cdx.json, SPEC.md reference, at least one ADR (when architecture changed), and THREAT_MODEL.md reference (when trust boundary changed).
+  version: "1.0.0"
+  tags: [policies, artifacts, sbom, adr, threat-model, pr-gate]
+
+category: policies
+severity: medium
+
+summary: "PRs must include: sbom.cdx.json (always), SPEC.md reference (always), an ADR when architecture changes, and THREAT_MODEL.md update when a trust boundary changes. Missing artifacts warn; CI enforces presence."
+
+asvs_controls: ["V10.3.2", "V14.2.1", "V1.1.6"]
+iso_controls: ["A.8.8", "A.8.25", "A.8.32"]
+nist_ai_rmf: ["GOVERN-1.4", "MANAGE-2.4"]
+cwe: ["CWE-1104"]
+
+mythos_alignment:
+  pillar: supply-chain
+  substantiation: aligned
+  roadmap_milestone: M3
+
+sources:
+  primary:
+    - "NIST SP 800-218 PO.4.1"
+    - "CycloneDX 1.5 §Metadata"
+    - "OWASP ASVS v5 §V14.2"
+    - "ISO/IEC 27001:2022 A.8.25"
+    - "docs/MANTHAN-CONTRACT.md §Freshness definition"
+
+scope:
+  always_apply: false
+  globs: ["**/*.md", "sbom.cdx.json", "docs/adr/*.md", "THREAT_MODEL.md", "SPEC.md"]
+
+enforcement:
+  mode: warning
+  pre_commit: false
+  merge_gate: false
+  ci: true
+
+content: |
+  ## Principle
+
+  A pull request is a bounded unit of change. The governance artifacts associated with that change — SBOM, spec reference, ADR, threat model — must be present and current before review begins. Reviewing code without knowing its security posture is a systematic gap.
+
+  ## Rationale
+
+  SBOMs must accompany every change because dependency drift happens incrementally; waiting for a full regeneration schedule means gaps accumulate invisibly. ADRs are required only for architecture-impacting changes (new top-level directories, new external dependencies, schema changes) to keep the overhead proportionate. Threat-model updates are scoped to trust-boundary changes (new public endpoints, new MCP servers, new auth paths) because those are the changes that alter the attack surface materially.
+
+  ## Trigger heuristics
+
+  The `adr-presence` and `threat-model-presence` precommit rules (Wave 2c #9, #10) implement the trigger logic. This policy is the governance statement; those rules are the enforcement mechanism.
+
+  | Artifact | When required |
+  |---|---|
+  | `sbom.cdx.json` | Always; must be current per `freshness-window` policy |
+  | `SPEC.md` reference | Always; PR description or commit body must cite a SPEC.md section |
+  | One new ADR | Architecture-impact heuristic: new top-level dir, new external dep, schema change |
+  | `THREAT_MODEL.md` update | Trust-boundary heuristic: new public endpoint, new MCP server, new auth path |
+
+  ## Anti-pattern
+
+  A PR adds three new external API integrations and a public-facing GraphQL endpoint. No SBOM update accompanies the lockfile changes. No ADR documents the integration decision. `THREAT_MODEL.md` still reflects the pre-GraphQL architecture. The PR merges; the threat model is silently wrong.
+
+  ## Correct policy
+
+  PR checklist (in PR template or enforced by `required-artifacts` CI check):
+
+  - [ ] `sbom.cdx.json` is freshly generated (`make sbom`) and committed.
+  - [ ] PR description references a SPEC.md section relevant to the change.
+  - [ ] If any new top-level directory, external dependency, or schema change: a new ADR under `docs/adr/` is included.
+  - [ ] If any new public endpoint, MCP server, or auth path: `THREAT_MODEL.md` is updated to include the new trust boundary.
+
+  CI step (`merge-gate.yml`) checks artifact presence and freshness via `hooks/pre-commit.sh --ci`.
+
+  ## Checklist
+
+  - [ ] `sbom.cdx.json` is updated in every PR touching lockfiles.
+  - [ ] PR description contains a `SPEC.md` section reference.
+  - [ ] Architecture-impacting PRs include at least one new ADR.
+  - [ ] Trust-boundary-changing PRs include an updated `THREAT_MODEL.md`.
+  - [ ] CI checks artifact presence before allowing merge.
+  - [ ] `required_artifacts` list in `hooks/config.yaml` matches the project's governance set.
+
+  ## References
+
+  - NIST SP 800-218 (SSDF) PO.4.1 — Define and use criteria for software security checks
+  - CycloneDX 1.5 §Metadata — timestamp and version fields
+  - OWASP ASVS v5 §V14.2 — Dependency requirements
+  - ISO/IEC 27001:2022 A.8.25 — Secure development life cycle
+  - `registry/rules/precommit/adr-presence.rule.yaml`
+  - `registry/rules/precommit/threat-model-presence.rule.yaml`
+  - `registry/rules/precommit/sbom-presence.rule.yaml`
+  - `docs/MANTHAN-CONTRACT.md` §Freshness definition

@@ -1,0 +1,126 @@
+metadata:
+  id: security-logging
+  name: Security Logging
+  description: Log authentication, authorization, and security events with sufficient context for forensic analysis; protect logs from tampering; never log credentials or PII.
+  version: "1.0.0"
+  tags: [logging, audit-trail, forensics, siem, security-events]
+
+category: coding-standards
+severity: high
+summary: "Log all authentication, authorization, and security events with timestamp, user ID, IP, and action. Never log passwords, tokens, or PII. Protect log integrity. Centralize logs and set retention policy aligned to incident-response timelines."
+
+asvs_controls: ["7.2.1", "7.2.2", "7.3.1"]
+iso_controls: ["A.8.15", "A.8.17"]
+nist_ai_rmf: ["GOVERN-1.1", "MEASURE-2.5"]
+cwe: ["CWE-778", "CWE-532"]
+
+mythos_alignment:
+  pillar: secure-by-design
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "OWASP ASVS v5 §7.2.1"
+    - "OWASP ASVS v5 §7.2.2"
+    - "OWASP ASVS v5 §7.3.1"
+    - "CWE-778"
+    - "CWE-532"
+    - "ISO/IEC 27001:2022 A.8.15"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/*.ts"
+    - "**/*.tsx"
+    - "**/*.js"
+    - "**/*.jsx"
+    - "**/*.mjs"
+    - "**/*.py"
+    - "**/*.java"
+    - "**/*.kt"
+    - "**/*.go"
+    - "**/*.cs"
+    - "**/*.rb"
+    - "**/*.php"
+  exclude:
+    - "**/test/**"
+    - "**/*.test.*"
+    - "**/__tests__/**"
+
+enforcement:
+  mode: warning
+  pre_commit: false
+  merge_gate: true
+  ci: false
+
+content: |
+  ## Principle
+
+  Log all security-relevant events — authentication attempts (success and failure), authorization denials, privilege escalations, configuration changes, and account lifecycle events — with sufficient structured context for forensic analysis: timestamp (UTC, ISO 8601), principal ID, source IP, HTTP method and path, event type, and outcome. Never log passwords, authentication tokens, full session IDs, credit card numbers, or other sensitive data. Protect log integrity; ship logs to an append-only SIEM or log aggregation service.
+
+  ## Rationale
+
+  Insufficient logging (CWE-778) and the logging of sensitive information (CWE-532) are complementary failure modes. Without sufficient logging, security events cannot be detected, correlated, or investigated. With over-permissive logging, a log file breach becomes a credential breach. ISO/IEC 27001:2022 A.8.15 requires audit records for all security-relevant events.
+
+  OWASP ASVS §7.2 requires that logs contain the information needed to detect and investigate intrusions, and §7.3 requires that logs are protected from modification and unauthorized access. Structured logging (JSON-lines) is machine-parsable by SIEM tools and avoids injection through log messages (log4shell class of vulnerabilities).
+
+  Log retention must be sufficient to support incident response: 90 days online and 1 year archived is a common baseline for regulated environments. Shorter retention is acceptable only where compliance explicitly permits it.
+
+  ## BAD example
+
+  ```typescript
+  // BAD: no logging on auth failure — brute force is undetectable
+  async function login(email: string, password: string) {
+    const user = await db.findByEmail(email);
+    if (!user || !bcrypt.compare(password, user.hash)) {
+      throw new Error('Invalid credentials');
+    }
+    return user;
+  }
+
+  // BAD: logging the raw password
+  logger.info(`Login attempt: email=${email}, password=${password}`);
+  ```
+
+  ## GOOD example
+
+  ```typescript
+  import { logger } from './logger'; // structured JSON logger
+
+  async function login(email: string, password: string, ip: string) {
+    const user = await db.findByEmail(email);
+    const valid = user && (await bcrypt.compare(password, user.hash));
+
+    logger.info({
+      event: valid ? 'auth.login.success' : 'auth.login.failure',
+      email,           // OK — email is not a secret
+      userId: user?.id,
+      ip,
+      timestamp: new Date().toISOString(),
+    });
+    // NOTE: password is never included in the log entry
+
+    if (!valid) throw new Error('Invalid credentials');
+    return user;
+  }
+  ```
+
+  ## Checklist
+
+  - [ ] Authentication successes and failures are logged with timestamp, user ID, and IP
+  - [ ] Authorization denials are logged with resource path and required vs. actual role
+  - [ ] Logs are structured (JSON-lines or equivalent) — not free-form strings
+  - [ ] Passwords, tokens, session IDs, and PII are never present in log entries
+  - [ ] Logs are shipped to a centralized, tamper-resistant system (SIEM, cloud logging)
+  - [ ] Log retention policy is defined: ≥90 days online, ≥1 year archived
+  - [ ] Log injection mitigated: user-supplied strings are embedded as values, not raw text
+  - [ ] Alerting configured for brute-force patterns and privilege escalation events
+
+  ## References
+
+  - https://owasp.org/www-project-application-security-verification-standard/ (ASVS v5 §7)
+  - https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html
+  - https://cheatsheetseries.owasp.org/cheatsheets/Logging_Vocabulary_Cheat_Sheet.html
+  - https://cwe.mitre.org/data/definitions/778.html
+  - https://cwe.mitre.org/data/definitions/532.html

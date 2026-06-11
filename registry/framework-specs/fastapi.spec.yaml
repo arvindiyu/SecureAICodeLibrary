@@ -1,0 +1,178 @@
+metadata:
+  id: fastapi
+  name: FastAPI
+  version: "1.0.0"
+  description: "Security spec sheet for FastAPI applications. Covers Pydantic validators, OAuth2 with HTTPS, CORS restriction, rate limiting, and HTTPS-only token transmission."
+  tags: [python, fastapi, pydantic, oauth2, cors, rate-limiting, async]
+
+summary: "FastAPI: apply Pydantic constraints on all path/query/body params; restrict CORS origins; use OAuth2PasswordBearer with HTTPS-only; add rate limiting via slowapi; validate Pydantic output models. Extends input-validation-python."
+
+applies_to:
+  language: python
+  framework: fastapi
+  min_version: "0.100.0"
+
+extends: input-validation-python
+
+globs:
+  - "main.py"
+  - "app/main.py"
+  - "**/routers/**/*.py"
+  - "**/dependencies/**/*.py"
+  - "**/schemas/**/*.py"
+  - "requirements*.txt"
+
+security_relevant_defaults:
+  pydantic_validation_automatic: true        # Pydantic validates on input; must define constraints
+  cors_default: "none"                       # no CORS headers without CORSMiddleware
+  oauth2_bearer_https_only: false           # HTTPBearer does NOT enforce HTTPS — configure in deployment
+  openapi_docs_exposed: true                # /docs and /redoc exposed by default — disable in production
+  response_model_excludes_sensitive: false  # must use response_model= to exclude password hashes etc.
+
+authoritative_refs:
+  - "https://fastapi.tiangolo.com/tutorial/security/"
+  - "https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html"
+  - "OWASP ASVS v5 §5.1 (Input Validation)"
+  - "OWASP ASVS v5 §8.3 (Sensitive Private Data)"
+  - "RFC 6749"
+
+applicable_rules:
+  - input-validation-python
+  - auth-patterns
+  - cors-security
+  - cryptography-standards
+  - error-handling
+  - access-control
+
+subagent_hints:
+  coding-standards-reviewer:
+    extra_checks:
+      - "Verify Pydantic models have field constraints (min_length, max_length, ge/le for numbers, pattern for strings)"
+      - "Check CORSMiddleware configuration — allow_origins=['*'] with allow_credentials=True is invalid and rejected by browsers; but allow_origins=['*'] without credentials still dangerously broad"
+      - "Scan for response_model= parameter on all endpoints that return user data — must exclude password_hash, tokens, internal IDs"
+      - "Verify /docs and /redoc are disabled in production: app = FastAPI(docs_url=None, redoc_url=None)"
+      - "Check for rate limiting on /auth/token, /auth/login, and password-reset endpoints (slowapi or similar)"
+      - "Scan for Depends(oauth2_scheme) on all protected routes — missing dependency = unauthenticated access"
+  secure-developer-mentor:
+    extra_checks:
+      - "Guide FastAPI dependency injection pattern for centralized auth (Depends + get_current_user)"
+      - "Explain Pydantic v2 Field(pattern=..., strict=True) for defense-in-depth input validation"
+
+content: |
+  ## FastAPI Security Defaults
+
+  ### Pydantic Input Validation
+
+  FastAPI uses Pydantic models for automatic request validation. Always define constraints — without them,
+  Pydantic accepts any value that matches the type annotation.
+
+  ```python
+  # GOOD: Pydantic model with explicit constraints
+  from pydantic import BaseModel, Field, EmailStr
+  from typing import Annotated
+
+  class CreateUserRequest(BaseModel):
+      email: EmailStr                                          # validates email format
+      username: Annotated[str, Field(min_length=3, max_length=50, pattern=r'^[a-zA-Z0-9_]+$')]
+      password: Annotated[str, Field(min_length=12, max_length=128)]
+      age: Annotated[int, Field(ge=18, le=120)]               # range constraint
+  ```
+
+  ### CORS Configuration
+
+  Never use `allow_origins=["*"]` for authenticated APIs. Configure an explicit allowlist.
+
+  ```python
+  # GOOD: explicit CORS allowlist
+  import os
+  from fastapi.middleware.cors import CORSMiddleware
+
+  allowed_origins = os.environ.get("CORS_ORIGINS", "").split(",")
+
+  app.add_middleware(
+      CORSMiddleware,
+      allow_origins=allowed_origins,      # e.g. ["https://app.example.com"]
+      allow_credentials=True,
+      allow_methods=["GET", "POST", "PUT", "DELETE"],
+      allow_headers=["Authorization", "Content-Type"],
+  )
+  ```
+
+  ### OAuth2 and Authentication
+
+  ```python
+  # GOOD: centralized auth dependency
+  from fastapi import Depends, HTTPException, status
+  from fastapi.security import OAuth2PasswordBearer
+
+  oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
+
+  async def get_current_user(token: str = Depends(oauth2_scheme)):
+      credentials_exception = HTTPException(
+          status_code=status.HTTP_401_UNAUTHORIZED,
+          detail="Invalid authentication credentials",
+          headers={"WWW-Authenticate": "Bearer"},
+      )
+      try:
+          payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+          user_id = payload.get("sub")
+          if user_id is None:
+              raise credentials_exception
+      except JWTError:
+          raise credentials_exception
+      return await get_user(user_id)
+
+  # Apply to route:
+  @app.get("/me")
+  async def read_me(current_user: User = Depends(get_current_user)):
+      return current_user
+  ```
+
+  ### Response Models — Exclude Sensitive Fields
+
+  ```python
+  # BAD: AI commonly generates this — leaks password_hash, internal tokens
+  @app.get("/users/{user_id}")
+  async def get_user(user_id: int):
+      return await db.get_user(user_id)  # returns full DB model
+
+  # GOOD: explicit response_model excludes sensitive fields
+  class UserPublic(BaseModel):
+      id: int
+      username: str
+      email: str
+      # password_hash, api_token, mfa_secret — NOT included
+
+  @app.get("/users/{user_id}", response_model=UserPublic)
+  async def get_user(user_id: int):
+      return await db.get_user(user_id)
+  ```
+
+  ### Disable API Docs in Production
+
+  ```python
+  # GOOD: conditional docs
+  import os
+  app = FastAPI(
+      docs_url="/docs" if os.getenv("ENV") == "development" else None,
+      redoc_url="/redoc" if os.getenv("ENV") == "development" else None,
+  )
+  ```
+
+  ## AI Antipatterns (cross-reference: docs/EXTERNAL-RESOURCES.md § Per-Framework AI Pitfalls)
+
+  | Antipattern | Rule |
+  |---|---|
+  | `Query(...)` / `Path(...)` without Pydantic constraints | `input-validation-python` |
+  | `allow_origins=["*"]` on authenticated API | `cors-security` |
+  | Missing `response_model=` exposing password hashes | `cryptography-standards` |
+  | `/docs` and `/redoc` enabled in production | `access-control` |
+  | Missing `Depends(get_current_user)` on protected routes | `auth-patterns` |
+
+  ## Authoritative References
+
+  - [FastAPI Security Tutorial](https://fastapi.tiangolo.com/tutorial/security/)
+  - [OWASP REST Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html)
+  - Rule: `input-validation-python` (extends)
+  - Rules: `auth-patterns`, `cors-security`, `cryptography-standards`, `error-handling`
+  - RFC 6749 (OAuth 2.0)

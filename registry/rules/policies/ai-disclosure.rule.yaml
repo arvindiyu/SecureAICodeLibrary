@@ -1,0 +1,107 @@
+metadata:
+  id: ai-disclosure
+  name: AI Content Disclosure Policy
+  description: Pull requests that include AI-generated content must disclose this in the PR description; auto-detectable from Co-Authored-By git trailers.
+  version: "1.0.0"
+  tags: [policies, ai-disclosure, attribution, transparency, co-authored-by]
+
+category: policies
+severity: medium
+
+summary: "PRs containing AI-generated content MUST disclose this in the PR description. Auto-detected via 'Co-Authored-By:' git trailers. Disclosure enables reviewers to apply appropriate scrutiny. Non-disclosure warns; blocking enforced by ai-attribution-check precommit rule."
+
+asvs_controls: ["V1.1.2", "V1.6.1"]
+iso_controls: ["A.5.17", "A.8.26"]
+iso42001_controls: ["A.6.1", "A.9.1"]
+nist_ai_rmf: ["GOVERN-1.1", "GOVERN-6.1", "MAP-1.1"]
+cwe: ["CWE-284"]
+
+mythos_alignment:
+  pillar: ai-governance
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "ISO/IEC 42001:2023 A.6.1"
+    - "NIST AI RMF GOVERN-6.1"
+    - "EU AI Act Art. 13"
+    - "OWASP ASVS v5 §V1.1"
+
+scope:
+  always_apply: false
+  globs: [".github/PULL_REQUEST_TEMPLATE*", "CONTRIBUTING.md", "hooks/config.yaml"]
+
+enforcement:
+  mode: warning
+  pre_commit: false
+  merge_gate: false
+  ci: true
+
+content: |
+  ## Principle
+
+  When AI tools contribute to code or documentation, reviewers must know. AI-generated content carries distinct risk characteristics (hallucinated APIs, subtle logical errors, training-data leakage) that warrant heightened review scrutiny. Disclosure is the first control; the `ai-attribution-check` precommit rule (#15) is the enforcement mechanism.
+
+  ## Rationale
+
+  The `Co-Authored-By:` git trailer is an existing, well-understood convention for crediting AI assistants (GitHub Copilot, Claude, Cursor, etc.). It is machine-readable, version-controlled, and does not require a separate process. Auto-detection of this trailer allows the pre-commit hook to enforce disclosure without manual developer action on every commit.
+
+  EU AI Act Art. 13 mandates transparency for AI-generated content in certain high-risk categories. ISO/IEC 42001:2023 A.6.1 requires organisations to establish AI transparency policies. This rule is the policy statement; disclosure in PR descriptions is the minimum expression of it.
+
+  ## Detection
+
+  The `ai-attribution-check` precommit rule detects AI attribution signals:
+
+  1. **Git trailer** — `Co-Authored-By: <ai-tool> <noreply@...>` in commit messages.
+  2. **AI flag files** — any file matching `**/.aiflags/**` (consumer convention for flagging AI-generated outputs).
+  3. **Diff heuristics** — configurable patterns in `hooks/config.yaml → ai_attribution.heuristics` (e.g. presence of AI-characteristic comment blocks).
+
+  When any signal is detected, the PR description must contain the disclosure marker (configurable, default: `AI-Generated: true` or a `Co-Authored-By` reference in the PR body).
+
+  ## Anti-pattern
+
+  A developer uses Cursor + Claude to generate 80% of a PR. The commit messages contain `Co-Authored-By: Claude <noreply@anthropic.com>`. The PR description says "fixes login bug" with no mention of AI generation. Reviewers apply standard review scrutiny; an AI-hallucinated security bypass in the generated auth logic is missed.
+
+  ## Correct policy
+
+  PR description template (`.github/PULL_REQUEST_TEMPLATE.md`):
+
+  ```markdown
+  ## AI Assistance
+  <!-- Required when Co-Authored-By trailers are present in commits. -->
+  - [ ] This PR contains AI-generated content (disclose below if checked)
+  - AI tool(s) used: <!-- e.g. Claude via Cursor, GitHub Copilot -->
+  - Sections generated or heavily revised by AI: <!-- list files/functions -->
+  - Human review focus areas: <!-- what extra scrutiny was applied -->
+  ```
+
+  `hooks/config.yaml`:
+
+  ```yaml
+  ai_attribution:
+    require_pr_disclosure: true
+    disclosure_marker: "AI-Generated"
+    heuristics:
+      - pattern: "Co-Authored-By:.*noreply"
+        confidence: high
+      - pattern: ".aiflags/**"
+        confidence: high
+  ```
+
+  ## Checklist
+
+  - [ ] PR template includes an AI-assistance disclosure section.
+  - [ ] `hooks/config.yaml` has `ai_attribution.require_pr_disclosure: true`.
+  - [ ] Disclosure detection covers `Co-Authored-By` trailers, `.aiflags/` files, and configured heuristics.
+  - [ ] Reviewers are trained to apply heightened scrutiny to disclosed AI-generated sections.
+  - [ ] Disclosure policy is documented in `CONTRIBUTING.md`.
+  - [ ] `ai-attribution-check` precommit rule (#15) enforces the blocking complement of this advisory.
+
+  ## References
+
+  - `registry/rules/precommit/ai-attribution-check.rule.yaml`
+  - ISO/IEC 42001:2023 A.6.1 — Transparency
+  - NIST AI RMF GOVERN-6.1 — Policies, processes, procedures for organizational responsibilities
+  - EU AI Act Art. 13 — Transparency and provision of information to users
+  - OWASP ASVS v5 §V1.1 — Secure Software Development Lifecycle

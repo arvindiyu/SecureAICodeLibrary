@@ -1,0 +1,71 @@
+# yaml-language-server: $schema=../../schemas/subagent.schema.json
+# Canonical Tier-A + Tier-C subagent specification for `adr-author`.
+# Field ordering follows registry/schemas/subagent.schema.json property order
+# (cache-stable per ADR 0005 §8). Do not reorder top-level keys.
+
+metadata:
+  id: adr-author
+  name: ADR Author
+  description: >-
+    Scaffolds and reviews Architectural Decision Records (MADR format) when an
+    architecture-impact heuristic fires on a staged diff (new top-level dir, new
+    runtime dependency, schema change, new trust boundary). Drafts are surfaced
+    for human review; nothing is committed without approval.
+  version: "1.0.0"
+
+classification: low-impact
+
+human_approval: required_before_commit
+
+tiers:
+  native:
+    cursor: "@adr-author <changed-file-paths>"
+    agents_md: "Invoke `adr-author` on the staged diff and propose docs/adr/NNNN-<slug>.md."
+    copilot_coding_agent: "Open issue with label `subagent:adr-author` and the diff URL."
+  headless:
+    runner: registry/subagents/adr-author/run.sh
+    deps: [git, rg, jq]
+    optional_llm_env: SECUREAI_LLM_ENDPOINT
+    output_format: sarif
+
+token_budget:
+  input_max: 20000
+  output_max: 4000
+  warn_at: 0.8
+  system_prompt: 1500
+
+audit_log:
+  enabled: true
+  path: .securecode/audit.log
+  format: jsonl
+  fields:
+    - timestamp
+    - subagent_id
+    - tier
+    - user
+    - inputs_hash
+    - model
+    - token_in
+    - token_out
+    - decision
+    - finding_count
+
+tool_scope:
+  allowed:
+    - read_file
+    - glob
+    - grep
+
+inputs:
+  required:
+    - staged_diff
+  optional:
+    - adr_template_path
+
+outputs:
+  - docs/adr/NNNN-<slug>.md
+
+references:
+  rules:
+    - adr-presence
+    - required-artifacts

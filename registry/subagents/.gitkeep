@@ -1,0 +1,8 @@
+# Placeholder. Phase 3 populates this directory with 6 subagents, each as a directory:
+#   adr-author/{subagent.yaml, run.sh}
+#   threat-modeler/{subagent.yaml, run.sh}
+#   ai-governance-auditor/{subagent.yaml, run.sh}
+#   coding-standards-reviewer/{subagent.yaml, run.sh}
+#   mcp-builder/{subagent.yaml, run.sh}
+#   secure-developer-mentor/{subagent.yaml}   # Tier C = not_applicable
+# Each subagent.yaml MUST validate against registry/schemas/subagent.schema.json.

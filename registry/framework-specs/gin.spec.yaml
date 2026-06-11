@@ -1,0 +1,165 @@
+metadata:
+  id: gin
+  name: Gin (Go)
+  version: "1.0.0"
+  description: "Security spec sheet for Go Gin web framework applications. Covers struct binding with validation tags, CORS allowlisting, path traversal prevention, rate limiting, and debug mode controls."
+  tags: [go, gin, binding, validation, cors, rate-limiting, path-traversal]
+
+summary: "Gin: bind all requests to structs with binding:'required' tags; configure CORS with explicit origin allowlist; never use c.Param() in file paths; disable debug mode in production; add rate limiting middleware. Extends input-validation-go."
+
+applies_to:
+  language: go
+  framework: gin
+  min_version: "1.9.0"
+
+extends: input-validation-go
+
+globs:
+  - "go.mod"
+  - "go.sum"
+  - "main.go"
+  - "**/*_handler*.go"
+  - "**/handlers/**/*.go"
+  - "**/routes/**/*.go"
+  - "**/middleware/**/*.go"
+
+security_relevant_defaults:
+  debug_mode_default: true              # gin.Default() uses debug mode; use gin.New() with explicit middleware in prod
+  gin_default_middleware: "logger+recovery"  # gin.Default() adds Logger + Recovery; Recovery prints stack traces
+  binding_validation: false             # ShouldBind() validates struct tags only if 'binding:' tags are present
+  cors_default: none                    # no CORS without cors middleware
+  trusted_proxies_default: "all"        # gin trusts all proxies by default — configure explicitly
+
+authoritative_refs:
+  - "https://cheatsheetseries.owasp.org/cheatsheets/Go_SCP_OWASP.html"
+  - "https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html"
+  - "OWASP ASVS v5 §5.1 (Input Validation)"
+  - "OWASP ASVS v5 §14.4 (HTTP Security Headers)"
+  - "CWE-22"
+
+applicable_rules:
+  - input-validation-go
+  - auth-patterns
+  - cors-security
+  - error-handling
+  - access-control
+
+subagent_hints:
+  coding-standards-reviewer:
+    extra_checks:
+      - "Verify all request handler structs have 'binding:' validation tags (required, min, max, oneof, email, url)"
+      - "Scan for c.Param(), c.Query(), c.PostForm() values used directly in filepath.Join() or os.Open() — path traversal risk"
+      - "Check gin.SetMode() — must be gin.ReleaseMode in production (never DebugMode)"
+      - "Verify router.SetTrustedProxies() is configured with the known proxy CIDR — not nil (all) or empty"
+      - "Check CORS middleware configuration — gin-contrib/cors AllowAllOrigins must be false for auth APIs"
+      - "Scan for c.JSON(200, c.Request.Body) or c.JSON(200, inputStruct) mirroring raw request — must use validated output struct"
+  secure-developer-mentor:
+    extra_checks:
+      - "Guide gin middleware chain setup: authentication → authorization → rate limiting → business logic"
+      - "Explain Go crypto/tls TLS configuration hardening (CipherSuites, MinVersion) for Gin servers"
+
+content: |
+  ## Gin (Go) Security Defaults
+
+  ### Debug Mode
+
+  `gin.Default()` runs in debug mode, which logs routes and prints stack traces on panic recovery.
+  In production, use `gin.New()` and configure middleware explicitly.
+
+  ```go
+  // BAD: debug mode leaks routing info and stack traces
+  r := gin.Default()
+
+  // GOOD: explicit middleware in release mode
+  func setupRouter() *gin.Engine {
+      gin.SetMode(gin.ReleaseMode)
+      r := gin.New()
+      r.Use(gin.Logger())
+      r.Use(gin.CustomRecovery(func(c *gin.Context, err any) {
+          // Log error internally; return generic response to client
+          log.Error("panic recovered", "error", err)
+          c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+      }))
+      r.SetTrustedProxies([]string{"10.0.0.0/8"}) // restrict to known proxy CIDR
+      return r
+  }
+  ```
+
+  ### Request Binding with Validation Tags
+
+  `ShouldBind()` only validates struct fields that have `binding:` tags. Without them, any value is accepted.
+
+  ```go
+  // GOOD: struct with explicit validation tags
+  type CreateUserRequest struct {
+      Email    string `json:"email"    binding:"required,email"`
+      Username string `json:"username" binding:"required,min=3,max=50,alphanum"`
+      Age      int    `json:"age"      binding:"required,gte=18,lte=120"`
+  }
+
+  func createUser(c *gin.Context) {
+      var req CreateUserRequest
+      if err := c.ShouldBindJSON(&req); err != nil {
+          c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
+          return
+      }
+      // req fields are validated
+  }
+  ```
+
+  ### Path Traversal Prevention
+
+  Never use `c.Param()` or `c.Query()` values directly in file system operations.
+
+  ```go
+  // BAD: path traversal — attacker sends /../../../etc/passwd
+  c.File(filepath.Join("./uploads", c.Param("filename")))
+
+  // GOOD: sanitize and validate before file access
+  func serveFile(c *gin.Context) {
+      filename := filepath.Base(c.Param("filename"))  // strip directory components
+      if strings.Contains(filename, "..") || filename == "." {
+          c.JSON(http.StatusBadRequest, gin.H{"error": "invalid filename"})
+          return
+      }
+      allowed := regexp.MustCompile(`^[a-zA-Z0-9_\-\.]+$`)
+      if !allowed.MatchString(filename) {
+          c.JSON(http.StatusBadRequest, gin.H{"error": "invalid filename"})
+          return
+      }
+      c.File(filepath.Join("./uploads", filename))
+  }
+  ```
+
+  ### CORS Configuration
+
+  ```go
+  // GOOD: explicit origin allowlist
+  import "github.com/gin-contrib/cors"
+
+  r.Use(cors.New(cors.Config{
+      AllowOrigins:     strings.Split(os.Getenv("CORS_ORIGINS"), ","),
+      AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},
+      AllowHeaders:     []string{"Authorization", "Content-Type"},
+      AllowCredentials: true,
+      MaxAge:           12 * time.Hour,
+  }))
+  ```
+
+  ## AI Antipatterns (cross-reference: docs/EXTERNAL-RESOURCES.md § Per-Framework AI Pitfalls)
+
+  | Antipattern | Rule |
+  |---|---|
+  | `gin.Default()` in production (debug logs + verbose recovery) | `error-handling` |
+  | Struct fields without `binding:` tags — unvalidated input | `input-validation-go` |
+  | `c.Param("file")` in `os.Open()` / `filepath.Join()` — CWE-22 | `input-validation-go` |
+  | `cors.Default()` (AllowAllOrigins=true) on auth API | `cors-security` |
+  | `r.SetTrustedProxies(nil)` — trusts all IPs for X-Forwarded-For | `auth-patterns` |
+
+  ## Authoritative References
+
+  - [OWASP Go Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Go_SCP_OWASP.html)
+  - [OWASP REST Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html)
+  - Rule: `input-validation-go` (extends)
+  - Rules: `auth-patterns`, `cors-security`, `error-handling`, `access-control`
+  - CWE-22 (Path Traversal)

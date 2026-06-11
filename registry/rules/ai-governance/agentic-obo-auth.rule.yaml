@@ -1,0 +1,111 @@
+metadata:
+  id: agentic-obo-auth
+  name: Agentic On-Behalf-Of Authentication
+  description: Agents must access remote systems using the current user's token or OAuth2 OBO flow; never use a shared service principal; every agent action must be attributable to the real user.
+  version: "1.0.0"
+  tags: [agentic, authentication, obo, oauth, token-passthrough, security]
+
+category: ai-governance
+severity: critical
+
+summary: "Agents must use the current user's delegated token (OAuth2 OBO or passthrough) for every downstream API call; never use a shared service principal; RBAC must be enforced at the target; every agent action must be attributable to the real user. (RFC 8693)"
+
+asvs_controls: ["2.1.1", "4.1.1", "8.1.1"]
+iso_controls: ["A.5.15", "A.5.16", "A.8.2"]
+iso42001_controls: ["A.9.1", "A.9.4"]
+nist_ai_rmf: ["GOVERN-1.4", "MAP-1.6", "MANAGE-2.3"]
+cwe: ["CWE-269", "CWE-284", "CWE-306"]
+mitre_atlas: ["AML.T0051"]
+
+mythos_alignment:
+  pillar: ai-governance
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "RFC 8693 (OAuth 2.0 Token Exchange)"
+    - "OWASP ASVS v5 §4.1.1"
+    - "ISO/IEC 42001:2023 A.9.1"
+    - "NIST AI RMF GOVERN-1.4"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/agents/**"
+    - "**/auth/**"
+    - "**/oauth/**"
+    - "**/mcp/**"
+    - "**/integrations/**"
+
+enforcement:
+  mode: blocking
+  pre_commit: false
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Principle
+
+  When an agent accesses a remote system (GitHub, Jira, a database, an internal API, or an MCP server), it must act as the authenticated user, not as a generic service identity. Pass the current user's session token directly where the target supports it, or use OAuth2 Token Exchange (RFC 8693) to obtain a downstream-scoped token on behalf of the user. Never provision a shared service principal or hard-coded admin credential as the agent's identity. Every action taken by the agent must be attributable to the real user in the target system's audit log.
+
+  ## Rationale
+
+  A shared service principal grants the agent a persistent, user-independent identity with a fixed permission set—typically over-privileged relative to any individual user. This means: (a) a user without production access can instruct an agent with production service credentials to access production, bypassing RBAC; (b) all agent actions appear as "agent-service" in audit logs rather than the real user, defeating accountability; (c) the service credential becomes a high-value target—one key compromises all users.
+
+  OAuth2 OBO preserves the user's identity context, enforces the user's permissions at the target, and produces an attributable audit trail. If OBO is unavailable, prefer read-only agent capabilities and document the gap rather than defaulting to a shared admin credential.
+
+  NIST AI RMF GOVERN-1.4 requires that roles and responsibilities for AI systems are clear; OBO makes the role boundary (user vs. agent vs. service) explicit in every API call.
+
+  ## BAD example
+
+  ```pseudo
+  # Agent configured with a static service credential
+  GITHUB_TOKEN = "ghp_service_admin_all_repos"   # shared, over-privileged
+  # User A (read-only): can use agent to push to main — RBAC bypassed
+  # User B (contractor): can access confidential repos — RBAC bypassed
+  # Audit log: "agent-service" not "user_a@example.com"
+  response = github_client(token=GITHUB_TOKEN).create_pr(...)
+  ```
+
+  Red flags: static credential; shared across all users; no user identity propagation; audit log shows service not user; no RBAC enforcement at target.
+
+  ## GOOD example
+
+  ```pseudo
+  # Agent receives user's authenticated session token from the platform
+  user_token = platform.get_current_user_token()   # Okta / OIDC token
+
+  # OBO exchange: platform trades user token for downstream-scoped GitHub token
+  github_token = oauth.token_exchange(
+    subject_token=user_token,
+    scope=["repo:read", "pull_request:write"],   # minimum scope
+    audience="github.com"
+  )
+
+  # Agent uses exchanged token; GitHub enforces user's own permissions
+  response = github_client(token=github_token).create_pr(...)
+  # GitHub audit log: "user_a@example.com created PR via agent-platform"
+
+  # OBO not available? Prefer read-only + document limitation
+  if not obo_available:
+    raise ConfigError("OBO not supported; restricting agent to read-only mode")
+  ```
+
+  Why this works: user identity is preserved end-to-end; RBAC enforced at target by GitHub; audit log shows real actor; no over-privileged shared credential; minimum scope enforced by OBO exchange.
+
+  ## Checklist
+
+  - [ ] Agents use the current user's token (passthrough or OBO) for every downstream API call.
+  - [ ] No shared service principals or hard-coded admin credentials exist in agent configurations.
+  - [ ] OBO token scope is limited to what the user and the task require (least privilege).
+  - [ ] Target system audit logs show the real user identity, not "agent" or "service".
+  - [ ] When OBO is unavailable, agent is restricted to read-only and the gap is documented.
+  - [ ] Token scopes and OBO configurations are reviewed when new API integrations are added.
+
+  ## References
+
+  - RFC 8693 (OAuth 2.0 Token Exchange): https://datatracker.ietf.org/
+  - OWASP ASVS v5 §4 (Access Control): https://owasp.org/www-project-application-security-verification-standard/
+  - ISO/IEC 42001:2023 A.9.1: https://www.iso.org/standard/81230.html
+  - NIST AI RMF GOVERN-1.4: https://www.nist.gov/itl/ai-risk-management-framework

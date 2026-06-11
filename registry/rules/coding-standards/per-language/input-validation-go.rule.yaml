@@ -1,0 +1,106 @@
+metadata:
+  id: input-validation-go
+  name: Input Validation — Go
+  description: Go-specific input validation using go-playground/validator v10; decode into typed structs; reject unknown fields; validate path and query parameters explicitly.
+  version: "1.0.0"
+  tags: [input-validation, go, golang, validator, net-http, gin]
+  languages: [go]
+
+category: coding-standards/per-language
+severity: high
+summary: "Decode JSON into typed Go structs with json.NewDecoder; disallow unknown fields with Decoder.DisallowUnknownFields(). Validate with github.com/go-playground/validator/v10. Never use map[string]interface{} as the primary input type at security boundaries."
+
+extends: input-validation
+
+asvs_controls: ["5.1.1", "5.1.3"]
+iso_controls: ["A.8.28"]
+nist_ai_rmf: ["GOVERN-1.1"]
+cwe: ["CWE-20"]
+
+mythos_alignment:
+  pillar: ide-coverage
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "OWASP ASVS v5 §5.1.3"
+    - "CWE-20"
+    - "ISO/IEC 27001:2022 A.8.28"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/*.go"
+  exclude:
+    - "**/*_test.go"
+    - "**/testdata/**"
+
+enforcement:
+  mode: blocking
+  pre_commit: false
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Delta from parent
+
+  This rule extends `input-validation` with Go-specific guidance on typed struct decoding, unknown-field rejection, and the `go-playground/validator` library.
+
+  ## BAD example
+
+  ```go
+  func CreateUser(w http.ResponseWriter, r *http.Request) {
+      var body map[string]interface{}
+      json.NewDecoder(r.Body).Decode(&body) // unknown fields silently accepted
+      email := body["email"].(string)       // type assertion panics on wrong type
+      createUser(email)
+  }
+  ```
+
+  ## GOOD example
+
+  ```go
+  import (
+      "encoding/json"
+      "net/http"
+      "github.com/go-playground/validator/v10"
+  )
+
+  type CreateUserRequest struct {
+      Email string `json:"email" validate:"required,email,max=255"`
+      Age   int    `json:"age"   validate:"min=0,max=150"`
+      Name  string `json:"name"  validate:"required,min=1,max=100,alpha"`
+  }
+
+  var validate = validator.New()
+
+  func CreateUser(w http.ResponseWriter, r *http.Request) {
+      var req CreateUserRequest
+      dec := json.NewDecoder(r.Body)
+      dec.DisallowUnknownFields() // reject unexpected fields
+      if err := dec.Decode(&req); err != nil {
+          http.Error(w, "invalid JSON", http.StatusBadRequest)
+          return
+      }
+      if err := validate.Struct(req); err != nil {
+          http.Error(w, err.Error(), http.StatusBadRequest)
+          return
+      }
+      createUser(req)
+  }
+  ```
+
+  ## Checklist
+
+  - [ ] JSON decoded into typed structs (not `map[string]interface{}`) at all API boundaries
+  - [ ] `json.Decoder.DisallowUnknownFields()` called before `Decode()`
+  - [ ] `go-playground/validator/v10` used for field-level constraints
+  - [ ] Path and query parameters parsed with explicit type conversion and bounds checks
+  - [ ] Max request body size limited via `http.MaxBytesReader` (DoS prevention)
+
+  ## References
+
+  - https://owasp.org/www-project-application-security-verification-standard/ (ASVS v5 §5.1)
+  - https://cwe.mitre.org/data/definitions/20.html
+  - https://pkg.go.dev/github.com/go-playground/validator/v10

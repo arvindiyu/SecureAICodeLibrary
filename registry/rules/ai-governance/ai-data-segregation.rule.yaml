@@ -1,0 +1,113 @@
+metadata:
+  id: ai-data-segregation
+  name: AI Data Segregation
+  description: User-supplied data must only serve that user; enforce per-user namespacing in vector stores; no cross-user data leakage; TTL on all user-supplied content; no long-term cross-session memory without Privacy approval.
+  version: "1.0.0"
+  tags: [ai-security, data-segregation, privacy, pii, user-isolation]
+
+category: ai-governance
+severity: critical
+
+summary: "Isolate all user-supplied AI context (chat history, uploads, embeddings) to the originating user; never allow cross-user data leakage; enforce TTL on user-supplied content; segment vector stores by sensitivity; prohibit cross-session memory without Privacy/Legal approval. (GDPR Art. 5)"
+
+asvs_controls: ["8.3.1", "8.3.4", "8.3.6"]
+iso_controls: ["A.5.12", "A.8.11"]
+iso42001_controls: ["A.7.3", "A.9.4"]
+nist_ai_rmf: ["GOVERN-1.1", "MAP-1.6", "MANAGE-2.3"]
+cwe: ["CWE-200", "CWE-359", "CWE-284"]
+mitre_atlas: ["AML.T0049"]
+
+mythos_alignment:
+  pillar: ai-governance
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "GDPR Art. 5"
+    - "ISO/IEC 42001:2023 A.7.3"
+    - "OWASP ASVS v5 §8.3.4"
+    - "NIST AI RMF MAP-1.6"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/data/**"
+    - "**/vectors/**"
+    - "**/embeddings/**"
+    - "**/rag/**"
+    - "**/memory/**"
+
+enforcement:
+  mode: blocking
+  pre_commit: false
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Principle
+
+  Every piece of user-supplied content—prompts, uploaded files, chat history, derived embeddings—must be isolated to the user who supplied it and must never be accessible to any other user. Implement per-user namespacing at the storage layer (not just as a metadata filter on a shared namespace). Enforce a defined TTL for all user-supplied content per privacy policy. Segment vector databases by sensitivity level; never mix PII-classified and non-PII data in a single namespace. Do not implement persistent cross-session memory without explicit Privacy and Legal review and documented user consent.
+
+  ## Rationale
+
+  AI systems often aggregate user context to improve response quality—but this creates cross-user data exposure if not carefully isolated. A single shared vector namespace with user-ID metadata is exploitable: a query that bypasses or ignores the metadata filter returns every user's embeddings. This is not a theoretical risk; production RAG systems have exhibited cross-user leakage from misconfigured namespace filters (GDPR Art. 5 data minimisation and integrity requirement).
+
+  Persistent cross-session memory amplifies the risk: the system accumulates a growing profile of each user across many sessions, creating a high-value PII corpus that did not exist in any single interaction. Without Privacy/Legal review and explicit user consent, such memory violates data minimisation principles and can constitute unauthorized processing under GDPR Art. 6.
+
+  CWE-359 (Exposure of Private Personal Information) applies directly: the personal information is exposed not by an explicit read endpoint but by the implicit cross-user bleed of a shared embedding store.
+
+  ## BAD example
+
+  ```pseudo
+  # Single shared vector store for all users
+  vector_store.add(user_file, metadata={"user_id": user_id})
+
+  # Query retrieves from shared namespace; metadata filter is the only guard
+  results = vector_store.similarity_search(query)
+  # If filter is missed, bypassed, or incorrectly applied:
+  # User A's embeddings appear in User B's results — CRITICAL FAIL
+  ```
+
+  Red flags: single shared namespace; metadata-only user isolation (not enforced at storage layer); no TTL; no sensitivity segmentation; long-term memory without approval.
+
+  ## GOOD example
+
+  ```pseudo
+  # Per-user namespace enforced at the storage layer
+  user_ns = f"user_{authenticated_user_id}"
+  vector_store.add(user_file, namespace=user_ns)
+
+  # Query is scoped to the user's own namespace — isolation enforced by store
+  results = vector_store.similarity_search(query, namespace=user_ns)
+
+  # Sensitivity segmentation: PII in a separate, access-controlled store
+  if classification(user_file) == "pii":
+    pii_store.add(user_file, namespace=f"pii_{authenticated_user_id}")
+    enforce_rbac(pii_store, authenticated_user_id)
+
+  # TTL: scheduled purge of all user-supplied content
+  schedule_purge(user_ns, after_days=RETENTION_DAYS)
+
+  # Cross-session memory: not enabled without Privacy/Legal approval
+  raise NotImplemented("Cross-session memory requires Privacy/Legal review")
+  ```
+
+  Why this works: namespace isolation is enforced at the storage layer; no metadata-filter-only guard; PII is in a separate store with RBAC; TTL is scheduled; cross-session memory is explicitly blocked.
+
+  ## Checklist
+
+  - [ ] User-supplied data is stored in per-user namespaces enforced at the storage layer.
+  - [ ] Similarity-search queries are scoped to the requesting user's namespace, not filtered on metadata alone.
+  - [ ] A defined TTL is enforced for all user-supplied content (prompts, uploads, embeddings).
+  - [ ] Vector stores are segmented by sensitivity level; PII data is in a separate store.
+  - [ ] Cross-session persistent memory is not implemented without Privacy/Legal review and user consent.
+  - [ ] Per-user storage boundaries are tested (attempt cross-user query; verify rejection).
+
+  ## References
+
+  - GDPR Art. 5 (Data minimisation and integrity): https://eur-lex.europa.eu/eli/reg/2024/1689/oj
+  - ISO/IEC 42001:2023 A.7.3: https://www.iso.org/standard/81230.html
+  - OWASP ASVS v5 §8.3 (Sensitive Private Data): https://owasp.org/www-project-application-security-verification-standard/
+  - NIST AI RMF MAP-1.6: https://www.nist.gov/itl/ai-risk-management-framework
+  - CWE-359 Exposure of Private Personal Information: https://cwe.mitre.org/

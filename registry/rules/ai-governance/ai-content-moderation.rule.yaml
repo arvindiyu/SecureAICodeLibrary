@@ -1,0 +1,113 @@
+metadata:
+  id: ai-content-moderation
+  name: AI Content Moderation
+  description: Filter AI output for harmful, toxic, or brand-damaging content before publication; require human review for AI content reaching external audiences; apply stricter configs for public-facing AI.
+  version: "1.0.0"
+  tags: [ai-security, content-moderation, brand-safety, guardrails, output-filtering]
+
+category: ai-governance
+severity: high
+
+summary: "Filter all AI-generated output through a content moderation pipeline before reaching external audiences; require human review for public-facing content; use stricter configs for public vs internal; log all moderation decisions. (OWASP LLM02)"
+
+asvs_controls: ["1.1.1", "5.3.1"]
+iso_controls: ["A.5.7", "A.8.26"]
+iso42001_controls: ["A.8.1", "A.9.3"]
+nist_ai_rmf: ["GOVERN-1.1", "MAP-2.3", "MANAGE-2.2"]
+cwe: ["CWE-116", "CWE-79"]
+
+mythos_alignment:
+  pillar: ai-governance
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "OWASP Top 10 for LLM Applications (2025) LLM02"
+    - "NIST AI RMF MAP-2.3"
+    - "ISO/IEC 42001:2023 A.8.1"
+    - "OWASP ASVS v5 §5.3.1"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/llm/**"
+    - "**/ai/**"
+    - "**/prompts/**"
+    - "**/content/**"
+    - "**/chatbot/**"
+
+enforcement:
+  mode: warning
+  pre_commit: false
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Principle
+
+  Never publish raw, unfiltered AI-generated content to external audiences. Route all AI output through a layered content moderation pipeline that checks for harmful content, PII leakage, discriminatory language, and brand-damaging material before any external publication. Require human review as a final gate for customer-facing AI content. Apply stricter moderation configurations for public-facing AI than for internal developer tools. Log every moderation decision for audit and tuning purposes.
+
+  ## Rationale
+
+  LLMs can produce outputs that are harmful, biased, or factually incorrect regardless of the quality of the underlying model (OWASP LLM02, 2025). Without a moderation layer, the application is the last line of defence—and there is no line. A single unmoderated response reaching an external user can cause brand damage, regulatory liability, or direct harm.
+
+  Moderation is not binary. A pipeline approach allows independent layers—keyword filters, semantic classifiers, PII detectors, topic-constraint validators—each addressing a different failure mode. When one layer misses, others catch it. Human review for public-facing content adds the highest-fidelity layer and is required where the stakes of an incorrect output are significant.
+
+  NIST AI 600-1 (2024) §2.5 identifies "harmful bias" and "dangerous or violent recommendations" as key generative AI risks; content moderation is the primary technical control.
+
+  ## BAD example
+
+  ```pseudo
+  # AI chatbot response sent directly to customer
+  response = llm.generate(user_query)
+  send_to_customer(response)
+  # No content filtering; no human review; no moderation log
+  # Risk: harmful, biased, or brand-damaging content reaches customer
+  ```
+
+  Red flags: no content moderation pipeline; no human review gate; same config for internal and public; no moderation decision logging.
+
+  ## GOOD example
+
+  ```pseudo
+  response = llm.generate(user_query)
+
+  # Layer 1: platform content filter (hate speech, violence, adult content)
+  moderation = content_moderator.apply(response, config=public_config)
+  if moderation.blocked:
+    log_moderation("blocked", moderation.reason, request_id)
+    return fallback_response("Unable to generate an appropriate response.")
+
+  # Layer 2: PII detector — redact before publication
+  safe_response = pii_detector.redact(moderation.content)
+
+  # Layer 3: human review gate for public-facing channels
+  if channel.is_external:
+    review_ticket = create_review_ticket(safe_response, channel=channel.name)
+    approved = await_human_approval(review_ticket, sla="4h")
+    if not approved:
+      return fallback_response("Content under review.")
+
+  log_moderation("approved", channel=channel.name, request_id=request_id)
+  send_to_customer(safe_response)
+  ```
+
+  Why this works: layered pipeline catches multiple failure modes; PII is redacted before publication; human review is the final external gate; moderation decisions are logged for tuning.
+
+  ## Checklist
+
+  - [ ] All AI output for external audiences passes through a content moderation pipeline.
+  - [ ] The moderation pipeline includes at least: harmful content filter, PII detector.
+  - [ ] Human review is required before AI content is published to external audiences.
+  - [ ] Public-facing moderation config is stricter than internal developer config.
+  - [ ] Moderation decisions (pass/block/redact) are logged with reason codes.
+  - [ ] Moderation logs are reviewed monthly to tune thresholds and reduce false positives.
+  - [ ] AI image generation uses image-specific safety guardrails in addition to text filters.
+
+  ## References
+
+  - OWASP Top 10 for LLM Applications (2025) LLM02 — Insecure Output Handling: https://genai.owasp.org/llm-top-10/
+  - NIST AI RMF MAP-2.3: https://www.nist.gov/itl/ai-risk-management-framework
+  - ISO/IEC 42001:2023 A.8.1 (Documentation of AI systems): https://www.iso.org/standard/81230.html
+  - OWASP ASVS v5 §5.3 (Output Encoding): https://owasp.org/www-project-application-security-verification-standard/

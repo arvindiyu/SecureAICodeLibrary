@@ -1,0 +1,111 @@
+metadata:
+  id: mcp-server-safety
+  name: MCP Server Safety
+  description: MCP servers must follow an approved blueprint, be registered, implement authentication (OBO where applicable), pass Secure-by-Design review, and be protected by WAF/rate-limiting if internet-facing.
+  version: "1.0.0"
+  tags: [ai-security, mcp, tool-calling, server-safety, platform]
+
+category: ai-governance
+severity: critical
+
+summary: "Build MCP servers from approved blueprints; register in approved catalog before deployment; implement OBO auth for user-scoped actions; complete Secure-by-Design review; add WAF + rate-limiting for internet-facing endpoints. (MCP spec)"
+
+asvs_controls: ["13.1.1", "8.1.1", "4.1.1"]
+iso_controls: ["A.8.26", "A.5.15"]
+iso42001_controls: ["A.10.1", "A.9.4"]
+nist_ai_rmf: ["GOVERN-1.1", "MAP-2.1", "MANAGE-2.3"]
+cwe: ["CWE-862", "CWE-306", "CWE-284"]
+mitre_atlas: ["AML.T0051", "AML.T0047"]
+
+mythos_alignment:
+  pillar: ai-governance
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "OWASP ASVS v5 §13.1.1"
+    - "ISO/IEC 42001:2023 A.10.1"
+    - "NIST AI RMF GOVERN-1.1"
+    - "MCP specification docs — https://modelcontextprotocol.io"
+  threat_intel:
+    - "MITRE ATLAS AML.T0047 ML Supply Chain Compromise (ATLAS, 2024)"
+
+scope:
+  always_apply: true
+
+enforcement:
+  mode: blocking
+  pre_commit: true
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Principle
+
+  All MCP (Model Context Protocol) servers expose tools to AI agents and therefore represent a privileged attack surface. Build every MCP server from an approved, security-reviewed blueprint. Register it in the organizational MCP catalog before any agent integration. Implement authentication on all endpoints—use OAuth2 On-Behalf-Of (OBO) wherever the server acts with user identity. Require Secure-by-Design review before production deployment. Protect internet-facing endpoints with a WAF, rate-limiting, and strong TLS. Never deploy custom, unregistered MCP servers.
+
+  ## Rationale
+
+  MCP servers are the tool-execution layer for agentic AI. An unsecured MCP server is equivalent to an unauthenticated RPC endpoint reachable by every AI agent in an organization—it is a direct path to data exfiltration, unauthorized writes, and privilege escalation. Without OBO authentication, all agent actions appear in audit logs as a generic service account rather than the real user, defeating attribution and RBAC (MITRE ATLAS AML.T0047, 2024).
+
+  Internet-facing MCP endpoints without WAF protection are exposed to abuse at scale: attackers can enumerate available tools, inject payloads via tool parameters, and exhaust API quotas. Internal-only exposure (VPN/private network) dramatically reduces the attack surface.
+
+  Custom servers built outside the approved blueprint bypass organizational security defaults (auth, logging, rate-limiting) and introduce unknown risk. The catalog requirement ensures every server has gone through peer review and is maintained.
+
+  ## BAD example
+
+  ```pseudo
+  # Custom MCP server, not from approved blueprint, no auth, internet-facing
+  server = CustomMCPServer(tools=[full_github_admin, jira_admin, aws_admin])
+  server.listen("https://mcp.example.com:443")
+  # No authentication; anyone can call tools
+  # No OBO; actions attributed to "agent-service" not the real user
+  # Not in the MCP registry; no security review performed
+  # No WAF, no rate-limiting, public IP
+  ```
+
+  Red flags: custom server outside approved blueprint; no auth; no OBO; public URL without WAF; not registered; no security review.
+
+  ## GOOD example
+
+  ```pseudo
+  # 1. Built from approved blueprint
+  server = ApprovedMCPBlueprint.create("github-pr-reader",
+    tools=["read_pull_request", "read_pr_comments"])  # scoped read-only tools
+
+  # 2. Auth: OBO for user-scoped GitHub access
+  server.use_auth(OBOProvider, scopes=["repo:read"])
+  server.validate_token_before_tool_execution()
+
+  # 3. Register in catalog
+  mcp_catalog.register(server, version="1.0", maintainer="platform-team",
+    review_status="approved", review_date="2024-10-01")
+
+  # 4. SbD review completed
+  security_review.attach(server, finding="no critical findings", status="approved")
+
+  # 5. Deployed internal-only with rate-limiting
+  deploy(server, network="internal_vpn", rate_limit="100/min/user", tls=True)
+  ```
+
+  Why this works: blueprint enforces security defaults; OBO preserves user attribution; catalog ensures discoverability and governance; rate-limiting prevents abuse; internal-only limits exposure.
+
+  ## Checklist
+
+  - [ ] MCP server is built from an approved, security-reviewed blueprint.
+  - [ ] Server is registered in the organizational MCP catalog before integration.
+  - [ ] Authentication is implemented on all tool endpoints (no anonymous access).
+  - [ ] OBO (On-Behalf-Of) is used wherever the server acts with user identity.
+  - [ ] A Secure-by-Design review has been completed and documented.
+  - [ ] If internet-facing: WAF, DDoS protection, and rate-limiting are in place.
+  - [ ] Tools are scoped to the minimum set required (cross-reference `agentic-tool-scoping`).
+  - [ ] Server is re-reviewed after significant changes to auth, data access, or exposure.
+
+  ## References
+
+  - MCP specification: https://modelcontextprotocol.io
+  - ISO/IEC 42001:2023 A.10.1 (Third-party AI relationships): https://www.iso.org/standard/81230.html
+  - NIST AI RMF GOVERN-1.1: https://www.nist.gov/itl/ai-risk-management-framework
+  - OWASP ASVS v5 §13 (API and Web Service): https://owasp.org/www-project-application-security-verification-standard/
+  - MITRE ATLAS AML.T0047 (ML Supply Chain Compromise): https://atlas.mitre.org/

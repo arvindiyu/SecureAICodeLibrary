@@ -1,0 +1,107 @@
+metadata:
+  id: gaps-risk-classification
+  name: GAPS Risk Classification Policy
+  description: Maps compliance findings from pre-commit scans to C/H/M/L bands; AI-augmented commits raise classification one band.
+  version: "1.0.0"
+  tags: [policies, gaps, risk-classification, ai-assistance, compliance]
+
+category: policies
+severity: medium
+
+summary: "Classify every pre-commit compliance finding as CRITICAL/HIGH/MEDIUM/LOW using engine class, CWE, and ASVS criticality. AI-augmented commits raise classification one band. Findings are input to severity-gate and Manthan quality-gate."
+
+asvs_controls: ["V1.1.2", "V15.1.1"]
+iso_controls: ["A.8.8", "A.8.25"]
+nist_ai_rmf: ["MEASURE-2.2", "MANAGE-2.2", "MAP-2.3"]
+cwe: ["CWE-693"]
+
+mythos_alignment:
+  pillar: quantitative-posture
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "NIST SP 800-218 RV.1.1"
+    - "OWASP ASVS v5 §V15.1"
+    - "ISO/IEC 27001:2022 A.8.8"
+    - "docs/MANTHAN-CONTRACT.md §GAPS risk classification"
+
+scope:
+  always_apply: false
+  globs: ["**/.securecode/audit.log", "hooks/config.yaml"]
+
+enforcement:
+  mode: warning
+  pre_commit: false
+  merge_gate: false
+  ci: true
+
+content: |
+  ## Principle
+
+  Every finding emitted by a scanner or Tier C subagent runner must be assigned a GAPS class (C/H/M/L) before it is consumed by the severity gate. Classification is deterministic — derived from a lookup table, not from LLM judgment — so that findings are reproducible across environments.
+
+  ## Rationale
+
+  Raw scanner severities vary across engines. A "high" from a secrets scanner is categorically different from a "high" from an informational-only SCA report. GAPS classification normalises across engines by incorporating `engine_class`, `cwe`, and `asvs_control_id` into the classification function. The AI-augmentation band raise (when `commit.is_ai_assisted: true`) accounts for the elevated false-negative rate in AI-generated code.
+
+  ## Classification function
+
+  ```
+  GAPS_class = f(
+    finding.severity,         // raw scanner level: C / H / M / L
+    finding.engine_class,     // sast | sca | iac | secrets | dast
+    finding.cwe,              // CWE-XX → GAPS floor lookup table
+    finding.asvs_control_id,  // ASVS control criticality weight
+    context.is_ai_assisted    // raises floor by one band when true
+  )
+  ```
+
+  ### Engine-class floor adjustments
+
+  | engine_class | Floor raise |
+  |---|---|
+  | `secrets`    | +1 band (secrets leaks are immediately exploitable) |
+  | `sast`       | No adjustment |
+  | `sca`        | No adjustment |
+  | `iac`        | No adjustment |
+  | `dast`       | +1 band (confirmed at runtime = higher confidence) |
+
+  ### AI-assistance adjustment
+
+  When `is_ai_assisted: true`: raise the computed floor by one additional band. Rationale: see `THREAT_MODEL.md` §Glasswing-era posture.
+
+  ## Anti-pattern
+
+  All scanner findings are reported at face value without cross-referencing engine class or CWE. A `medium` SCA finding on a development dependency with no known exploit is treated the same as a `medium` SAST SQL injection, causing alert fatigue and threshold miscalibration.
+
+  ## Correct policy
+
+  The Tier C `ai-governance-auditor` and `coding-standards-reviewer` runners emit findings with structured `engine_class` and `cwe` fields. The GAPS classification step in `hooks/pre-commit.sh` applies the lookup table and emits a normalised GAPS class in the Manthan request payload:
+
+  ```json
+  {
+    "rule": "CWE-89",
+    "severity": "medium",
+    "engine_class": "sast",
+    "gaps_class": "high",
+    "gaps_reason": "CWE-89 floor=HIGH; is_ai_assisted floor_raise applied"
+  }
+  ```
+
+  ## Checklist
+
+  - [ ] Every finding emitted by a Tier C runner includes `engine_class` and `cwe` fields.
+  - [ ] GAPS classification is applied in `hooks/pre-commit.sh` before the Manthan call.
+  - [ ] AI-assistance flag (`is_ai_assisted`) is passed through from commit metadata.
+  - [ ] GAPS class is included in the `.securecode/audit.log` JSON-lines entry.
+  - [ ] Classification table is versioned and cross-referenced to CWE and ASVS criticality.
+
+  ## References
+
+  - `docs/MANTHAN-CONTRACT.md` §GAPS risk classification
+  - NIST SP 800-218 (SSDF) RV.1.1 — Review findings and remediate
+  - OWASP ASVS v5 §V15.1 — Security Build and Deployment
+  - ISO/IEC 27001:2022 A.8.8 — Management of technical vulnerabilities
+  - `registry/rules/precommit/severity-gate.rule.yaml`

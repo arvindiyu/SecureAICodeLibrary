@@ -1,0 +1,139 @@
+metadata:
+  id: vue
+  name: Vue.js
+  version: "1.0.0"
+  description: "Security spec sheet for Vue.js SPAs. Covers v-html risks, CSRF header configuration, reactive-data sanitization, and CSP for SSR."
+  tags: [javascript, spa, frontend, vue, vuejs, v-html, csrf]
+
+summary: "Vue.js: prohibit v-html with unsanitized data; configure axios CSRF headers; sanitize reactive state that originates from untrusted sources; apply CSP for SSR (Nuxt). Extends input-validation-javascript."
+
+applies_to:
+  language: javascript
+  framework: vue
+  min_version: "3.0.0"
+
+extends: input-validation-javascript
+
+globs:
+  - "**/*.vue"
+  - "vite.config.*"
+  - "nuxt.config.*"
+  - "src/main.{js,ts}"
+
+security_relevant_defaults:
+  v_html_auto_escapes: false          # v-html renders raw HTML — no auto-escaping
+  template_interpolation_escapes: true # {{ value }} is auto-escaped
+  csrf_handled_by_framework: false    # must configure axios or fetch headers manually
+  ssr_csp_nonce_required: true        # Nuxt SSR requires explicit CSP nonce config
+  pinia_state_reactive: true          # Pinia state changes trigger re-renders; sanitize before storing untrusted data
+
+authoritative_refs:
+  - "https://vuejs.org/guide/best-practices/security.html"
+  - "https://cheatsheetseries.owasp.org/cheatsheets/Vue.js_Security_Cheat_Sheet.html"
+  - "OWASP ASVS v5 §5.3 (Output Encoding)"
+  - "OWASP ASVS v5 §4.1 (Access Control)"
+
+applicable_rules:
+  - input-validation-javascript
+  - auth-patterns
+  - cors-security
+  - error-handling
+
+subagent_hints:
+  coding-standards-reviewer:
+    extra_checks:
+      - "Scan for v-html directives — each one requires a sanitization call (DOMPurify or equivalent) on the bound value before use"
+      - "Check axios or fetch request interceptors for CSRF header injection (X-XSRF-Token or similar)"
+      - "Verify that Pinia or Vuex store state derived from API responses is validated before being bound to v-html"
+      - "For Nuxt SSR: confirm useHead() CSP nonce is configured and __VUE_OPTIONS_API__ flags are locked"
+      - "Validate that vue-router navigation guards enforce server-side authorization (guards are client-side only)"
+  secure-developer-mentor:
+    extra_checks:
+      - "Explain that v-html is the primary XSS surface in Vue and suggest DOMPurify as the sanitization library"
+      - "Guide Nuxt SSR CSP nonce configuration via nuxt.config.ts security module"
+
+content: |
+  ## Vue.js Security Defaults
+
+  ### XSS Prevention — v-html
+
+  Vue's `{{ }}` interpolation is **auto-escaped**. `v-html` renders raw HTML with **no escaping** — it is
+  the primary XSS vector in Vue applications. AI commonly generates `v-html` bindings without sanitization.
+
+  **NEVER:**
+  ```vue
+  <!-- BAD: AI commonly emits this -->
+  <div v-html="userPost.body"></div>
+  ```
+
+  **Correct — sanitize with DOMPurify before binding:**
+  ```vue
+  <template>
+    <div v-html="safeBody"></div>
+  </template>
+
+  <script setup>
+  import DOMPurify from 'dompurify';
+  import { computed } from 'vue';
+
+  const props = defineProps({ body: String });
+  const safeBody = computed(() => DOMPurify.sanitize(props.body));
+  </script>
+  ```
+
+  ### CSRF Headers
+
+  Vue does not ship a CSRF mechanism. Configure your HTTP client to mirror the CSRF cookie to a header.
+
+  ```javascript
+  // GOOD: axios interceptor for CSRF (e.g. Django, Rails backends)
+  import axios from 'axios';
+
+  function getCookie(name) {
+    return document.cookie.split('; ')
+      .find(row => row.startsWith(name + '='))
+      ?.split('=')[1];
+  }
+
+  axios.interceptors.request.use(config => {
+    const csrfToken = getCookie('csrftoken');
+    if (csrfToken) config.headers['X-CSRFToken'] = csrfToken;
+    return config;
+  });
+  ```
+
+  ### Routing & Authorization
+
+  `vue-router` navigation guards are **client-side only**. They can be bypassed by anyone with DevTools.
+  Always enforce authorization server-side; treat guards as UX-only gates.
+
+  ```javascript
+  // GOOD: guard + server verification
+  router.beforeEach(async (to) => {
+    if (to.meta.requiresAuth) {
+      const ok = await authService.verifySession(); // server call
+      if (!ok) return { name: 'login' };
+    }
+  });
+  ```
+
+  ### Secrets & Environment Variables
+
+  - `VITE_*` variables are **bundled into client-side code** — never put secrets in them.
+  - Sensitive config (API keys, DB URLs) must remain server-side.
+
+  ## AI Antipatterns (cross-reference: docs/EXTERNAL-RESOURCES.md § Per-Framework AI Pitfalls)
+
+  | Antipattern | Rule |
+  |---|---|
+  | `v-html` with unsanitized server data | `input-validation-javascript` |
+  | Missing axios CSRF interceptor on form mutation requests | `auth-patterns` |
+  | `VITE_SECRET_KEY` in `.env` (bundled to client) | `cryptography-standards` |
+  | `vue-router` guard as sole authorization mechanism | `auth-patterns`, `access-control` |
+
+  ## Authoritative References
+
+  - [Vue.js Security Guide](https://vuejs.org/guide/best-practices/security.html)
+  - [OWASP Vue Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Vue.js_Security_Cheat_Sheet.html)
+  - Rule: `input-validation-javascript` (extends)
+  - Rules: `auth-patterns`, `cors-security`, `error-handling`

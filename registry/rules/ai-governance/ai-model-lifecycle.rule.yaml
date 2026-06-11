@@ -1,0 +1,123 @@
+metadata:
+  id: ai-model-lifecycle
+  name: AI Model Lifecycle
+  description: Govern the full AI model lifecycle from design through decommissioning; require model versioning and registry; define lifecycle stages with quality gates; detect drift; support canary deployment and rollback.
+  version: "1.0.0"
+  tags: [ai-governance, model-lifecycle, versioning, monitoring, mlops]
+
+category: ai-governance
+severity: high
+
+summary: "Register all AI models in a centralized registry with versioned artifacts; enforce lifecycle stages (design → test → approval → production → decommission) with documented quality gates; detect data/concept/performance drift; deploy via canary with automatic rollback. (ISO 42001 A.6.2)"
+
+asvs_controls: ["1.6.1", "8.2.1"]
+iso_controls: ["A.8.9", "A.8.16"]
+iso42001_controls: ["A.6.1", "A.6.2", "A.6.3"]
+nist_ai_rmf: ["GOVERN-1.1", "MAP-3.1", "MEASURE-2.7", "MANAGE-4.1"]
+cwe: ["CWE-693"]
+mitre_atlas: ["AML.T0044", "AML.T0048"]
+
+mythos_alignment:
+  pillar: ai-governance
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "ISO/IEC 42001:2023 A.6.2"
+    - "NIST AI RMF MANAGE-4.1"
+    - "EU AI Act Art. 9"
+    - "NIST AI 600-1 (2024) §2.7"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/models/**"
+    - "**/ml/**"
+    - "**/training/**"
+    - "**/registry/**"
+    - "**/.github/workflows/**"
+
+enforcement:
+  mode: warning
+  pre_commit: false
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Principle
+
+  Manage every AI model through a governed lifecycle with defined stages, quality gates, versioned artifacts, and continuous production monitoring. No model may be deployed to production without: registration in the model registry, passing functional and bias tests, governance sign-off, a canary deployment plan, and configured drift detection. No model may be retired without a decommissioning record and successor plan. Model cards must be maintained at each stage. Stage skips require documented exceptions with governance approval.
+
+  ## Rationale
+
+  AI models are not static artifacts: they degrade as the world changes around them. Data drift (input distribution shifts), concept drift (relationship between inputs and outputs changes), and performance drift (accuracy, latency, error rates degrade) all cause models to silently fail if not monitored. MITRE ATLAS AML.T0048 (Erode ML Model Integrity) and AML.T0044 (Backdoor ML Model) both exploit lifecycle gaps—models trained or deployed without rigorous testing are vulnerable.
+
+  EU AI Act Art. 9 requires risk management procedures throughout the AI system lifecycle for high-risk AI; ISO/IEC 42001 A.6.2 requires a managed AI system lifecycle with defined processes. Without a model registry, teams lose track of what is deployed, cannot roll back reliably, and cannot reproduce past behavior—all critical capabilities for incident response and regulatory compliance.
+
+  ## BAD example
+
+  ```pseudo
+  # Model trained locally, no registry, no testing, no approval
+  model = train(data)
+  # Deployed directly to production; no canary; no drift monitoring
+  deploy(model, target="production")
+  # No model card; no decommissioning plan; no rollback procedure
+  # When the model degrades, discovery happens only after customer complaint
+  # Rollback attempt: "We don't have the previous version"
+  ```
+
+  Red flags: no model registry; no lifecycle stages; no testing gates; no deployment approval; no drift monitoring; no canary; no rollback capability; no model card.
+
+  ## GOOD example
+
+  ```pseudo
+  # 1. Register model with versioned artifacts
+  model_v = registry.register(
+    name="fraud_detector", version="3.2.1",
+    artifacts={"model": binary, "config": config, "metrics": eval_metrics},
+    dataset_version="transactions_v5.2",   # linked per ai-data-provenance
+  )
+
+  # 2. Testing gates: functional, bias, robustness
+  tests = run_tests(model_v, functional=True, bias_audit=True, robustness=True)
+  assert tests.all_passed, f"Model tests failed: {tests.failures}"
+  model_card.update(model_v, stage="testing_passed")
+
+  # 3. Governance sign-off → deployment approval recorded
+  approval = governance.approve(model_v, approver=reviewer_id)
+
+  # 4. Canary deployment: 5% traffic for 48h
+  canary = deploy_canary(model_v, traffic_pct=5, duration_hours=48,
+    success_metrics=["latency_p99", "error_rate", "accuracy"])
+  if canary.passed:
+    promote_to_full(model_v)
+  else:
+    rollback(to=registry.previous_version("fraud_detector"))
+
+  # 5. Drift detection in production
+  drift_monitor.configure(model_v,
+    data_drift={"method": "PSI", "threshold": 0.2},
+    performance={"metric": "accuracy", "min_threshold": 0.90},
+    alert_channel="ml-ops-alerts")
+  ```
+
+  Why this works: registry enables rollback; tests gate deployment; governance provides sign-off; canary bounds blast radius; drift monitoring catches silent failures before customers do.
+
+  ## Checklist
+
+  - [ ] All models are registered in a centralized registry with versioned artifacts.
+  - [ ] Functional, bias, and robustness tests pass before any production deployment.
+  - [ ] Governance sign-off is recorded for each production promotion.
+  - [ ] Production deployments use canary or A/B with defined success criteria and rollback.
+  - [ ] Drift detection (data, concept, performance) is configured with alerting thresholds.
+  - [ ] Model cards are created at design stage and updated at each lifecycle transition.
+  - [ ] Decommissioning records document reason, successor, and data archival plan.
+  - [ ] Rollback to previous model version is achievable within defined SLA (e.g., <15 minutes).
+
+  ## References
+
+  - ISO/IEC 42001:2023 A.6.2 (AI system lifecycle): https://www.iso.org/standard/81230.html
+  - EU AI Act Art. 9 (Risk management system): https://eur-lex.europa.eu/eli/reg/2024/1689/oj
+  - NIST AI RMF MANAGE-4.1: https://www.nist.gov/itl/ai-risk-management-framework
+  - MITRE ATLAS AML.T0044 and AML.T0048: https://atlas.mitre.org/

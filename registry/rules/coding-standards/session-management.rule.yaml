@@ -1,0 +1,133 @@
+metadata:
+  id: session-management
+  name: Session Management
+  description: Generate cryptographically random session IDs; regenerate on login and privilege changes; expire idle and absolute sessions; invalidate on logout; use secure cookie attributes.
+  version: "1.0.0"
+  tags: [session-management, csrf, session-fixation, cookie-security, session-expiry]
+
+category: coding-standards
+severity: high
+summary: "Use CSPRNG-generated session IDs (≥128 bits). Regenerate IDs after login and privilege change. Set absolute and idle session timeouts. Invalidate server-side on logout. Set cookies httpOnly, Secure, SameSite=strict. Implement CSRF protection."
+
+asvs_controls: ["3.2.1", "3.2.3", "3.3.1", "3.4.1", "3.5.1"]
+iso_controls: ["A.8.28", "A.5.17"]
+nist_ai_rmf: ["GOVERN-1.1"]
+cwe: ["CWE-384", "CWE-613", "CWE-352"]
+
+mythos_alignment:
+  pillar: secure-by-design
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "OWASP ASVS v5 §3.2.1"
+    - "OWASP ASVS v5 §3.3.1"
+    - "OWASP ASVS v5 §3.4.1"
+    - "CWE-384"
+    - "CWE-613"
+    - "CWE-352"
+    - "ISO/IEC 27001:2022 A.5.17"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/*.ts"
+    - "**/*.tsx"
+    - "**/*.js"
+    - "**/*.jsx"
+    - "**/*.mjs"
+    - "**/*.py"
+    - "**/*.java"
+    - "**/*.kt"
+    - "**/*.go"
+    - "**/*.cs"
+    - "**/*.rb"
+    - "**/*.php"
+  exclude:
+    - "**/test/**"
+    - "**/*.test.*"
+    - "**/__tests__/**"
+
+enforcement:
+  mode: blocking
+  pre_commit: false
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Principle
+
+  Session tokens must be generated with a CSPRNG and provide at least 128 bits of entropy. Session IDs must be rotated immediately after authentication (login) and after any privilege change to prevent session fixation attacks. Absolute session lifetime must be enforced (e.g., 24 hours regardless of activity) and idle timeout must expire inactive sessions (e.g., 30 minutes). On logout, the session must be invalidated on the server, not just cleared client-side. All session cookies must carry `httpOnly`, `Secure`, and `SameSite=strict`. CSRF tokens must protect state-changing endpoints when cookie-based sessions are used.
+
+  ## Rationale
+
+  CWE-384 (Session Fixation) arises when session IDs are not rotated after login, allowing an attacker who planted a known session ID to take over the authenticated session. CWE-613 (Insufficient Session Expiration) occurs when sessions never expire, making stolen tokens indefinitely valid. CWE-352 (CSRF) occurs when state-changing requests can be triggered cross-origin without a CSRF token.
+
+  OWASP ASVS §3 provides a comprehensive set of session management requirements covering token generation, rotation, expiry, invalidation, and cookie attributes. Client-side session deletion (clearing a cookie) does not invalidate the server-side session record; server-side invalidation is the only complete fix.
+
+  ## BAD example
+
+  ```typescript
+  // BAD: sequential session ID — predictable, no entropy
+  let counter = 0;
+  function createSession(): string { return `sess_${++counter}`; }
+
+  // BAD: no session rotation after login
+  app.post('/login', async (req, res) => {
+    const user = await authenticate(req.body);
+    // Reusing the pre-authentication session ID — fixation vulnerability
+    req.session.userId = user.id;
+  });
+  ```
+
+  ## GOOD example
+
+  ```typescript
+  import { randomBytes } from 'crypto';
+  import session from 'express-session';
+
+  app.use(session({
+    secret: process.env.SESSION_SECRET!,
+    genid: () => randomBytes(32).toString('hex'), // 256-bit ID
+    cookie: { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 30 * 60 * 1000 },
+    resave: false,
+    saveUninitialized: false,
+  }));
+
+  app.post('/login', async (req, res) => {
+    const user = await authenticate(req.body);
+    // Rotate session ID after successful authentication — prevents fixation
+    req.session.regenerate((err) => {
+      if (err) return res.status(500).json({ error: 'Session error' });
+      req.session.userId = user.id;
+      res.json({ ok: true });
+    });
+  });
+
+  app.post('/logout', (req, res) => {
+    req.session.destroy(() => {
+      res.clearCookie('connect.sid');
+      res.json({ ok: true });
+    });
+  });
+  ```
+
+  ## Checklist
+
+  - [ ] Session IDs generated with CSPRNG; at least 128 bits of entropy
+  - [ ] Session ID rotated after every successful login (prevents fixation)
+  - [ ] Session ID rotated after privilege escalation or role change
+  - [ ] Absolute session timeout enforced server-side (≤24 hours)
+  - [ ] Idle session timeout enforced server-side (≤30 minutes for sensitive apps)
+  - [ ] Logout invalidates session on the server (not just client-side cookie deletion)
+  - [ ] Session cookies set with `httpOnly`, `Secure`, `SameSite=strict`
+  - [ ] CSRF tokens used for state-changing requests with cookie-based sessions
+  - [ ] Concurrent session limit enforced for high-privilege accounts
+
+  ## References
+
+  - https://owasp.org/www-project-application-security-verification-standard/ (ASVS v5 §3)
+  - https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html
+  - https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html
+  - https://cwe.mitre.org/data/definitions/384.html

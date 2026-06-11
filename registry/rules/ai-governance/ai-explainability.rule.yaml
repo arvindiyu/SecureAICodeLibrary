@@ -1,0 +1,118 @@
+metadata:
+  id: ai-explainability
+  name: AI Explainability
+  description: Document model choices, data lineage, and intended use; disclose AI interaction to users; provide layered explanations (outcome, process, counterfactual); treat explainability as a design requirement.
+  version: "1.0.0"
+  tags: [ai-governance, explainability, documentation, transparency, compliance]
+
+category: ai-governance
+severity: medium
+
+summary: "Author a model card for every deployed AI system documenting purpose, limitations, and data lineage; notify users they are interacting with AI; provide outcome-level explanations; define prohibited uses; track model versions and retraining events. (EU AI Act Art. 13)"
+
+asvs_controls: ["1.6.1"]
+iso_controls: ["A.5.7"]
+iso42001_controls: ["A.8.1", "A.8.2", "A.8.4"]
+nist_ai_rmf: ["GOVERN-1.1", "MAP-1.1", "MEASURE-2.9"]
+cwe: ["CWE-693"]
+
+mythos_alignment:
+  pillar: ai-governance
+  substantiation: aligned
+  roadmap_milestone: M7
+
+sources:
+  primary:
+    - "EU AI Act Art. 13"
+    - "ISO/IEC 42001:2023 A.8.1"
+    - "NIST AI RMF MEASURE-2.9"
+    - "NIST AI 600-1 (2024) §2.4"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/models/**"
+    - "**/ai/**"
+    - "**/llm/**"
+    - "**/chatbot/**"
+    - "**/ml/**"
+
+enforcement:
+  mode: warning
+  pre_commit: false
+  merge_gate: false
+  ci: true
+
+content: |
+  ## Principle
+
+  Design explainability into every AI system from the start—not as a post-hoc addition. For every deployed AI model or LLM-backed feature, publish a model card documenting: purpose, intended use, prohibited uses, known limitations, training data summary, and fairness metrics. Disclose to users that they are interacting with AI. Provide layered explanations (outcome → process → counterfactual) where feasible. Track model versions, dataset changes, and retraining events in a changelog. Treat stale model cards as a governance failure.
+
+  ## Rationale
+
+  EU AI Act Art. 13 requires transparency for high-risk AI systems, including information about system purpose, capabilities, and limitations. NIST AI 600-1 (2024) §2.4 identifies lack of transparency as a core generative AI risk. Users who do not know they are interacting with AI cannot make informed decisions about how much to rely on the output—this is especially critical for consequential decisions (medical, legal, financial, employment).
+
+  Explainability is also a debugging and improvement mechanism. Teams that cannot explain how their model arrived at an output cannot diagnose regressions, identify bias, or respond to regulatory inquiries. Model cards create institutional memory that survives personnel change and enables new team members to understand the system's design intent.
+
+  Without scope boundaries (intended vs. prohibited uses), users and downstream integrators may deploy the system in contexts it was not designed for, producing harmful or unreliable outputs.
+
+  ## BAD example
+
+  ```pseudo
+  # AI chatbot deployed to customers
+  response = llm.generate(user_query)
+  return response
+  # No model card; no disclosure that it's AI
+  # No documentation of limitations; no prohibited-use list
+  # No version tracking; no explanation of how response was generated
+  # Users assume they are talking to a human or authoritative source
+  ```
+
+  Red flags: no model card; no user disclosure; no data lineage; no scope boundaries; no version tracking.
+
+  ## GOOD example
+
+  ```pseudo
+  # Model card (published at /docs/model-cards/support-bot-v2.md)
+  model_card = {
+    "name": "support-bot",
+    "version": "2.1.0",
+    "purpose": "Customer FAQ support",
+    "intended_use": ["answer FAQ questions", "triage support requests"],
+    "prohibited_use": ["medical advice", "legal advice", "financial decisions"],
+    "limitations": ["English only", "FAQ domain only", "no memory across sessions"],
+    "training_data_summary": "Support tickets 2022-2024, anonymized",
+    "fairness_metrics": "See bias_audit_v2.pdf",
+    "data_lineage": "See ai-data-provenance registry entry support_tickets_v3",
+  }
+
+  # UI disclosure
+  ui.display_badge("Powered by AI • View model card", href="/docs/model-cards/support-bot-v2.md")
+
+  # Outcome-level explanation in response
+  response_with_explanation = {
+    "response": llm.generate(user_query),
+    "explanation": "Matched to 'password reset' intent; top knowledge base article returned",
+    "model_version": "2.1.0",
+  }
+  # Logged: model_version, dataset_version, request_id — for audit and rollback
+  ```
+
+  Why this works: model card documents scope and limitations before deployment; user knows it's AI; outcome explanation builds trust; version tracking enables rollback and audit.
+
+  ## Checklist
+
+  - [ ] A model card is authored and published for every deployed AI model or LLM-backed feature.
+  - [ ] The model card documents: purpose, intended use, prohibited uses, and known limitations.
+  - [ ] Users are notified they are interacting with AI (badge, disclosure notice, or system label).
+  - [ ] Training data summary and lineage are documented in or linked from the model card.
+  - [ ] At least outcome-level explanations are provided where AI drives consequential outputs.
+  - [ ] Model versions and retraining events are logged and linked to model cards.
+  - [ ] Model cards are updated whenever the model or its training data changes significantly.
+
+  ## References
+
+  - EU AI Act Art. 13 (Transparency and provision of information): https://eur-lex.europa.eu/eli/reg/2024/1689/oj
+  - ISO/IEC 42001:2023 A.8.1 (Documentation of AI systems): https://www.iso.org/standard/81230.html
+  - NIST AI RMF MEASURE-2.9: https://www.nist.gov/itl/ai-risk-management-framework
+  - NIST AI 600-1 GenAI Profile (2024) §2.4: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf

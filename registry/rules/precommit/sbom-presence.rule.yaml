@@ -1,0 +1,114 @@
+metadata:
+  id: sbom-presence
+  name: SBOM Presence Check
+  description: sbom.cdx.json must exist, be valid CycloneDX 1.5+, and be fresh per the freshness-window policy. Blocks if missing or stale.
+  version: "1.0.0"
+  tags: [precommit, sbom, supply-chain, cyclonedx, freshness]
+
+category: precommit
+severity: high
+
+summary: "Block commit if sbom.cdx.json is absent, fails CycloneDX 1.5 schema validation, or is stale per freshness-window policy. Regenerate with 'make sbom'. Maps to Manthan exit code 78."
+
+asvs_controls: ["V10.3.2", "V14.2.1"]
+iso_controls: ["A.8.8", "A.8.32"]
+nist_ai_rmf: ["MANAGE-2.4", "MEASURE-2.7"]
+cwe: ["CWE-1104", "CWE-937"]
+
+mythos_alignment:
+  pillar: supply-chain
+  substantiation: aligned
+  roadmap_milestone: M3
+
+sources:
+  primary:
+    - "CycloneDX 1.5 §Metadata"
+    - "NIST SP 800-218 PO.4.1"
+    - "OWASP ASVS v5 §V14.2"
+    - "ISO/IEC 27001:2022 A.8.8"
+    - "docs/MANTHAN-CONTRACT.md §Exit-code mapping"
+
+scope:
+  always_apply: false
+  globs: ["sbom.cdx.json", "package-lock.json", "poetry.lock", "Cargo.lock", "go.sum", "Gemfile.lock", "requirements.txt"]
+
+enforcement:
+  mode: blocking
+  pre_commit: true
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Principle
+
+  Every commit that touches a dependency lockfile or the source dependency manifest must be accompanied by a valid, fresh `sbom.cdx.json` in CycloneDX 1.5+ format. An absent or stale SBOM means the supply-chain posture of the codebase is unknown.
+
+  ## Rationale
+
+  SBOMs are the foundational supply-chain artifact: without one, VEX analysis, dependency auditing, and license compliance are all impossible. The CycloneDX 1.5 format (over SPDX) is chosen for its richer vulnerability metadata support and native CycloneDX VEX extension (planned in M3). Freshness is enforced per `freshness-window` policy to prevent a stale SBOM from providing a false sense of security after dependency graph changes.
+
+  ## BAD example
+
+  ```bash
+  # Developer adds three new npm packages and commits
+  git add package.json package-lock.json src/
+  git commit -m "feat: add caching layer"
+  # sbom.cdx.json untouched; 3 new packages missing from SBOM
+  # hooks/pre-commit.sh detects lockfile change, no SBOM update → exits 78
+  ```
+
+  ## GOOD example
+
+  ```bash
+  # After dependency changes:
+  make sbom                         # Syft regenerates sbom.cdx.json from package-lock.json
+  git add sbom.cdx.json package.json package-lock.json src/
+  git commit -m "feat: add caching layer
+
+  Co-Authored-By: Claude <noreply@anthropic.com>"
+  # hooks/pre-commit.sh: sbom.cdx.json present, valid, fresh → continues
+  ```
+
+  `hooks/pre-commit.sh` validation excerpt:
+
+  ```bash
+  # Check SBOM presence
+  if [ ! -f sbom.cdx.json ]; then
+    echo "BLOCK: sbom.cdx.json missing. Run: make sbom" >&2; exit 78
+  fi
+
+  # Check CycloneDX version >= 1.5
+  SPEC_VERSION=$(jq -r '.specVersion' sbom.cdx.json 2>/dev/null)
+  case "$SPEC_VERSION" in
+    1.[56789]*|[2-9].*) ;;  # acceptable
+    *) echo "BLOCK: sbom.cdx.json specVersion '$SPEC_VERSION' < 1.5" >&2; exit 78 ;;
+  esac
+
+  # Freshness check (delegated to freshness-check rule)
+  LOCKFILES_CHANGED=$(git diff --staged --name-only | grep -E '(package-lock\.json|poetry\.lock|Cargo\.lock|go\.sum|Gemfile\.lock|requirements\.txt)')
+  if [ -n "$LOCKFILES_CHANGED" ]; then
+    SBOM_IN_STAGED=$(git diff --staged --name-only | grep sbom.cdx.json)
+    if [ -z "$SBOM_IN_STAGED" ]; then
+      echo "WARN: lockfile changed but sbom.cdx.json not staged. Run: make sbom" >&2
+    fi
+  fi
+  ```
+
+  ## Checklist
+
+  - [ ] `sbom.cdx.json` exists at repository root.
+  - [ ] `specVersion` is `1.5` or higher.
+  - [ ] `sbom.cdx.json` is staged alongside any lockfile change.
+  - [ ] `make sbom` target is defined and uses Syft or cdxgen.
+  - [ ] CI step re-validates SBOM schema after generation.
+  - [ ] Freshness window is respected per `freshness-window` policy.
+
+  ## References
+
+  - CycloneDX 1.5 specification: <https://cyclonedx.org/specification/overview/>
+  - NIST SP 800-218 (SSDF) PO.4.1
+  - OWASP ASVS v5 §V14.2 — Dependency requirements
+  - ISO/IEC 27001:2022 A.8.8 — Management of technical vulnerabilities
+  - `docs/MANTHAN-CONTRACT.md` §Exit-code mapping (exit 78)
+  - `registry/rules/policies/freshness-window.rule.yaml`
+  - `registry/rules/policies/required-artifacts.rule.yaml`

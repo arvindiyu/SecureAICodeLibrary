@@ -1,0 +1,124 @@
+metadata:
+  id: ai-data-provenance
+  name: AI Data Provenance
+  description: Document lineage for all AI training and inference data; enforce quality gates before model training; version datasets; detect train/test contamination; maintain queryable, immutable lineage records.
+  version: "1.0.0"
+  tags: [ai-governance, data-provenance, data-quality, lineage, compliance]
+
+category: ai-governance
+severity: high
+
+summary: "Document source, transformation, and quality for all AI training and inference data; enforce automated quality gates (completeness, accuracy, consistency) before training; version datasets; detect train-test contamination; keep lineage immutable and queryable. (ISO 42001 A.7.1)"
+
+asvs_controls: ["8.3.1", "8.3.6"]
+iso_controls: ["A.5.19", "A.8.15"]
+iso42001_controls: ["A.7.1", "A.7.2", "A.7.3"]
+nist_ai_rmf: ["GOVERN-1.1", "MAP-1.1", "MEASURE-2.5", "MANAGE-4.1"]
+cwe: ["CWE-829", "CWE-345"]
+mitre_atlas: ["AML.T0049", "AML.T0043"]
+
+mythos_alignment:
+  pillar: ai-governance
+  substantiation: aligned
+  roadmap_milestone: M3
+
+sources:
+  primary:
+    - "ISO/IEC 42001:2023 A.7.1"
+    - "EU AI Act Art. 10"
+    - "NIST AI RMF MEASURE-2.5"
+    - "NIST SP 800-218 PW.4"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/data/**"
+    - "**/ml/**"
+    - "**/training/**"
+    - "**/pipelines/**"
+    - "**/datasets/**"
+
+enforcement:
+  mode: warning
+  pre_commit: false
+  merge_gate: false
+  ci: true
+
+content: |
+  ## Principle
+
+  Every dataset used for AI training, fine-tuning, or retrieval-augmented generation must have documented lineage: where it came from, who collected it, when it was collected, what transformations were applied, and whether it passed quality gates. Version datasets alongside model versions so any training run can be reproduced. Prevent and detect test-data contamination of training sets. Store lineage records in an immutable, queryable form so auditors and incident responders can trace outcomes back to their data origins.
+
+  ## Rationale
+
+  Without data provenance, AI outcomes are untraceable. A model whose training data is undocumented cannot be audited, cannot be reproduced, and cannot have its failure modes diagnosed. EU AI Act Art. 10 requires that data used to train high-risk AI systems be documented with provenance, quality, and representativeness information.
+
+  Data quality gates are critical because LLMs and ML models are sensitive to data quality in ways that are not always apparent before training: duplicate records inflate metrics, label errors propagate into model behaviour, and schema drift produces silent training failures. CWE-829 (Inclusion of Functionality from Untrusted Control Sphere) applies when training data from unverified external sources is ingested without provenance validation.
+
+  Train-test contamination is particularly insidious: mixing test examples into training produces optimistic metrics that do not reflect real-world performance, leading teams to deploy models that underperform materially in production.
+
+  ## BAD example
+
+  ```pseudo
+  # Data pulled from an S3 bucket with no documentation
+  data = load("s3://data-lake/some_data.csv")
+  # No catalog entry; no source documentation; no quality checks
+  # No versioning; no contamination check between train and test splits
+  model = train(data)
+  deploy(model)
+  # Cannot reproduce; cannot audit; cannot diagnose failures
+  ```
+
+  Red flags: no data catalog entry; no source or owner documented; no quality gates; no versioning; no contamination detection; training run is not reproducible.
+
+  ## GOOD example
+
+  ```pseudo
+  # 1. Register dataset in catalog with full provenance
+  dataset = data_catalog.register(
+    name="support_tickets_v3",
+    source="support_db.tickets",
+    owner="data-eng@example.com",
+    collected="2024-01-01/2024-12-31",
+    legal_basis="legitimate_interest",
+    sensitivity="internal",   # from ai-data-classification
+    transformations=["clean_nulls", "normalize_text", "encode_cats"],
+    seed=42,
+    pipeline_version="v3.1"
+  )
+
+  # 2. Quality gates before training
+  qg = quality_gate.check(dataset,
+    completeness=0.95, accuracy=0.98, consistency="schema_v3", freshness_days=30)
+  assert qg.passed, f"Quality gate failed: {qg.failures}"
+
+  # 3. Version and tag
+  dataset.tag("support_v3.1")
+
+  # 4. Contamination check: hash-based dedup between train and test splits
+  assert not ContaminationCheck.has_overlap(train_split, test_split)
+
+  # 5. Train with lineage reference
+  model = train(train_split, lineage_id=dataset.lineage_id)
+  model_registry.link_dataset(model, dataset)
+  ```
+
+  Why this works: every step is documented in the catalog; quality gates fail the pipeline before bad data reaches training; dataset is versioned; contamination is checked automatically; lineage id links model to data in the registry.
+
+  ## Checklist
+
+  - [ ] Every dataset is registered in a data catalog with source, owner, and collection metadata.
+  - [ ] Transformation steps are logged (code, config, seed) and reproducible.
+  - [ ] Automated quality gates (completeness, accuracy, consistency, freshness) run before training.
+  - [ ] Datasets are versioned and linked to model versions in the model registry.
+  - [ ] Train/test/validation contamination is checked automatically (hash-based dedup).
+  - [ ] Lineage records are immutable and queryable for audit purposes.
+  - [ ] Third-party data includes license and consent verification in the catalog entry.
+
+  ## References
+
+  - ISO/IEC 42001:2023 A.7.1 (Data for AI systems): https://www.iso.org/standard/81230.html
+  - EU AI Act Art. 10 (Data and data governance): https://eur-lex.europa.eu/eli/reg/2024/1689/oj
+  - NIST AI RMF MEASURE-2.5: https://www.nist.gov/itl/ai-risk-management-framework
+  - NIST SP 800-218 PW.4 (Reuse well-secured software): https://csrc.nist.gov/publications/detail/sp/800-218/final
+  - MITRE ATLAS AML.T0049: https://atlas.mitre.org/

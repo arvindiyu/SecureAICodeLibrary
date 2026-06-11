@@ -5,10 +5,11 @@ This directory contains prompts for secure API design and implementation. These 
 ## Available Prompts
 
 1. [API Design Security](./api-design-security.md) - Comprehensive guide for designing secure API endpoints
-2. [API Authentication](./api-authentication.md) - Coming soon
-3. [API Authorization](./api-authorization.md) - Coming soon
-4. [API Data Validation](./api-data-validation.md) - Coming soon
-5. [API Rate Limiting](./api-rate-limiting.md) - Coming soon
+
+For authentication, authorization, data validation, and rate limiting guidance, see the consolidated
+[External Resources → Backend Frameworks](../../docs/EXTERNAL-RESOURCES.md#backend-frameworks) section
+and invoke the `coding-standards-reviewer` subagent with applicable rules:
+`auth-patterns`, `access-control`, `input-validation`, `cors-security`.
 
 ## Usage
 

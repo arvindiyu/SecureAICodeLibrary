@@ -1,0 +1,117 @@
+metadata:
+  id: agentic-bulk-limits
+  name: Agentic Bulk Limits
+  description: Enforce per-request tool-call caps for agents; require user re-engagement before continuing bulk operations; target systems must enforce their own rate and volume limits.
+  version: "1.0.0"
+  tags: [agentic, rate-limiting, bulk-actions, dos-prevention]
+
+category: ai-governance
+severity: high
+
+summary: "Cap agent tool calls per user request (default ≤20); require user re-engagement before additional bulk operations; target APIs must enforce independent volume limits; never silently loop. (OWASP LLM06)"
+
+asvs_controls: ["13.1.1", "11.1.1"]
+iso_controls: ["A.8.6"]
+iso42001_controls: ["A.6.1", "A.9.1"]
+nist_ai_rmf: ["GOVERN-1.1", "MANAGE-2.3"]
+cwe: ["CWE-770", "CWE-400"]
+mitre_atlas: ["AML.T0051"]
+
+mythos_alignment:
+  pillar: ai-governance
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "OWASP Top 10 for LLM Applications (2025) LLM06"
+    - "OWASP ASVS v5 §13.1.1"
+    - "NIST AI RMF GOVERN-1.1"
+    - "ISO/IEC 42001:2023 A.6.1"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/agents/**"
+    - "**/agentic/**"
+    - "**/workflows/**"
+    - "**/subagents/**"
+
+enforcement:
+  mode: warning
+  pre_commit: false
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Principle
+
+  Agents must not execute unbounded loops of tool calls in response to a single user request. Enforce a hard per-request tool-call cap (recommended: 10–20 calls per user message, configurable by agent purpose). When approaching the cap, the agent must pause, surface a summary of what has been done and what remains, and require explicit user re-engagement before continuing. Target systems (APIs, MCP servers) must enforce independent rate and volume limits; the agent's cap is not a substitute for server-side protection.
+
+  ## Rationale
+
+  Agentic systems operating autonomously across many tool calls can cause large-scale, difficult-to-reverse changes before a human has an opportunity to intervene (OWASP LLM06, 2025). A single ambiguous instruction like "fix all lint errors" or "update all dependencies" can trigger hundreds of file edits, API calls, and downstream side effects.
+
+  Runaway agent loops also exhaust downstream system quotas, can trigger rate-limit bans on third-party APIs, and drive unexpected cost spikes at $10–$50/million tokens for Mythos-class models. Per-request caps create natural human checkpoints that bound blast radius, control cost, and surface scope to the user before it becomes a problem.
+
+  CWE-770 (Allocation of Resources Without Limits) and CWE-400 (Uncontrolled Resource Consumption) both apply: the agent is a resource consumer operating without a governor.
+
+  ## BAD example
+
+  ```pseudo
+  # User: "Fix all lint errors in the monorepo"
+  # Agent loops with no cap:
+  for file in walk_all_files(repo_root):
+    errors = run_linter(file)
+    for e in errors:
+      fix_error(file, e)    # unlimited tool calls
+      commit(file)          # unlimited commits
+  # Result: 800+ tool calls, 400+ commits, no user checkpoints
+  # Target CI system overwhelmed; user has no visibility into scope
+  ```
+
+  Red flags: no per-request cap; no user re-engagement; no dry-run or preview; target systems have no independent rate limits.
+
+  ## GOOD example
+
+  ```pseudo
+  MAX_CALLS_PER_REQUEST = 15  # configurable in agent spec
+
+  calls_used = 0
+  pending_files = [f for f in walk_files(repo_root) if has_lint_errors(f)]
+
+  # Show scope before acting
+  agent.say(f"Found {len(pending_files)} files with lint issues. "
+            f"I'll fix the first {MAX_CALLS_PER_REQUEST // 2} now. Proceed?")
+  user.confirm()
+
+  for file in pending_files[:MAX_CALLS_PER_REQUEST // 2]:
+    fix_lint(file)
+    calls_used += 1
+    if calls_used >= MAX_CALLS_PER_REQUEST:
+      # Pause and re-engage
+      agent.say(f"Reached call limit ({MAX_CALLS_PER_REQUEST}). "
+                f"{len(pending_files) - calls_used} files remain. Continue?")
+      user.confirm()
+      calls_used = 0
+
+  # Target MCP server also enforces 50 calls/min independently
+  ```
+
+  Why this works: user sees scope before agent acts; cap creates re-engagement checkpoints; target server enforces its own limits independently; user remains in control of blast radius.
+
+  ## Checklist
+
+  - [ ] A per-request tool-call cap is configured for every agent (default ≤20).
+  - [ ] Agent pauses and re-engages the user when approaching the cap.
+  - [ ] Large-scope operations (bulk files, all-repo) show a dry-run or count before execution.
+  - [ ] Target MCP servers and APIs enforce independent rate/volume limits.
+  - [ ] Silent indefinite loops are architecturally impossible (orchestrator enforces hard cap).
+  - [ ] Cap values are reviewed quarterly against observed usage patterns.
+
+  ## References
+
+  - OWASP Top 10 for LLM Applications (2025) LLM06 — Excessive Agency: https://genai.owasp.org/llm-top-10/
+  - OWASP ASVS v5 §13.1 (Generic Web Service Security): https://owasp.org/www-project-application-security-verification-standard/
+  - NIST AI RMF GOVERN-1.1: https://www.nist.gov/itl/ai-risk-management-framework
+  - CWE-770 Allocation of Resources Without Limits: https://cwe.mitre.org/

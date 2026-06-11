@@ -1,0 +1,268 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/arvindiyu/SecureAICodeLibrary/registry/schemas/rule.schema.json",
+  "title": "Secure AI Code Library — Rule",
+  "description": "JSON Schema for files under registry/rules/**/*.rule.yaml. Enforces the two-layer token-economy contract (summary <= 300 chars, content markdown body), required source citations, and Mythos substantiation vocabulary. Field ordering in YAML files should follow the property declaration order below to preserve KV-cache prefix stability (see docs/TOKEN-ECONOMICS.md and ADR 0005).",
+  "type": "object",
+  "required": [
+    "metadata",
+    "summary",
+    "sources",
+    "mythos_alignment",
+    "content"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["id", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "description": "Kebab-case identifier. MUST match the filename without the .rule.yaml suffix."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Human-readable rule name."
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Optional one-line description. Distinct from summary (which is the agent-facing imperative)."
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "description": "Semantic version of this rule's content contract. See SPEC.md section 4.2."
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true,
+          "maxItems": 20
+        },
+        "languages": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true,
+          "description": "Per-language rules only."
+        }
+      }
+    },
+
+    "category": {
+      "type": "string",
+      "enum": ["ai-governance", "coding-standards", "coding-standards/per-language", "policies", "precommit"],
+      "description": "Mirrors the parent directory under registry/rules/. Optional in metadata if the path implies it."
+    },
+
+    "severity": {
+      "type": "string",
+      "enum": ["critical", "high", "medium", "low", "info"],
+      "description": "Default severity for this rule's findings. Top-level (must not be nested inside metadata)."
+    },
+
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300,
+      "description": "REQUIRED. Layer 1 always-on surface. <=300 chars (~80 tokens). Imperative voice: 'do X; reject Y; rationale Z'. Loaded into IDE always-on context (Tier 0) or scope-glob-activated (others)."
+    },
+
+    "extends": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "OPTIONAL. References a parent rule id. Adapter merges parent's summary+content first; this file ships only the delta. Per-language rules extend cross-language parents; framework specs extend language rules."
+    },
+
+    "asvs_controls": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^V?[0-9]+(\\.[0-9]+){0,3}$",
+        "description": "OWASP ASVS v5 section ID, e.g. '5.1.3'."
+      },
+      "uniqueItems": true
+    },
+
+    "iso_controls": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^A\\.[0-9]+\\.[0-9]+(\\.[0-9]+)?$",
+        "description": "ISO/IEC 27001:2022 Annex A control, e.g. 'A.5.17'."
+      },
+      "uniqueItems": true
+    },
+
+    "iso42001_controls": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^A\\.[0-9]+(\\.[0-9]+)*$",
+        "description": "ISO/IEC 42001:2023 control, e.g. 'A.9.1'. AI-governance rules SHOULD declare at least one."
+      },
+      "uniqueItems": true
+    },
+
+    "nist_ai_rmf": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^(GOVERN|MAP|MEASURE|MANAGE)-[0-9]+(\\.[0-9]+)*$",
+        "description": "NIST AI RMF function-category-subcategory, e.g. 'GOVERN-1.1', 'MAP-2.3'."
+      },
+      "uniqueItems": true
+    },
+
+    "cwe": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^CWE-[0-9]+$",
+        "description": "CWE identifier, e.g. 'CWE-89'."
+      },
+      "uniqueItems": true
+    },
+
+    "mitre_atlas": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^AML\\.T[0-9]+(\\.[0-9]+)?$",
+        "description": "MITRE ATLAS technique ID, e.g. 'AML.T0051'. AI-governance rules SHOULD declare these where applicable; CI warns on missing."
+      },
+      "uniqueItems": true
+    },
+
+    "mythos_alignment": {
+      "type": "object",
+      "required": ["pillar", "substantiation"],
+      "additionalProperties": false,
+      "properties": {
+        "pillar": {
+          "type": "string",
+          "enum": [
+            "ai-governance",
+            "secure-by-design",
+            "supply-chain",
+            "proactive-defense",
+            "incident-response",
+            "ai-augmented-defense",
+            "workforce-readiness",
+            "quantitative-posture",
+            "external-validation",
+            "ide-coverage"
+          ],
+          "description": "Which CSA Mythos-Ready pillar this rule contributes to."
+        },
+        "substantiation": {
+          "type": "string",
+          "enum": ["substantiated", "aligned", "roadmap"],
+          "description": "REQUIRED. 'substantiated' = end-to-end in this repo (requires non-empty evidence). 'aligned' = partially implemented (a roadmap milestone names the path to full implementation). 'roadmap' = placeholder for a roadmap milestone, not enforced today."
+        },
+        "evidence": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true,
+          "description": "Required when substantiation=substantiated. Repo-relative file paths verifying the implementation."
+        },
+        "roadmap_milestone": {
+          "type": "string",
+          "pattern": "^M[0-9]+$",
+          "description": "When substantiation in {aligned, roadmap}, names the milestone in docs/MYTHOS.md (e.g. 'M2')."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "substantiation": { "const": "substantiated" } }
+          },
+          "then": {
+            "required": ["evidence"],
+            "properties": {
+              "evidence": { "minItems": 1 }
+            }
+          }
+        }
+      ]
+    },
+
+    "sources": {
+      "type": "object",
+      "required": ["primary"],
+      "additionalProperties": false,
+      "properties": {
+        "primary": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "REQUIRED. Non-empty list of primary citations. Each entry must resolve to docs/SOURCES.md allowlist (standards section IDs, dated threat-intel reports, or allowlisted URLs)."
+        },
+        "threat_intel": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true,
+          "description": "Optional. Dated public threat-intel references. Must be on docs/SOURCES.md allowlist. NEVER vendor announcements as statistics."
+        }
+      }
+    },
+
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "always_apply": {
+          "type": "boolean",
+          "default": false,
+          "description": "Tier 0 rules set true. All others default false."
+        },
+        "globs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Activation triggers. Adapter loads the rule when matching files are in agent context."
+        },
+        "exclude": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+
+    "enforcement": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["blocking", "warning", "advisory"]
+        },
+        "pre_commit": { "type": "boolean", "default": false },
+        "merge_gate": { "type": "boolean", "default": false },
+        "ci": { "type": "boolean", "default": false }
+      }
+    },
+
+    "content": {
+      "type": "string",
+      "minLength": 1,
+      "description": "REQUIRED. Layer 2 on-demand surface. Full markdown body: Principle -> Rationale -> BAD/GOOD examples -> Checklist -> References. Section ordering frozen by template (see CONTRIBUTING.md and ADR 0005)."
+    },
+
+    "deprecated": {
+      "type": "boolean",
+      "default": false,
+      "description": "Deprecation flag. Deprecated rules remain in INDEX with a (deprecated) suffix for at least one MINOR cycle before removal (see SPEC.md section 4.5)."
+    },
+    "deprecated_in": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "Library version in which this rule was deprecated."
+    }
+  }
+}

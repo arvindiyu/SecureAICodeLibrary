@@ -1,0 +1,163 @@
+metadata:
+  id: spring-boot
+  name: Spring Boot
+  version: "1.0.0"
+  description: "Security spec sheet for Spring Boot applications. Covers Spring Security auto-config, CSRF, actuator endpoint security, @PreAuthorize coverage, and Jackson deserialization."
+  tags: [java, spring, spring-boot, spring-security, actuator, csrf, preauthorize]
+
+summary: "Spring Boot: enable Spring Security; restrict actuator endpoints; apply @PreAuthorize on all controllers; configure CSRF for form endpoints; disable Jackson polymorphic deserialization; externalize secrets. Extends input-validation-java."
+
+applies_to:
+  language: java
+  framework: spring-boot
+  min_version: "3.0.0"
+
+extends: input-validation-java
+
+globs:
+  - "pom.xml"
+  - "build.gradle"
+  - "build.gradle.kts"
+  - "src/main/resources/application*.{yaml,yml,properties}"
+  - "src/main/java/**/*Controller*.java"
+  - "src/main/java/**/*Config*.java"
+
+security_relevant_defaults:
+  spring_security_auto_config: true          # auto-configured when on classpath — never exclude
+  csrf_default: true                         # enabled by default for stateful sessions; disabled for REST APIs using DRF
+  actuator_expose_default: "health,info"     # default; never expose 'env', 'beans', 'heapdump' without auth
+  session_cookie_http_only: true
+  session_cookie_secure: false               # MUST set to true in production via server.servlet.session.cookie.secure=true
+  thymeleaf_autoescape: true                 # Thymeleaf auto-escapes by default; th:utext bypasses
+
+authoritative_refs:
+  - "https://docs.spring.io/spring-security/reference/"
+  - "https://cheatsheetseries.owasp.org/cheatsheets/Spring_Security_Cheat_Sheet.html"
+  - "OWASP ASVS v5 §4.1 (Access Control)"
+  - "OWASP ASVS v5 §1.14 (Configuration)"
+  - "CWE-502"
+
+applicable_rules:
+  - input-validation-java
+  - auth-patterns
+  - access-control
+  - cors-security
+  - cryptography-standards
+  - dependency-management
+
+subagent_hints:
+  coding-standards-reviewer:
+    extra_checks:
+      - "Scan for @EnableWebSecurity or SecurityFilterChain beans — ensure they exist and are not a no-op permitAll()"
+      - "Verify all @RestController and @Controller methods have @PreAuthorize or equivalent method-security annotations"
+      - "Check management.endpoints.web.exposure.include — warn if 'env', 'beans', 'heapdump', 'threaddump', 'shutdown' are exposed without SecurityFilterChain protection"
+      - "Scan for ObjectMapper with enableDefaultTyping() or @JsonTypeInfo — these enable deserialization gadgets; must be removed"
+      - "Verify application.properties / application.yml does not contain hardcoded credentials (passwords, secret-key, api-key fields)"
+      - "Confirm server.servlet.session.cookie.secure=true and server.servlet.session.cookie.http-only=true in production profile"
+  secure-developer-mentor:
+    extra_checks:
+      - "Guide @PreAuthorize method-security setup including @EnableMethodSecurity on the config class"
+      - "Explain Spring Security OAuth2 resource server setup for stateless JWT validation"
+
+content: |
+  ## Spring Boot Security Defaults
+
+  ### Spring Security Auto-Configuration
+
+  Spring Security auto-configures when `spring-boot-starter-security` is on the classpath. **Never** exclude
+  the auto-configuration class to "simplify things" — re-configure it properly instead.
+
+  **NEVER:**
+  ```java
+  // BAD: disables ALL security
+  @SpringBootApplication(exclude = { SecurityAutoConfiguration.class })
+  ```
+
+  **Correct — define a SecurityFilterChain bean:**
+  ```java
+  @Configuration
+  @EnableWebSecurity
+  @EnableMethodSecurity
+  public class SecurityConfig {
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+      return http
+          .authorizeHttpRequests(auth -> auth
+              .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+              .anyRequest().authenticated())
+          .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+          .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
+          .build();
+    }
+  }
+  ```
+
+  ### Method-Level Authorization
+
+  Apply `@PreAuthorize` on every controller method. Missing annotations default to no authorization check.
+
+  ```java
+  // GOOD: explicit authorization on every endpoint
+  @RestController
+  @RequestMapping("/api/v1/orders")
+  public class OrderController {
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('USER') and @orderSecurity.isOwner(#id, authentication)")
+    public OrderDto getOrder(@PathVariable Long id) { ... }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public void deleteOrder(@PathVariable Long id) { ... }
+  }
+  ```
+
+  ### Actuator Endpoint Security
+
+  Restrict actuator exposure in production. Use a dedicated management port if your deployment allows it.
+
+  ```yaml
+  # application-prod.yml
+  management:
+    endpoints:
+      web:
+        exposure:
+          include: "health,info"   # never include: env, beans, heapdump, threaddump, shutdown
+    server:
+      port: 8081                   # optional: separate management port
+  ```
+
+  ### Jackson Deserialization Safety
+
+  Disable polymorphic type handling globally. AI commonly enables it for "flexible APIs".
+
+  ```java
+  // GOOD: safe ObjectMapper bean
+  @Bean
+  public ObjectMapper objectMapper() {
+    return JsonMapper.builder()
+        .disable(MapperFeature.DEFAULT_VIEW_INCLUSION)
+        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+        // NEVER call: .enableDefaultTyping(...)
+        .build();
+  }
+  ```
+
+  ## AI Antipatterns (cross-reference: docs/EXTERNAL-RESOURCES.md § Per-Framework AI Pitfalls)
+
+  | Antipattern | Rule |
+  |---|---|
+  | Excluding `SecurityAutoConfiguration` for convenience | `auth-patterns` |
+  | Missing `@PreAuthorize` on new controller methods | `access-control` |
+  | Exposing `env`, `heapdump` actuator endpoints without auth | `access-control` |
+  | `ObjectMapper.enableDefaultTyping()` (deserialization gadgets) — CWE-502 | `input-validation-java` |
+  | Hardcoded credentials in `application.properties` | `cryptography-standards` |
+
+  ## Authoritative References
+
+  - [Spring Security Reference](https://docs.spring.io/spring-security/reference/)
+  - [OWASP Spring Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Spring_Security_Cheat_Sheet.html)
+  - Rule: `input-validation-java` (extends)
+  - Rules: `auth-patterns`, `access-control`, `cors-security`, `cryptography-standards`
+  - CWE-502 (Deserialization of Untrusted Data)

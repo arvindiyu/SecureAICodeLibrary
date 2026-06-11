@@ -1,0 +1,41 @@
+name: Merge Gate
+
+on:
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  dogfood:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install hook dependencies
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq ripgrep curl
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+      - name: Run dogfood merge gate
+        shell: bash
+        run: |
+          mkdir -p logs
+          set -o pipefail
+          make dogfood 2>&1 | tee logs/dogfood.log
+      - name: Upload SARIF findings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: securecode-findings-sarif
+          path: .securecode/findings.sarif.json
+          if-no-files-found: warn
+      - name: Upload failure log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dogfood-log
+          path: logs/dogfood.log

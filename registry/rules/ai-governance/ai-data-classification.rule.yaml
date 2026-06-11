@@ -1,0 +1,127 @@
+metadata:
+  id: ai-data-classification
+  name: AI Data Classification
+  description: Classify every data source used by AI systems (training, RAG, inference context) for sensitivity; maintain a data-source inventory with owner and classification; identify uncontrolled sources explicitly.
+  version: "1.0.0"
+  tags: [ai-security, data-classification, pii, sensitivity, compliance]
+
+category: ai-governance
+severity: high
+
+summary: "Classify every AI data source (training, RAG, context) for sensitivity (PII, confidential, regulated, public); maintain an owner-attributed inventory; tag uncontrolled sources (web scrape, public APIs) explicitly; drive access control from classification. (ISO 42001 A.7.3)"
+
+asvs_controls: ["8.3.1", "8.3.4"]
+iso_controls: ["A.5.12", "A.5.13"]
+iso42001_controls: ["A.7.3", "A.7.1"]
+nist_ai_rmf: ["GOVERN-1.1", "MAP-1.6", "MANAGE-2.3"]
+cwe: ["CWE-200", "CWE-213"]
+mitre_atlas: ["AML.T0049"]
+
+mythos_alignment:
+  pillar: ai-governance
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "ISO/IEC 42001:2023 A.7.3"
+    - "GDPR Art. 5"
+    - "OWASP ASVS v5 §8.3.1"
+    - "NIST AI RMF MAP-1.6"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/data/**"
+    - "**/datasets/**"
+    - "**/rag/**"
+    - "**/ai/**"
+    - "**/pipelines/**"
+
+enforcement:
+  mode: warning
+  pre_commit: false
+  merge_gate: false
+  ci: true
+
+content: |
+  ## Principle
+
+  Every data source that feeds an AI system—training datasets, fine-tuning corpora, RAG retrieval stores, inference-time context—must be classified for sensitivity before it is connected to the system. Classification drives access control: only users and agents authorized for a given sensitivity level may query data at that level. Maintain a central, owner-attributed inventory of all AI data sources. Sources of unknown or uncontrolled origin (public web, third-party APIs, scraped content) must be explicitly flagged and guarded with additional runtime controls.
+
+  ## Rationale
+
+  AI systems have an unusual property compared with traditional data systems: they can synthesize and reveal information from training and context data in ways that are difficult to predict. A RAG system containing confidential internal documents may surface that information in response to apparently innocuous queries. Without upfront classification, there is no basis for deciding who should be allowed to query the system or what guardrails to apply (GDPR Art. 5, data minimisation and purpose limitation).
+
+  MITRE ATLAS AML.T0049 (Discover ML Artifacts) identifies data source enumeration as an early reconnaissance step for ML attacks. An explicit classification inventory narrows what an attacker can discover and limits the blast radius of any single data exposure.
+
+  ISO/IEC 42001 A.7.3 requires that AI systems have data governance aligned with organisational policies. A data-source inventory with classifications is the operational expression of that requirement.
+
+  ## BAD example
+
+  ```pseudo
+  # RAG pipeline ingests data from multiple sources without classification
+  rag_store.ingest([
+    internal_wiki,       # may contain confidential IP
+    customer_database,   # PII and regulated data
+    public_web_search,   # uncontrolled, unverified
+  ])
+  # All sources mixed in a single vector store
+  # Any user can query any data regardless of sensitivity
+  # No owner; no TTL; no access control
+  ```
+
+  Red flags: no classification; no inventory; mixed sensitivity levels in one store; no owner accountability; uncontrolled sources not identified.
+
+  ## GOOD example
+
+  ```pseudo
+  # Data source inventory (machine-readable)
+  ai_data_inventory = [
+    {
+      "source": "internal_wiki",
+      "owner": "knowledge-team@example.com",
+      "classification": "internal_confidential",
+      "pii": False,
+      "regulated": [],
+      "access_control": "authenticated_employees",
+    },
+    {
+      "source": "customer_database",
+      "owner": "data-governance@example.com",
+      "classification": "pii",
+      "pii": True,
+      "regulated": ["gdpr", "ccpa"],
+      "access_control": "data_stewards_only",
+    },
+    {
+      "source": "public_web_search",
+      "owner": None,
+      "classification": "uncontrolled",
+      "pii": False,
+      "regulated": [],
+      "note": "Unverified; apply citation and disclaimer guardrail",
+    },
+  ]
+  # RAG query enforces classification: user's clearance must match source class
+  results = rag.query(user_query, max_class=user.clearance_level)
+  ```
+
+  Why this works: classification is explicit per source; owner is accountable; uncontrolled sources are flagged; access control is derived from classification; inventory is machine-readable for automated enforcement.
+
+  ## Checklist
+
+  - [ ] Every AI data source (training, RAG, context) has a documented sensitivity classification.
+  - [ ] An owner is assigned to each data source and updated in the inventory.
+  - [ ] PII, regulated, and confidential data sources are identified and restricted appropriately.
+  - [ ] Uncontrolled sources (web scrape, public APIs) are explicitly flagged with guardrails.
+  - [ ] Access control for querying AI systems is derived from data source classifications.
+  - [ ] The inventory is updated when new data sources are connected to AI systems.
+  - [ ] Classification is reviewed when sensitivity policies or regulations change.
+
+  ## References
+
+  - ISO/IEC 42001:2023 A.7.3 (Data for AI systems): https://www.iso.org/standard/81230.html
+  - GDPR Art. 5 (Data minimisation and purpose limitation): https://eur-lex.europa.eu/eli/reg/2024/1689/oj
+  - NIST AI RMF MAP-1.6: https://www.nist.gov/itl/ai-risk-management-framework
+  - MITRE ATLAS AML.T0049: https://atlas.mitre.org/

@@ -1,0 +1,83 @@
+# yaml-language-server: $schema=../../schemas/subagent.schema.json
+# Canonical Tier-A + Tier-C subagent specification for `coding-standards-reviewer`.
+# Field ordering follows registry/schemas/subagent.schema.json property order
+# (cache-stable per ADR 0005 §8). Do not reorder top-level keys.
+
+metadata:
+  id: coding-standards-reviewer
+  name: Coding Standards Reviewer
+  description: >-
+    Reviews changed code against the language-appropriate coding-standards
+    rules. Detects language by extension, loads the matching cross-language +
+    per-language rules, optionally a framework-spec, and runs deterministic
+    pattern checks. Emits SARIF with rule-keyed findings. Tier C is invoked by
+    pre-commit; Tier A is invoked from Cursor with --lang hints.
+  version: "1.0.0"
+
+classification: low-impact
+
+human_approval: required_before_commit
+
+tiers:
+  native:
+    cursor: "@coding-standards-reviewer --lang=<lang>"
+    agents_md: "Invoke `coding-standards-reviewer` with --lang= when language is known."
+    copilot_coding_agent: "Auto-run on every PR."
+  headless:
+    runner: registry/subagents/coding-standards-reviewer/run.sh
+    deps: [git, rg, jq, yq]
+    optional_llm_env: SECUREAI_LLM_ENDPOINT
+    output_format: sarif
+
+token_budget:
+  input_max: 30000
+  output_max: 6000
+  warn_at: 0.8
+  system_prompt: 2000
+
+audit_log:
+  enabled: true
+  path: .securecode/audit.log
+  format: jsonl
+  fields:
+    - timestamp
+    - subagent_id
+    - tier
+    - user
+    - inputs_hash
+    - model
+    - token_in
+    - token_out
+    - decision
+    - finding_count
+
+tool_scope:
+  allowed:
+    - read_file
+    - glob
+    - grep
+
+inputs:
+  required:
+    - staged_diff
+  optional:
+    - language_hint
+    - framework_hint
+
+outputs:
+  - sarif_report
+
+references:
+  rules:
+    - access-control
+    - auth-patterns
+    - cors-security
+    - cryptography-standards
+    - dependency-management
+    - error-handling
+    - input-validation
+    - no-hardcoded-secrets
+    - no-sql-injection
+    - output-encoding
+    - secure-deserialization
+    - session-management

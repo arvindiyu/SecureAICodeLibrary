@@ -1,0 +1,5 @@
+# Placeholder. Runtime artefacts written by subagents in CONSUMER projects (not this library):
+#   .securecode/audit.log         -> JSON-lines audit trail per ai-audit-logging rule
+#   .securecode/runtime/          -> ephemeral runtime state
+# Both audit.log and runtime/ are gitignored (see top-level .gitignore); this .gitkeep is tracked.
+# The library ships only the format spec; consumer repos gitignore these files in their own .gitignore.

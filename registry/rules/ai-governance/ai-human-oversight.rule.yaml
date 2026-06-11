@@ -1,0 +1,130 @@
+metadata:
+  id: ai-human-oversight
+  name: AI Human Oversight
+  description: Every AI system must have a tested kill switch, confidence-threshold escalation to human reviewers, logged human overrides, graceful degradation to manual processes, and documented escalation procedures.
+  version: "1.0.0"
+  tags: [ai-governance, human-oversight, kill-switch, override, safety]
+
+category: ai-governance
+severity: critical
+
+summary: "Equip every production AI system with a tested kill switch, confidence-threshold-based escalation to human reviewers, immutable override logs (who/when/why/what), graceful degradation to manual fallback, and documented escalation tiers. (ISO 42001 A.9.2)"
+
+asvs_controls: ["8.1.1", "8.2.1"]
+iso_controls: ["A.5.24", "A.5.26", "A.8.16"]
+iso42001_controls: ["A.9.1", "A.9.2", "A.9.3"]
+nist_ai_rmf: ["GOVERN-1.4", "MANAGE-2.4", "MANAGE-4.1"]
+cwe: ["CWE-778", "CWE-662"]
+mitre_atlas: ["AML.T0051"]
+
+mythos_alignment:
+  pillar: incident-response
+  substantiation: roadmap
+  roadmap_milestone: M2
+
+sources:
+  primary:
+    - "ISO/IEC 42001:2023 A.9.2"
+    - "EU AI Act Art. 14"
+    - "NIST AI RMF MANAGE-2.4"
+    - "NIST AI RMF GOVERN-1.4"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/ai/**"
+    - "**/agents/**"
+    - "**/services/**"
+    - "**/ml/**"
+    - "**/models/**"
+
+enforcement:
+  mode: warning
+  pre_commit: false
+  merge_gate: true
+  ci: false
+
+content: |
+  ## Principle
+
+  Every AI system in production must provide humans with the ability to understand, intervene in, and halt AI operations at any time. This requires: a tested kill switch for immediate halt; confidence-threshold escalation that routes low-certainty decisions to human reviewers before action; immutable override logs that record who changed what and why; graceful degradation to manual processes when AI is unavailable or unreliable; trained operators who know how to use all of the above; and documented, tiered escalation procedures. This rule covers operational oversight; for agent-specific approval workflows see `agentic-human-approval`.
+
+  ## Rationale
+
+  EU AI Act Art. 14 requires human oversight measures for high-risk AI systems, including the ability for natural persons to oversee and intervene. ISO/IEC 42001 A.9.2 requires that AI systems support human oversight throughout their operational life. Without these controls, a malfunctioning or adversarially-manipulated AI system has no reliable off-switch—damage is bounded only by the time it takes to manually pull infrastructure.
+
+  Confidence thresholds create a principled boundary between automated and human decision-making: cases where the model is uncertain are the cases where human judgment adds the most value and where errors are most likely. Override logging creates an audit trail that supports regulatory inquiry, post-incident analysis, and model improvement by surfacing systematic gaps.
+
+  Graceful degradation is not optional: AI-integrated systems that fail completely when the AI is unavailable create operational dependencies more fragile than the manual processes they replaced.
+
+  ## BAD example
+
+  ```pseudo
+  # AI fraud detection system
+  decision = ai_model.predict(transaction)
+  execute(decision)
+  # No kill switch; cannot halt AI immediately if it misbehaves
+  # No confidence threshold; all predictions executed regardless of certainty
+  # No human override capability; no fallback to rules engine
+  # No override logging; no audit trail
+  # No operator training; no escalation procedure
+  ```
+
+  Red flags: no kill switch; no confidence-based routing; no human override; no override logging; no fallback; no operator training; no escalation SLAs.
+
+  ## GOOD example
+
+  ```pseudo
+  # Kill switch check at every entry point
+  if kill_switch.is_active("fraud_detector"):
+    return rules_engine.evaluate(transaction)   # fallback to manual rules
+
+  prediction = ai_model.predict(transaction)
+
+  # Confidence-based routing
+  if prediction.confidence >= 0.9:
+    log_decision(prediction, auto_approved=True)
+    execute(prediction.decision)
+  elif prediction.confidence >= 0.7:
+    human_review_queue.add(prediction, sla="4h")
+    return pending_review_response()
+  else:
+    block_transaction("low_confidence")
+
+  # Human override (authorized operators only)
+  @authorized(roles=["ai_operator"])
+  def override_decision(decision_id, new_decision, reason):
+    override_log.append_immutable({
+      "operator": current_user.id,
+      "timestamp": now(),
+      "original_decision": decisions[decision_id],
+      "override_decision": new_decision,
+      "reason": reason,
+      "model_version": ai_model.version,
+      "confidence": decisions[decision_id].confidence,
+    })
+    apply(new_decision)
+
+  # Kill switch tested monthly; operators trained before go-live
+  # Escalation tiers: operator → AI team → governance → exec (with SLAs documented)
+  ```
+
+  Why this works: kill switch halts AI immediately; confidence routing sends uncertain cases to humans; overrides are immutable and attributed; manual fallback is always available; operators are authorized and trained.
+
+  ## Checklist
+
+  - [ ] Every production AI system has an accessible, tested kill switch.
+  - [ ] Kill switch is tested at least monthly; activation triggers on-call alerts.
+  - [ ] Confidence thresholds are defined and calibrated per use case.
+  - [ ] Decisions below threshold are routed to human reviewers with SLAs.
+  - [ ] Every human override is logged immutably with: who, when, why, original, override.
+  - [ ] A graceful degradation path (manual fallback) is defined and tested for every AI feature.
+  - [ ] Operators are trained on the AI system, its limitations, and intervention procedures.
+  - [ ] Escalation tiers with response-time SLAs are documented.
+
+  ## References
+
+  - EU AI Act Art. 14 (Human oversight): https://eur-lex.europa.eu/eli/reg/2024/1689/oj
+  - ISO/IEC 42001:2023 A.9.2 (Human oversight of AI systems): https://www.iso.org/standard/81230.html
+  - NIST AI RMF MANAGE-2.4: https://www.nist.gov/itl/ai-risk-management-framework
+  - NIST AI RMF GOVERN-1.4: https://www.nist.gov/itl/ai-risk-management-framework

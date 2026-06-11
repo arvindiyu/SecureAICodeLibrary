@@ -1,0 +1,119 @@
+metadata:
+  id: freshness-window
+  name: Artifact Freshness Window Policy
+  description: Required governance artifacts (SBOM, SPEC, ADR, threat model) must be regenerated within N commits of the HEAD they describe; defaults and overrides configurable via hooks/config.yaml.
+  version: "1.0.0"
+  tags: [policies, freshness, sbom, artifacts, supply-chain]
+
+category: policies
+severity: medium
+
+summary: "Governance artifacts (sbom.cdx.json, SPEC.md, ADRs, THREAT_MODEL.md) must be updated within N commits (default 10) or 30 days of HEAD. Stale artifacts warn; severely stale (>20 commits) blocks. Configurable via hooks/config.yaml."
+
+asvs_controls: ["V10.3.2", "V14.2.1"]
+iso_controls: ["A.8.8", "A.8.32"]
+nist_ai_rmf: ["MANAGE-2.4", "MEASURE-2.7"]
+cwe: ["CWE-1104"]
+
+mythos_alignment:
+  pillar: supply-chain
+  substantiation: aligned
+  roadmap_milestone: M3
+
+sources:
+  primary:
+    - "NIST SP 800-218 PO.4.1"
+    - "CycloneDX 1.5 §Metadata"
+    - "OWASP ASVS v5 §V14.2"
+    - "ISO/IEC 27001:2022 A.8.8"
+    - "docs/MANTHAN-CONTRACT.md §Freshness definition"
+
+scope:
+  always_apply: false
+  globs: ["sbom.cdx.json", "SPEC.md", "THREAT_MODEL.md", "docs/adr/*.md", "hooks/config.yaml"]
+
+enforcement:
+  mode: warning
+  pre_commit: false
+  merge_gate: false
+  ci: true
+
+content: |
+  ## Principle
+
+  A governance artifact (SBOM, SPEC, ADR, threat model) that is not kept current with HEAD provides a false sense of security. This policy defines a configurable **freshness window** — measured in commits from HEAD — beyond which an artifact is considered stale.
+
+  ## Rationale
+
+  Supply-chain integrity requires that SBOMs reflect the current dependency graph (not a snapshot from three sprints ago). Threat models must account for newly added trust boundaries. ADRs must trace architecture changes made in recent commits. A commits-based window is preferable to a calendar-based one because codebases with low commit velocity would otherwise false-positive continuously.
+
+  The dual threshold (warn at N commits, block at 2N commits) is pragmatic: it gives developers a grace period without allowing indefinite drift. The `sbom.cdx.json` lockfile-change trigger is tighter: any commit that touches a lockfile without updating the SBOM warns immediately.
+
+  ## Freshness definition
+
+  An artifact is **fresh** when:
+
+  ```
+  distance = git rev-list HEAD..<last_touch_of_artifact> --count
+  distance <= freshness_window_commits   → fresh
+  distance > freshness_window_commits    → warn (advisory)
+  distance > 2 × freshness_window_commits → block
+  ```
+
+  `hooks/config.yaml` (Phase 4) exposes the knobs:
+
+  ```yaml
+  freshness_window_commits: 10    # default; override per team
+  freshness_window_days: 30       # secondary check; whichever triggers first wins
+  required_artifacts:
+    - CONSTITUTION.md
+    - SPEC.md
+    - sbom.cdx.json
+    - docs/adr/          # at least one ADR touched within window
+    - THREAT_MODEL.md
+  ```
+
+  ### SBOM lockfile trigger
+
+  Any commit that modifies one of `package-lock.json`, `poetry.lock`, `Cargo.lock`, `go.sum`, `Gemfile.lock`, `requirements.txt` without a same-commit update to `sbom.cdx.json` triggers an immediate advisory warning (distance = 1).
+
+  ## Anti-pattern
+
+  The SBOM was generated at project inception. Six months and 200 commits later, it lists 40 dependencies that have since been replaced and is missing 25 new ones. The merge gate does not check freshness; the stale SBOM provides no supply-chain assurance.
+
+  ## Correct policy
+
+  `Makefile` target `sbom` regenerates `sbom.cdx.json` from lockfiles using Syft or cdxgen. Developers run `make sbom` before committing dependency changes. CI re-generates and fails if stale:
+
+  ```bash
+  # hooks/pre-commit.sh (Phase 4) freshness check excerpt
+  WINDOW=$(yq '.freshness_window_commits' hooks/config.yaml)
+  for artifact in CONSTITUTION.md SPEC.md sbom.cdx.json THREAT_MODEL.md; do
+    distance=$(git rev-list HEAD..$(git log -1 --format=%H -- "$artifact") --count 2>/dev/null || echo 999)
+    if [ "$distance" -gt "$((WINDOW * 2))" ]; then
+      echo "BLOCK: $artifact is $distance commits stale (limit: $((WINDOW * 2)))" >&2
+      exit 78
+    elif [ "$distance" -gt "$WINDOW" ]; then
+      echo "WARN: $artifact is $distance commits stale (window: $WINDOW)" >&2
+    fi
+  done
+  ```
+
+  ## Checklist
+
+  - [ ] `hooks/config.yaml` declares `freshness_window_commits` (default: 10).
+  - [ ] `freshness_window_days` is also set as a secondary calendar check.
+  - [ ] `required_artifacts` list is complete and matches the project's governance set.
+  - [ ] Makefile `sbom` target is wired to lockfile change detection.
+  - [ ] CI re-generates SBOM and fails if stale on lockfile-touching PRs.
+  - [ ] `freshness-check` precommit rule (Wave 2c #14) enforces this policy at commit time.
+
+  ## References
+
+  - `docs/MANTHAN-CONTRACT.md` §Freshness definition
+  - NIST SP 800-218 (SSDF) PO.4.1 — Define and use criteria for software security checks
+  - CycloneDX 1.5 §Metadata — timestamp and version fields
+  - OWASP ASVS v5 §V14.2 — Dependency requirements
+  - ISO/IEC 27001:2022 A.8.8 — Management of technical vulnerabilities
+  - `hooks/config.yaml` (Phase 4)
+  - `registry/rules/precommit/freshness-check.rule.yaml`

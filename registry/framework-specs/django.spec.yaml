@@ -1,0 +1,161 @@
+metadata:
+  id: django
+  name: Django
+  version: "1.0.0"
+  description: "Security spec sheet for Django web applications. Covers CSRF middleware, ORM parameterization, production security settings, SECRET_KEY management, and Django REST Framework auth."
+  tags: [python, django, csrf, orm, drf, security-settings, secret-key]
+
+summary: "Django: keep CSRF middleware; use ORM parameterized queries (never .raw() with interpolation); set SECURE_* settings in production; externalize SECRET_KEY; use DRF auth not CSRF-exempt decorators. Extends input-validation-python."
+
+applies_to:
+  language: python
+  framework: django
+  min_version: "4.2"
+
+extends: input-validation-python
+
+globs:
+  - "manage.py"
+  - "**/settings*.py"
+  - "**/views.py"
+  - "**/models.py"
+  - "**/urls.py"
+  - "requirements*.txt"
+
+security_relevant_defaults:
+  csrf_middleware_default: true            # CsrfViewMiddleware is in MIDDLEWARE by default — never remove
+  debug_default: true                      # MUST set DEBUG=False in production
+  allowed_hosts_default: "[]"             # empty in dev; MUST set explicitly in production
+  session_cookie_secure: false            # default; set SESSION_COOKIE_SECURE=True in production
+  session_cookie_httponly: true           # correct default
+  csrf_cookie_httponly: false             # default; set CSRF_COOKIE_HTTPONLY=True (but check DRF compat)
+  x_frame_options: DENY                   # correct default
+  secure_content_type_nosniff: true       # correct default
+  secure_ssl_redirect: false              # MUST enable in production
+
+authoritative_refs:
+  - "https://docs.djangoproject.com/en/stable/topics/security/"
+  - "https://cheatsheetseries.owasp.org/cheatsheets/Django_Security_Cheat_Sheet.html"
+  - "OWASP ASVS v5 §5.3 (Output Encoding)"
+  - "OWASP ASVS v5 §9.2 (Server Authentication)"
+  - "CWE-89"
+
+applicable_rules:
+  - input-validation-python
+  - auth-patterns
+  - cors-security
+  - cryptography-standards
+  - error-handling
+
+subagent_hints:
+  coding-standards-reviewer:
+    extra_checks:
+      - "Verify CsrfViewMiddleware is present in MIDDLEWARE and not replaced by @csrf_exempt on API views (use DRF SessionAuthentication or TokenAuthentication instead)"
+      - "Scan for .raw() queryset method with string interpolation — requires parameterized tuple second argument"
+      - "Check settings.py for DEBUG=True, hardcoded SECRET_KEY, empty ALLOWED_HOSTS, and missing SECURE_* settings"
+      - "Verify SECRET_KEY is loaded from environment: os.environ['SECRET_KEY'] or python-decouple"
+      - "Check for @csrf_exempt decorator on view functions — each requires justification comment and DRF auth replacement"
+      - "Scan for format strings in ORM calls: e.g., queryset.filter(name=f'{user_input}') is safe but queryset.extra(where=[f'{user_input}']) is not"
+  secure-developer-mentor:
+    extra_checks:
+      - "Guide Django REST Framework TokenAuthentication and SessionAuthentication setup with proper CSRF handling"
+      - "Explain Django's check --deploy command and its security checklist output"
+
+content: |
+  ## Django Security Defaults
+
+  ### CSRF Middleware
+
+  `CsrfViewMiddleware` is enabled by default. **Never remove it.** For DRF REST APIs, configure
+  DRF authentication classes instead of using `@csrf_exempt`.
+
+  **NEVER:**
+  ```python
+  # BAD: AI commonly generates this for "REST API convenience"
+  @csrf_exempt
+  def api_create(request):
+      ...
+  ```
+
+  **Correct — DRF with session authentication (handles CSRF correctly):**
+  ```python
+  # settings.py
+  REST_FRAMEWORK = {
+      'DEFAULT_AUTHENTICATION_CLASSES': [
+          'rest_framework.authentication.SessionAuthentication',   # includes CSRF enforcement
+          'rest_framework.authentication.TokenAuthentication',
+      ],
+      'DEFAULT_PERMISSION_CLASSES': [
+          'rest_framework.permissions.IsAuthenticated',
+      ],
+  }
+  ```
+
+  ### ORM — Parameterized Queries
+
+  Django's ORM auto-parameterizes filter arguments. The only unsafe surface is `.raw()`, `.extra()`,
+  and `cursor.execute()` with string formatting.
+
+  **NEVER:**
+  ```python
+  # BAD: SQL injection via string interpolation
+  User.objects.raw(f"SELECT * FROM users WHERE name = '{user_input}'")
+  ```
+
+  **Correct — always pass params as a tuple or list:**
+  ```python
+  # GOOD: parameterized .raw()
+  User.objects.raw("SELECT * FROM users WHERE name = %s", [user_input])
+
+  # GOOD: ORM (parameterized automatically)
+  User.objects.filter(name=user_input)
+  ```
+
+  ### Production Security Settings
+
+  ```python
+  # settings/production.py — GOOD: explicit production hardening
+  import os
+
+  DEBUG = False                          # MUST be False
+  SECRET_KEY = os.environ['SECRET_KEY'] # MUST come from environment
+  ALLOWED_HOSTS = os.environ['ALLOWED_HOSTS'].split(',')
+
+  # HTTPS enforcement
+  SECURE_SSL_REDIRECT = True
+  SECURE_HSTS_SECONDS = 31536000
+  SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+  SECURE_HSTS_PRELOAD = True
+
+  # Cookie hardening
+  SESSION_COOKIE_SECURE = True
+  SESSION_COOKIE_HTTPONLY = True
+  CSRF_COOKIE_SECURE = True
+
+  # Content hardening (already True by default; be explicit)
+  SECURE_CONTENT_TYPE_NOSNIFF = True
+  X_FRAME_OPTIONS = 'DENY'
+  ```
+
+  ### SECRET_KEY Management
+
+  Run `python manage.py check --deploy` before every production deployment to catch security
+  misconfiguration. It checks `DEBUG`, `ALLOWED_HOSTS`, `SECRET_KEY` strength, and more.
+
+  ## AI Antipatterns (cross-reference: docs/EXTERNAL-RESOURCES.md § Per-Framework AI Pitfalls)
+
+  | Antipattern | Rule |
+  |---|---|
+  | `@csrf_exempt` on API views without DRF auth replacement | `auth-patterns` |
+  | `.raw(f"... {user_input}")` SQL string interpolation — CWE-89 | `input-validation-python` |
+  | `DEBUG=True` or hardcoded `SECRET_KEY` in settings.py | `cryptography-standards` |
+  | Empty `ALLOWED_HOSTS` in production | `cors-security` |
+  | Missing `SECURE_SSL_REDIRECT` and `SECURE_HSTS_SECONDS` | `auth-patterns` |
+
+  ## Authoritative References
+
+  - [Django Security Guide](https://docs.djangoproject.com/en/stable/topics/security/)
+  - [OWASP Django Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Django_Security_Cheat_Sheet.html)
+  - Rule: `input-validation-python` (extends)
+  - Rules: `auth-patterns`, `cors-security`, `cryptography-standards`
+  - CWE-89 (SQL Injection)

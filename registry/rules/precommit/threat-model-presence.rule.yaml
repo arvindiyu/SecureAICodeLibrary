@@ -1,0 +1,116 @@
+metadata:
+  id: threat-model-presence
+  name: Threat Model Presence Check
+  description: When trust-boundary heuristic triggers (new public endpoint, new MCP server, new auth path), THREAT_MODEL.md must be updated.
+  version: "1.0.0"
+  tags: [precommit, threat-model, trust-boundary, mcp, auth, security-architecture]
+
+category: precommit
+severity: high
+
+summary: "Require THREAT_MODEL.md to be updated when trust-boundary heuristics fire: new public endpoint, new MCP server definition, or new authentication path. Blocks on heuristic match without matching THREAT_MODEL.md update."
+
+asvs_controls: ["V1.1.1", "V1.6.1", "V14.1.1"]
+iso_controls: ["A.8.25", "A.8.26", "A.5.17"]
+nist_ai_rmf: ["GOVERN-1.4", "MAP-1.5", "MAP-2.3"]
+cwe: ["CWE-1059", "CWE-284"]
+
+mythos_alignment:
+  pillar: secure-by-design
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "NIST SP 800-218 PO.4.1"
+    - "OWASP ASVS v5 §V1.6"
+    - "ISO/IEC 27001:2022 A.8.25"
+    - "NIST AI RMF MAP-1.5"
+
+scope:
+  always_apply: false
+  globs: ["THREAT_MODEL.md", "src/**/*.ts", "src/**/*.py", "src/**/*.go", "src/**/*.java", "**/*.mcp.json", "**/*.mcp.yaml"]
+
+enforcement:
+  mode: blocking
+  pre_commit: true
+  merge_gate: false
+  ci: true
+
+content: |
+  ## Principle
+
+  When code changes alter the system's trust boundaries — by adding new public endpoints, new MCP server definitions, or new authentication paths — the threat model must be updated to reflect the new attack surface before the change merges. An outdated threat model is worse than no threat model because it creates false assurance.
+
+  ## Rationale
+
+  Trust boundaries are the primary unit of analysis in STRIDE threat modeling. Changes that cross or extend trust boundaries (public endpoints, inter-service MCP connections, auth flows) change which threats are in scope. Without a concurrent update to `THREAT_MODEL.md`, the threat model diverges from reality incrementally and becomes useless for security review.
+
+  The heuristic approach (pattern matching on staged files) is intentionally conservative — it may produce false positives, but false negatives (missed trust-boundary changes) are the worse outcome.
+
+  ## Trust-boundary heuristics
+
+  | Heuristic | Detection pattern |
+  |---|---|
+  | New public HTTP endpoint | Staged files contain route definitions: `app.get|post|put|delete|patch`, `@GetMapping`, `@PostMapping`, `router.add_api_route`, `router.HandleFunc` |
+  | New MCP server | Staged files matching `**/*.mcp.json`, `**/*.mcp.yaml`, or containing `mcp.Server{` / `McpServer(` / `create_server(` |
+  | New authentication path | Staged files containing `middleware.auth`, `@Secured`, `@PreAuthorize`, `require_auth`, `passport.authenticate`, JWT decode patterns |
+
+  ## BAD example
+
+  ```bash
+  # Developer adds a new /admin/api/users public endpoint
+  git add src/routes/admin.ts src/middleware/auth.ts
+  git commit -m "feat: add admin user management API"
+  # Heuristic fires on new @Get('/admin/api/users') and new auth middleware
+  # THREAT_MODEL.md not staged → pre-commit blocks
+  ```
+
+  ## GOOD example
+
+  ```bash
+  # Update THREAT_MODEL.md with new trust boundary analysis
+  # § Admin API surface: data flow, auth trust level, STRIDE threats, mitigations
+  git add src/routes/admin.ts src/middleware/auth.ts THREAT_MODEL.md
+  git commit -m "feat: add admin user management API
+
+  THREAT_MODEL.md updated: §Admin-API trust boundary (new S3: Admin API surface).
+  STRIDE analysis complete; auth middleware mitigates spoofing and elevation threats."
+  # Heuristic fires; THREAT_MODEL.md staged → pass
+  ```
+
+  `hooks/pre-commit.sh` excerpt:
+
+  ```bash
+  ENDPOINT_CHANGED=$(git diff --staged -U0 | grep -E '\+(app\.(get|post|put|delete|patch)|@[GP][eo][ts]Mapping|router\.(add_api_route|HandleFunc))' | head -1)
+  MCP_CHANGED=$(git diff --staged --name-only | grep -E '\.(mcp\.(json|yaml))$')
+  AUTH_CHANGED=$(git diff --staged -U0 | grep -E '\+(middleware\.auth|@Secured|@PreAuthorize|require_auth|passport\.authenticate)' | head -1)
+
+  if [ -n "$ENDPOINT_CHANGED$MCP_CHANGED$AUTH_CHANGED" ]; then
+    THREAT_MODEL_STAGED=$(git diff --staged --name-only | grep -xF THREAT_MODEL.md)
+    if [ -z "$THREAT_MODEL_STAGED" ]; then
+      echo "BLOCK: trust-boundary heuristic fired but THREAT_MODEL.md not staged." >&2
+      echo "  Update THREAT_MODEL.md to reflect new trust boundary, then re-stage." >&2
+      exit 78
+    fi
+  fi
+  ```
+
+  ## Checklist
+
+  - [ ] Trust-boundary heuristics are enabled in `hooks/pre-commit.sh`.
+  - [ ] `THREAT_MODEL.md` uses STRIDE or PASTA analysis per trust boundary section.
+  - [ ] New trust boundaries are assigned a unique identifier in `THREAT_MODEL.md` (e.g. `S3: Admin API`).
+  - [ ] `THREAT_MODEL.md` update is staged alongside the code change.
+  - [ ] `threat-modeler` subagent is available for generating STRIDE analysis from diff.
+  - [ ] The updated section is cross-referenced in the commit message.
+
+  ## References
+
+  - NIST SP 800-218 (SSDF) PO.4.1 — Define and use criteria for software security checks
+  - OWASP ASVS v5 §V1.6 — Cryptographic Architecture (trust boundary scoping)
+  - ISO/IEC 27001:2022 A.8.25 — Secure development life cycle
+  - NIST AI RMF MAP-1.5 — Identify AI risks within the system context
+  - `THREAT_MODEL.md` — per-boundary STRIDE analysis
+  - `registry/subagents/threat-modeler/` — Threat Modeler subagent
+  - `registry/rules/policies/required-artifacts.rule.yaml`

@@ -1,0 +1,118 @@
+metadata:
+  id: adr-presence
+  name: ADR Presence Check
+  description: When the architecture-impact heuristic triggers (new top-level dir, new dependency, schema change), at least one new ADR is required in docs/adr/.
+  version: "1.0.0"
+  tags: [precommit, adr, architecture, governance, documentation]
+
+category: precommit
+severity: medium
+
+summary: "Require at least one new ADR in docs/adr/ when architecture-impact heuristics fire: new top-level directory, new external dependency, or schema change. Warn; pair with required-artifacts policy for full enforcement."
+
+asvs_controls: ["V1.1.1", "V1.1.6"]
+iso_controls: ["A.8.25", "A.8.26"]
+nist_ai_rmf: ["GOVERN-1.4", "MAP-1.1", "MAP-2.3"]
+cwe: ["CWE-1059"]
+
+mythos_alignment:
+  pillar: secure-by-design
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "NIST SP 800-218 PO.1.1"
+    - "OWASP ASVS v5 §V1.1"
+    - "ISO/IEC 27001:2022 A.8.25"
+    - "docs/MANTHAN-CONTRACT.md §Freshness definition"
+
+scope:
+  always_apply: false
+  globs: ["docs/adr/*.md", "package.json", "pyproject.toml", "Cargo.toml", "go.mod", "pom.xml", "build.gradle"]
+
+enforcement:
+  mode: blocking
+  pre_commit: true
+  merge_gate: false
+  ci: true
+
+content: |
+  ## Principle
+
+  Architectural decisions that are not recorded in Architectural Decision Records (ADRs) cannot be reviewed, challenged, or revisited. This rule triggers on heuristic signals that indicate an architecture-impacting change and requires at least one new ADR to accompany it.
+
+  ## Rationale
+
+  Not every commit needs an ADR — routine code changes, bug fixes, and documentation updates do not. But three change types reliably indicate architectural scope: (1) adding a new top-level directory (new subsystem), (2) adding an external dependency (new trust boundary / supply-chain risk), (3) changing a schema (data contract change). These are the cases where future maintainers most need the "why" that an ADR captures.
+
+  ## Architecture-impact heuristics
+
+  The following conditions trigger the ADR requirement:
+
+  | Heuristic | Detection |
+  |---|---|
+  | New top-level directory | `git diff --staged --name-only` contains a path with a new first path component not in `git ls-tree HEAD --name-only` |
+  | New external dependency | `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `pom.xml`, or `build.gradle` gains a new entry under `dependencies` / `[dependencies]` |
+  | Schema change | Any `*.schema.json`, `*.proto`, `*.avsc`, `*.graphql`, or `migrations/*.sql` file is staged |
+
+  When any heuristic fires, at least one file matching `docs/adr/[0-9]+-*.md` must be present in the staged changeset.
+
+  ## BAD example
+
+  ```bash
+  # Developer adds a new 'analytics/' top-level directory with an external GA4 integration
+  git add analytics/ package.json package-lock.json
+  git commit -m "feat: add analytics module"
+  # Heuristic fires: new top-level dir 'analytics/', new dep '@measurement-protocol/ga4'
+  # No ADR staged → pre-commit warns: "WARN: architecture-impact heuristic fired; no new ADR found"
+  ```
+
+  ## GOOD example
+
+  ```bash
+  # ADR documents the GA4 integration decision
+  cp docs/adr/template.md docs/adr/0006-analytics-ga4-integration.md
+  # ... fill in context, decision, consequences, security impact ...
+  git add analytics/ package.json package-lock.json docs/adr/0006-analytics-ga4-integration.md
+  git commit -m "feat: add analytics module with GA4 integration
+
+  Implements SPEC.md §4.1 — Telemetry.
+  ADR 0006 records the GA4 decision."
+  # Heuristic fires; new ADR staged → pass
+  ```
+
+  `hooks/pre-commit.sh` detection excerpt:
+
+  ```bash
+  NEW_TOP_LEVEL=$(git diff --staged --name-only | awk -F/ '{print $1}' | sort -u | \
+    while read d; do git ls-tree HEAD --name-only | grep -qxF "$d" || echo "$d"; done)
+  SCHEMA_CHANGED=$(git diff --staged --name-only | grep -E '\.(schema\.json|proto|avsc|graphql)$|migrations/.*\.sql$')
+  DEP_CHANGED=$(git diff --staged --name-only | grep -E '^(package\.json|pyproject\.toml|Cargo\.toml|go\.mod|pom\.xml|build\.gradle)$')
+
+  if [ -n "$NEW_TOP_LEVEL$SCHEMA_CHANGED$DEP_CHANGED" ]; then
+    NEW_ADR=$(git diff --staged --name-only | grep -E '^docs/adr/[0-9]+-.*\.md$')
+    if [ -z "$NEW_ADR" ]; then
+      echo "WARN: architecture-impact heuristic triggered but no new ADR found in docs/adr/." >&2
+      echo "  Triggered by: ${NEW_TOP_LEVEL}${SCHEMA_CHANGED}${DEP_CHANGED}" >&2
+    fi
+  fi
+  ```
+
+  ## Checklist
+
+  - [ ] Architecture-impact heuristics are enabled in `hooks/pre-commit.sh`.
+  - [ ] ADR template exists at `docs/adr/template.md` or equivalent.
+  - [ ] New ADR uses the library's numbering convention (zero-padded four digits).
+  - [ ] ADR documents security implications in a dedicated section.
+  - [ ] ADR is referenced in the commit message body.
+  - [ ] `adr-author` subagent is available to draft ADR from diff (optional automation).
+
+  ## References
+
+  - NIST SP 800-218 (SSDF) PO.1.1 — Define security requirements for software
+  - OWASP ASVS v5 §V1.1 — Secure Software Development Lifecycle
+  - ISO/IEC 27001:2022 A.8.25 — Secure development life cycle
+  - `docs/MANTHAN-CONTRACT.md` §Freshness definition (ADR freshness section)
+  - `registry/rules/policies/required-artifacts.rule.yaml`
+  - `registry/subagents/adr-author/` — ADR Author subagent

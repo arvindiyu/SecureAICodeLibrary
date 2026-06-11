@@ -7,8 +7,10 @@ This directory contains prompts for secure cloud infrastructure configuration. T
 1. [AWS Security Configuration](./aws-security.md) - Comprehensive guide for securing AWS resources
 2. [GCP Security Configuration](./gcp-security.md) - Comprehensive guide for securing GCP resources
 3. [Terraform Security](./terraform-security.md) - Security best practices for Terraform infrastructure as code
-4. [Azure Security Configuration](./azure-security.md) - Coming soon
-5. [Kubernetes Security](./kubernetes-security.md) - Coming soon
+
+For Azure and Kubernetes security guidance, see the consolidated
+[External Resources → Cloud Infrastructure](../../docs/EXTERNAL-RESOURCES.md#cloud-infrastructure) section
+and invoke the `coding-standards-reviewer` subagent with the `secure-configuration` rule.
 
 ## Usage
 

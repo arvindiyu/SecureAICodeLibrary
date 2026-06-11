@@ -1,0 +1,3 @@
+# Placeholder. Phase 5 populates this directory with ~12 tiny framework spec sheets
+# (angular, vue, svelte, spring-boot, aspnet-core, express, django, rails, fastapi,
+# flask, gin, react-native). Each file MUST validate against registry/schemas/framework-spec.schema.json.

@@ -1,0 +1,107 @@
+metadata:
+  id: constitution-presence
+  name: CONSTITUTION.md Presence Check
+  description: CONSTITUTION.md must exist and be referenced in commits; advisory (not blocking) — signals library governance health to reviewers.
+  version: "1.0.0"
+  tags: [precommit, constitution, governance, advisory, artifacts]
+
+category: precommit
+severity: low
+
+summary: "Advisory: verify CONSTITUTION.md exists and is schema-valid. Non-blocking. A missing or invalid CONSTITUTION.md is flagged as a governance health warning; does not block commit or merge."
+
+asvs_controls: ["V1.1.1"]
+iso_controls: ["A.5.1", "A.8.25"]
+iso42001_controls: ["A.4.1"]
+nist_ai_rmf: ["GOVERN-1.1", "GOVERN-1.4"]
+cwe: ["CWE-1059"]
+
+mythos_alignment:
+  pillar: ai-governance
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "ISO/IEC 42001:2023 A.4.1"
+    - "NIST AI RMF GOVERN-1.1"
+    - "OWASP ASVS v5 §V1.1"
+
+scope:
+  always_apply: false
+  globs: ["CONSTITUTION.md"]
+
+enforcement:
+  mode: advisory
+  pre_commit: true
+  merge_gate: false
+  ci: true
+
+content: |
+  ## Principle
+
+  `CONSTITUTION.md` is the top-level governance document that maps OWASP ASVS v5, ISO/IEC 27001:2022, ISO/IEC 42001:2023, and NIST AI RMF controls to the library's rules and subagents. Its presence signals that the repository has adopted a governance posture, not just a collection of rules.
+
+  This check is **advisory** — it does not block commits or merges. A missing CONSTITUTION.md is a governance health warning, not a security incident. The blocking complement is the `required-artifacts` policy which enforces CONSTITUTION.md presence as a PR artifact.
+
+  ## Rationale
+
+  Making this check advisory (rather than blocking) reduces friction for early adoption scenarios: a team adding this library to an existing project may not have a CONSTITUTION.md yet, and blocking every commit would create a hostile onboarding experience. The advisory warning creates visibility without creating barriers.
+
+  Schema validation (when CONSTITUTION.md exists) checks that the document follows the `registry/schemas/constitution.schema.json` structure so that the control mapping is machine-readable and CI-verifiable.
+
+  ## BAD example
+
+  ```bash
+  # Library is installed in a new project with no CONSTITUTION.md
+  git add src/ SPEC.md sbom.cdx.json
+  git commit -m "feat: initial implementation"
+  # constitution-presence: ADVISORY: CONSTITUTION.md not found.
+  # Consider adding CONSTITUTION.md to establish governance posture.
+  # (commit proceeds; not blocked)
+  ```
+
+  ## GOOD example
+
+  ```bash
+  # CONSTITUTION.md is present and schema-valid
+  git add src/ SPEC.md sbom.cdx.json CONSTITUTION.md
+  git commit -m "feat: initial implementation
+
+  Establishes governance posture per CONSTITUTION.md §1.1 (OWASP ASVS v5 mapping)."
+  # constitution-presence: PASS — CONSTITUTION.md present and valid
+  ```
+
+  `hooks/pre-commit.sh` advisory check:
+
+  ```bash
+  if [ ! -f CONSTITUTION.md ]; then
+    echo "ADVISORY: CONSTITUTION.md not found. Consider adding it to establish governance posture." >&2
+    echo "  See: registry/schemas/constitution.schema.json for the required structure." >&2
+    # No exit non-zero; advisory only
+  else
+    # Schema validate using yq or ajv
+    if command -v ajv >/dev/null 2>&1; then
+      ajv validate -s registry/schemas/constitution.schema.json -d CONSTITUTION.md --spec=draft2020 2>&1 | \
+        grep -v '^$' | while read line; do echo "ADVISORY: CONSTITUTION.md: $line" >&2; done || true
+    fi
+  fi
+  ```
+
+  ## Checklist
+
+  - [ ] `CONSTITUTION.md` exists at repository root.
+  - [ ] `CONSTITUTION.md` follows `registry/schemas/constitution.schema.json` structure.
+  - [ ] Control mapping covers OWASP ASVS v5, ISO/IEC 27001:2022, and NIST AI RMF at minimum.
+  - [ ] ISO/IEC 42001:2023 controls are mapped for AI-governance rules.
+  - [ ] `CONSTITUTION.md` is included in `required_artifacts` in `hooks/config.yaml`.
+  - [ ] Schema validation passes in CI (`registry-ci.yml`).
+
+  ## References
+
+  - ISO/IEC 42001:2023 A.4.1 — Understanding the organisation and its context
+  - NIST AI RMF GOVERN-1.1 — Policies, processes, procedures, and practices across the organisation
+  - OWASP ASVS v5 §V1.1 — Secure Software Development Lifecycle
+  - `CONSTITUTION.md` — governance control mapping
+  - `registry/schemas/constitution.schema.json` — schema for validation
+  - `registry/rules/policies/required-artifacts.rule.yaml`

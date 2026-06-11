@@ -1,0 +1,103 @@
+metadata:
+  id: no-sql-injection
+  name: No SQL Injection
+  description: Use parameterized queries or prepared statements for all database interactions; never concatenate user input into SQL strings.
+  version: "1.0.0"
+  tags: [sql-injection, parameterized-queries, orm, prepared-statements, database]
+
+category: coding-standards
+severity: critical
+summary: "Use parameterized queries or prepared statements for all SQL. Never concatenate or interpolate user input into query strings. Use an ORM or query builder; validate identifiers against an allowlist if dynamic column names are required."
+
+asvs_controls: ["5.3.4", "5.3.5"]
+iso_controls: ["A.8.28"]
+nist_ai_rmf: ["GOVERN-1.1", "MAP-1.5"]
+cwe: ["CWE-89", "CWE-564"]
+
+mythos_alignment:
+  pillar: secure-by-design
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "OWASP ASVS v5 §5.3.4"
+    - "OWASP ASVS v5 §5.3.5"
+    - "CWE-89"
+    - "ISO/IEC 27001:2022 A.8.28"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/*.ts"
+    - "**/*.tsx"
+    - "**/*.js"
+    - "**/*.jsx"
+    - "**/*.mjs"
+    - "**/*.py"
+    - "**/*.java"
+    - "**/*.kt"
+    - "**/*.go"
+    - "**/*.cs"
+    - "**/*.rb"
+    - "**/*.php"
+    - "**/*.rs"
+  exclude:
+    - "**/test/**"
+    - "**/*.test.*"
+    - "**/__tests__/**"
+
+enforcement:
+  mode: blocking
+  pre_commit: true
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Principle
+
+  All SQL statements that include external data must use parameterized queries (prepared statements with bind variables) or a query builder / ORM that handles escaping automatically. Never build SQL strings by concatenation or string interpolation of user-supplied values. If dynamic column or table names are unavoidable, validate them against a strict allowlist of known identifiers — parameterization does not apply to identifiers.
+
+  ## Rationale
+
+  SQL injection (CWE-89) allows attackers to read, modify, or delete arbitrary data, bypass authentication, or in some databases execute OS commands. It remains one of the most prevalent and highest-impact vulnerability classes. Parameterized queries solve the problem structurally: the query plan is parsed before data is bound, so data values can never be misinterpreted as SQL syntax.
+
+  ORM abstraction does not automatically protect against injection when raw query escape hatches (`.query()`, `.raw()`, `Exec(query)`) are used with unsanitized input. These must be treated with the same discipline as manual query construction.
+
+  Second-order SQL injection (stored then retrieved and executed) is caught by the same control: parameterize at the point of execution, not only at the point of input.
+
+  OWASP ASVS §5.3.4 requires that parameterized interfaces are used for all database interactions that include externally provided data.
+
+  ## BAD example
+
+  ```typescript
+  // BAD: string interpolation — classic SQL injection vector
+  const userId = req.params.id;
+  const user = await db.query(`SELECT * FROM users WHERE id = ${userId}`);
+  ```
+
+  ## GOOD example
+
+  ```typescript
+  // GOOD: parameterized query
+  const userId = req.params.id;
+  const { rows } = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
+
+  // GOOD: ORM (Prisma)
+  const user = await prisma.user.findUnique({ where: { id: Number(userId) } });
+  ```
+
+  ## Checklist
+
+  - [ ] All SQL strings use `$1` / `?` / `:name` bind parameters — never string concatenation
+  - [ ] ORM raw query methods (`.query()`, `.raw()`) audited for unsanitized input
+  - [ ] Dynamic column or table names validated against an explicit allowlist
+  - [ ] Stored procedures also parameterized (second-order injection prevention)
+  - [ ] Error messages do not reveal SQL syntax or schema details to the client
+  - [ ] Least-privilege DB accounts: application user cannot `DROP TABLE` or access other schemas
+
+  ## References
+
+  - https://owasp.org/www-project-application-security-verification-standard/ (ASVS v5 §5.3)
+  - https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html
+  - https://cwe.mitre.org/data/definitions/89.html

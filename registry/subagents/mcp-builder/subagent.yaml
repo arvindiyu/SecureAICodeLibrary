@@ -1,0 +1,90 @@
+# yaml-language-server: $schema=../../schemas/subagent.schema.json
+# Canonical Tier-A subagent specification for `mcp-builder`. Tier C is
+# `not_applicable` — this subagent is interactive-only because scaffolding an
+# MCP server requires a human to confirm tool scope, auth model, and target
+# path. Field ordering follows registry/schemas/subagent.schema.json property
+# order (cache-stable per ADR 0005 §8). Do not reorder top-level keys.
+#
+# JUSTIFICATION FOR `tool_scope.allowed: write_file_scoped`:
+#   This is the only subagent in the library that ships a write capability
+#   beyond the default `read_file/glob/grep` set. The capability is INTENTIONAL
+#   and bounded: writes are restricted to paths matching `**/mcp/**` OR a
+#   user-confirmed target directory passed via `--out`. Outside those paths,
+#   `write_any_other_path` remains denied (default). The justification is that
+#   scaffolding an MCP server is a write-heavy task — emitting README, server
+#   stub, manifest, and example-tool files — and forcing the human to copy/
+#   paste each file would defeat the subagent's purpose. The bounded write
+#   scope is the minimum capability uplift that makes the subagent useful while
+#   honouring `agentic-tool-scoping` (least privilege).
+
+metadata:
+  id: mcp-builder
+  name: MCP Builder
+  description: >-
+    Scaffolds a NEW Model Context Protocol server conforming to mcp-server-safety,
+    agentic-tool-scoping, and agentic-obo-auth. Interactive-only: prompts for
+    server purpose, tools, language (Python or TypeScript), and auth model;
+    emits a project skeleton under a user-confirmed path. Writes are bounded to
+    **/mcp/** or the explicit --out directory; nothing outside that scope is
+    touched. Tier C runner is intentionally not provided.
+  version: "1.0.0"
+
+classification: high-impact
+
+human_approval: required_before_action
+
+tiers:
+  native:
+    cursor: "@mcp-builder --spec <spec-file>"
+    agents_md: "Invoke `mcp-builder` with --spec pointing at the MCP-server spec; confirm --out dir before any write."
+    copilot_coding_agent: "Open issue with label `subagent:mcp-builder` and an attached server spec."
+  headless: not_applicable
+
+token_budget:
+  input_max: 40000
+  output_max: 15000
+  warn_at: 0.7
+  system_prompt: 3500
+
+audit_log:
+  enabled: true
+  path: .securecode/audit.log
+  format: jsonl
+  fields:
+    - timestamp
+    - subagent_id
+    - tier
+    - user
+    - inputs_hash
+    - model
+    - token_in
+    - token_out
+    - decision
+    - finding_count
+
+tool_scope:
+  allowed:
+    - read_file
+    - glob
+    - grep
+    - write_file_scoped
+
+inputs:
+  required:
+    - spec_path
+  optional:
+    - out_dir
+    - language
+
+outputs:
+  - mcp_server_skeleton
+
+references:
+  rules:
+    - mcp-server-safety
+    - agentic-tool-scoping
+    - agentic-obo-auth
+    - agentic-action-classification
+    - agentic-bulk-limits
+    - agentic-human-approval
+    - ai-audit-logging

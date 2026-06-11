@@ -1,0 +1,115 @@
+metadata:
+  id: ai-audit-logging
+  name: AI Audit Logging
+  description: Log all LLM requests, responses, and tool calls with user identity, model version, token counts, and decision outcome; enforce retention TTL; integrate with SIEM for anomaly detection.
+  version: "1.0.0"
+  tags: [ai-security, audit, logging, observability, compliance]
+
+category: ai-governance
+severity: high
+
+summary: "Log every LLM request, response, and tool call with: user identity, model version, token counts, decision, inputs-hash; enforce data-retention TTL; feed SIEM for anomaly detection; support per-user throttling. (ISO 27001 A.8.15)"
+
+asvs_controls: ["7.1.1", "7.2.1", "7.3.1"]
+iso_controls: ["A.8.15", "A.8.16"]
+iso42001_controls: ["A.6.1", "A.8.3"]
+nist_ai_rmf: ["MEASURE-2.7", "MANAGE-4.1", "GOVERN-1.1"]
+cwe: ["CWE-778", "CWE-532"]
+mitre_atlas: ["AML.T0054"]
+
+mythos_alignment:
+  pillar: ai-governance
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "ISO/IEC 27001:2022 A.8.15"
+    - "ISO/IEC 42001:2023 A.6.1"
+    - "NIST AI RMF MEASURE-2.7"
+    - "OWASP ASVS v5 §7.1.1"
+
+scope:
+  always_apply: true
+
+enforcement:
+  mode: blocking
+  pre_commit: false
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Principle
+
+  Every LLM request, model response, and agent tool call must produce an immutable, structured audit-log entry before the response is returned to the caller. Log entries must include: timestamp, request ID, user identity (authenticated, not anonymous), model name and version, token counts (input + output), a hash of the input (not raw PII), the decision or action taken, and any tool calls with outcome. Enforce a documented data-retention TTL on user-supplied content per privacy policy. Integrate with a SIEM for anomaly detection and per-user throttling.
+
+  ## Rationale
+
+  Audit logging is the foundation of AI accountability. Without it, incident response is blind (NIST AI RMF MANAGE-4.1): you cannot determine who invoked a model with what input, which tool was called, how many tokens were consumed, or whether policy was violated. ISO/IEC 27001:2022 A.8.15 requires logging of access and actions in information systems; AI systems are not exempt.
+
+  Log data also enables: per-user abuse detection (mass extraction, credential stuffing via AI), performance baselines (token-spend trends, latency percentiles), compliance evidence for regulators, and cost attribution dashboards. The `.securecode/audit.log` JSON-lines format defined by this library's subagents is the canonical local-audit sink; SIEM integration is the remote-aggregate layer.
+
+  Absent TTL enforcement, user-supplied prompt content—which may contain PII—is retained indefinitely, violating data-minimisation principles under GDPR Art. 5(1)(e).
+
+  ## BAD example
+
+  ```pseudo
+  # No audit log
+  response = llm.generate(system_prompt, user_input)
+  return response
+  # Cannot attribute abuse; no compliance evidence; no incident-response capability
+  ```
+
+  Red flags: no log written; anonymous model call; no user identity captured; no token accounting; no TTL on stored inputs.
+
+  ## GOOD example
+
+  ```pseudo
+  inputs_hash = sha256(user_input)    # hash only — no raw PII stored
+  t0 = now()
+  response, usage = llm.generate(system_prompt, user_input)
+
+  audit_entry = {
+    "timestamp":   t0.isoformat(),
+    "request_id":  uuid4(),
+    "user_id":     session.authenticated_user_id,  # never null
+    "model":       "provider/model-name",
+    "token_in":    usage.input_tokens,
+    "token_out":   usage.output_tokens,
+    "inputs_hash": inputs_hash,
+    "decision":    "response_returned",
+    "tool_calls":  [],
+    "latency_ms":  (now() - t0).ms,
+  }
+  append_jsonl(".securecode/audit.log", audit_entry)
+  siem.ingest(audit_entry)
+
+  # Anomaly: throttle if user exceeds volume threshold
+  if per_user_volume(session.user_id, window="1h") > THRESHOLD:
+      throttle_user(session.user_id)
+  # TTL: purge user-supplied content after retention_days
+  schedule_purge(inputs_hash, after_days=retention_days)
+
+  return response
+  ```
+
+  Why this works: every call is attributed; no raw PII in logs; token budget is visible; SIEM receives structured events; anomaly throttling fires automatically; TTL is enforced.
+
+  ## Checklist
+
+  - [ ] Every LLM call produces a structured log entry (JSON-lines) with all required fields.
+  - [ ] User identity is authenticated and non-nullable in every log entry.
+  - [ ] Input content is hashed, not stored raw, unless retention is explicitly approved.
+  - [ ] Token counts (input + output) are recorded per request.
+  - [ ] A data-retention TTL is documented and enforced for user-supplied content.
+  - [ ] Log entries are forwarded to a SIEM or centralized log aggregator.
+  - [ ] Per-user volume alerting and throttling are configured.
+  - [ ] Audit logs are immutable (append-only); no UPDATE or DELETE without separate audit entry.
+
+  ## References
+
+  - ISO/IEC 27001:2022 A.8.15 (Logging): https://www.iso.org/standard/27001
+  - ISO/IEC 42001:2023 A.6.1 (AI system life cycle): https://www.iso.org/standard/81230.html
+  - NIST AI RMF MEASURE-2.7 and MANAGE-4.1: https://www.nist.gov/itl/ai-risk-management-framework
+  - OWASP ASVS v5 §7 (Error Handling and Logging): https://owasp.org/www-project-application-security-verification-standard/
+  - GDPR Art. 5(1)(e) (data minimisation): https://eur-lex.europa.eu/eli/reg/2024/1689/oj

@@ -1,0 +1,170 @@
+metadata:
+  id: aspnet-core
+  name: ASP.NET Core
+  version: "1.0.0"
+  description: "Security spec sheet for ASP.NET Core web applications and APIs. Covers antiforgery tokens, HSTS, Data Protection API, response encoding, and secrets management."
+  tags: [csharp, dotnet, aspnet-core, antiforgery, hsts, data-protection, secrets]
+
+summary: "ASP.NET Core: enforce antiforgery tokens on form endpoints; configure HSTS and HTTPS redirection; use Data Protection API for secrets; HTML-encode before Response.WriteAsync; store config in env/Key Vault. No per-language parent (C# deferred to M8)."
+
+applies_to:
+  language: csharp
+  framework: aspnet-core
+  min_version: "6.0"
+
+globs:
+  - "**/*.csproj"
+  - "Program.cs"
+  - "Startup.cs"
+  - "appsettings*.json"
+  - "**/*Controller*.cs"
+  - "**/*.razor"
+
+security_relevant_defaults:
+  antiforgery_enabled_by_default: true     # for Razor Pages; Minimal APIs and controllers need explicit setup
+  https_redirection_middleware: false      # NOT added by default — must call app.UseHttpsRedirection()
+  hsts_enabled_by_default: false          # NOT enabled by default — must configure with AddHsts()
+  response_caching_safe: false            # VaryByHeader required for auth-sensitive responses
+  data_protection_key_persistence: "in-memory"  # default; must configure Key Ring for production (persistent key store)
+  nullable_reference_types: true          # enable in .csproj for null-safety
+
+authoritative_refs:
+  - "https://learn.microsoft.com/en-us/aspnet/core/security/"
+  - "https://cheatsheetseries.owasp.org/cheatsheets/DotNet_Security_Cheat_Sheet.html"
+  - "OWASP ASVS v5 §3.4 (Cookie Session Management)"
+  - "OWASP ASVS v5 §4.1 (Access Control)"
+  - "CWE-79"
+
+applicable_rules:
+  - auth-patterns
+  - access-control
+  - cors-security
+  - cryptography-standards
+  - error-handling
+
+subagent_hints:
+  coding-standards-reviewer:
+    extra_checks:
+      - "Verify antiforgery token validation on all POST/PUT/PATCH/DELETE Razor Page handlers and MVC controller actions with form data"
+      - "Confirm app.UseHttpsRedirection() and app.UseHsts() are called in Program.cs before route middleware"
+      - "Scan for [AllowAnonymous] attributes — each must have a justification comment; report any on sensitive endpoints"
+      - "Check appsettings.json for credential fields (ConnectionStrings, ApiKey, Password, Secret) — these must be empty or placeholder, sourced from environment/Key Vault"
+      - "Verify HtmlEncoder.Default.Encode() or @Html.Encode() is used before any raw string output in Razor views"
+      - "Check that Data Protection services are configured with a persistent key ring (not in-memory default) for multi-instance deployments"
+  secure-developer-mentor:
+    extra_checks:
+      - "Guide Azure Key Vault integration with AddAzureKeyVault() in Program.cs for production secrets"
+      - "Explain ASP.NET Core authorization policy pattern (AddAuthorization + RequirePolicy) vs. [Authorize] role attributes"
+
+content: |
+  ## ASP.NET Core Security Defaults
+
+  ### HTTPS & HSTS Configuration
+
+  Neither HTTPS redirection nor HSTS are enabled by default in minimal API templates.
+  Both MUST be added in `Program.cs` for production.
+
+  ```csharp
+  // Program.cs — GOOD: explicit security middleware
+  builder.Services.AddHsts(options => {
+      options.MaxAge = TimeSpan.FromDays(365);
+      options.IncludeSubDomains = true;
+      options.Preload = true;
+  });
+
+  var app = builder.Build();
+
+  if (!app.Environment.IsDevelopment()) {
+      app.UseExceptionHandler("/error");   // generic error page — no stack traces
+      app.UseHsts();
+  }
+  app.UseHttpsRedirection();
+  app.UseAuthentication();
+  app.UseAuthorization();
+  ```
+
+  ### Antiforgery Tokens
+
+  Razor Pages includes antiforgery validation by default. MVC controllers and Minimal APIs do NOT.
+  Add it explicitly on mutation endpoints.
+
+  ```csharp
+  // GOOD: explicit antiforgery in Minimal API
+  app.MapPost("/submit", async (HttpContext ctx, IAntiforgery af, FormModel model) => {
+      await af.ValidateRequestAsync(ctx);
+      // ... process model
+  }).DisableAntiforgery(); // NEVER use DisableAntiforgery() in production
+  ```
+
+  ```csharp
+  // GOOD: MVC controller action with antiforgery
+  [HttpPost]
+  [ValidateAntiForgeryToken]
+  public IActionResult Submit(FormModel model) { ... }
+  ```
+
+  ### Response Output Encoding
+
+  Never write user-controlled strings directly to the response. Use `HtmlEncoder.Default.Encode()`.
+
+  ```csharp
+  // BAD: AI commonly generates this
+  await context.Response.WriteAsync(request.Query["name"]);
+
+  // GOOD: encode before writing
+  var encoder = HtmlEncoder.Default;
+  await context.Response.WriteAsync(encoder.Encode(request.Query["name"]));
+  ```
+
+  ### Secrets Management
+
+  - Use `appsettings.json` for **non-sensitive** default config only.
+  - Use environment variables or Azure Key Vault for all secrets.
+  - Configure Data Protection with a persistent key ring for multi-instance deployments.
+
+  ```csharp
+  // GOOD: Data Protection with persistent key ring
+  builder.Services.AddDataProtection()
+      .PersistKeysToAzureBlobStorage(...)  // or PersistKeysToFileSystem(new DirectoryInfo("/keys"))
+      .ProtectKeysWithAzureKeyVault(...);
+  ```
+
+  ### Authorization Policy Pattern
+
+  Prefer authorization policies over role-string attributes for maintainability and testability.
+
+  ```csharp
+  // GOOD: policy-based authorization
+  builder.Services.AddAuthorization(options => {
+      options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+      options.AddPolicy("OwnerOrAdmin", policy =>
+          policy.RequireAssertion(ctx =>
+              ctx.User.IsInRole("Admin") || IsResourceOwner(ctx)));
+  });
+
+  // In controller:
+  [Authorize(Policy = "AdminOnly")]
+  [HttpDelete("{id}")]
+  public IActionResult Delete(int id) { ... }
+  ```
+
+  ## AI Antipatterns (cross-reference: docs/EXTERNAL-RESOURCES.md § Per-Framework AI Pitfalls)
+
+  | Antipattern | Rule |
+  |---|---|
+  | Missing `app.UseHttpsRedirection()` and `app.UseHsts()` | `auth-patterns` |
+  | `Response.WriteAsync(userInput)` without HTML-encoding | `auth-patterns` (output encoding) |
+  | `appsettings.json` with hardcoded connection strings or API keys | `cryptography-standards` |
+  | `[AllowAnonymous]` without justification comment | `access-control` |
+  | `DisableAntiforgery()` on mutation endpoints | `auth-patterns` |
+
+  > **Note:** No per-language C# parent rule exists in Wave 2b; `extends:` is unset. When a C# language
+  > rule (`input-validation-csharp`) is added in a future phase, this spec sheet should set
+  > `extends: input-validation-csharp`.
+
+  ## Authoritative References
+
+  - [ASP.NET Core Security](https://learn.microsoft.com/en-us/aspnet/core/security/)
+  - [OWASP .NET Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/DotNet_Security_Cheat_Sheet.html)
+  - Rules: `auth-patterns`, `access-control`, `cors-security`, `cryptography-standards`
+  - CWE-79 (Cross-site Scripting)

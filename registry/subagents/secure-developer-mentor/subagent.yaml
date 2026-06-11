@@ -1,0 +1,71 @@
+# yaml-language-server: $schema=../../schemas/subagent.schema.json
+# Canonical Tier-A subagent specification for `secure-developer-mentor`. Tier C
+# is `not_applicable` — this subagent is the interactive catch-all Q&A agent.
+# It has no closed `references.rules` set by design: it can read any rule in
+# the registry on demand, but its writes are confined to PR comments / chat
+# responses (no file writes outside of `read_file`/`glob`/`grep`).
+#
+# Field ordering follows registry/schemas/subagent.schema.json property order
+# (cache-stable per ADR 0005 §8). Do not reorder top-level keys.
+
+metadata:
+  id: secure-developer-mentor
+  name: Secure Developer Mentor
+  description: >-
+    Catch-all secure-coding pair-programmer. Answers "is this safe?", explains
+    a rule by ID, suggests a fix, recommends a framework spec sheet, or routes
+    to the right subagent. Has full read access to the rule registry by design
+    — it is the catch-all for topics not yet covered by a dedicated subagent.
+    Tier C runner is intentionally not provided; this is interactive only.
+  version: "1.0.0"
+
+classification: low-impact
+
+human_approval: not_required
+
+tiers:
+  native:
+    cursor: "@secure-developer-mentor \"<question>\""
+    agents_md: "Invoke `secure-developer-mentor` with a free-text question and optional code snippet."
+    copilot_coding_agent: "Open issue with label `subagent:secure-developer-mentor` and a clear question."
+  headless: not_applicable
+
+token_budget:
+  input_max: 80000
+  output_max: 8000
+  warn_at: 0.75
+  system_prompt: 3500
+  context_max: 76500
+
+audit_log:
+  enabled: true
+  path: .securecode/audit.log
+  format: jsonl
+  fields:
+    - timestamp
+    - subagent_id
+    - tier
+    - user
+    - inputs_hash
+    - model
+    - token_in
+    - token_out
+    - decision
+    - finding_count
+
+tool_scope:
+  allowed:
+    - read_file
+    - glob
+    - grep
+
+inputs:
+  required:
+    - question
+  optional:
+    - code_snippet
+    - language_hint
+    - framework_hint
+
+outputs:
+  - markdown_answer

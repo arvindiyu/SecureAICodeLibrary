@@ -1,0 +1,105 @@
+metadata:
+  id: cryptography-standards-python
+  name: Cryptography Standards — Python
+  description: Python-specific cryptography guidance using the cryptography library (pyca), secrets module, and argon2-cffi; ban PyCrypto, pycryptodome unsafe patterns, and random module for security use.
+  version: "1.0.0"
+  tags: [cryptography, python, pyca, secrets, argon2-cffi, hashlib]
+  languages: [python]
+
+category: coding-standards/per-language
+severity: critical
+summary: "Use pyca/cryptography for symmetric and asymmetric ops; argon2-cffi for password hashing; secrets module for tokens. Ban random, hashlib.md5/sha1 for security, and PyCrypto (unmaintained). Never store keys in source or config files."
+
+extends: cryptography-standards
+
+asvs_controls: ["6.2.1", "6.2.2", "6.3.1"]
+iso_controls: ["A.8.24"]
+nist_ai_rmf: ["GOVERN-1.1"]
+cwe: ["CWE-327", "CWE-338", "CWE-916"]
+
+mythos_alignment:
+  pillar: ide-coverage
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "OWASP ASVS v5 §6.2.1"
+    - "OWASP ASVS v5 §6.3.1"
+    - "CWE-327"
+    - "CWE-338"
+    - "ISO/IEC 27001:2022 A.8.24"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/*.py"
+  exclude:
+    - "**/test/**"
+    - "**/*_test.py"
+    - "**/tests/**"
+
+enforcement:
+  mode: blocking
+  pre_commit: false
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Delta from parent
+
+  This rule extends `cryptography-standards` with Python ecosystem specifics: library selection (pyca/cryptography vs. PyCrypto/pycryptodome), the `secrets` module, and argon2-cffi.
+
+  ## BAD example
+
+  ```python
+  # BAD: random module for token — NOT cryptographically secure
+  import random, string
+  token = ''.join(random.choices(string.ascii_letters, k=32))
+
+  # BAD: hashlib.md5 for any security purpose
+  import hashlib
+  digest = hashlib.md5(data).hexdigest()
+
+  # BAD: PyCrypto (unmaintained, CVEs)
+  from Crypto.Cipher import AES  # Crypto = PyCrypto — do not use
+  ```
+
+  ## GOOD example
+
+  ```python
+  import secrets
+  from argon2 import PasswordHasher
+  from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+  import os
+
+  # CSPRNG token
+  token = secrets.token_urlsafe(32)
+
+  # Password hashing — argon2-cffi
+  ph = PasswordHasher(time_cost=3, memory_cost=65536, parallelism=4)
+  hashed = ph.hash(password)
+  ph.verify(hashed, password)  # raises VerifyMismatchError on failure
+
+  # AES-256-GCM via pyca/cryptography
+  key = AESGCM.generate_key(bit_length=256)
+  aesgcm = AESGCM(key)
+  nonce = os.urandom(12)  # 96-bit nonce
+  ciphertext = aesgcm.encrypt(nonce, plaintext.encode(), None)
+  ```
+
+  ## Checklist
+
+  - [ ] `pyca/cryptography` (`cryptography` package) used for symmetric/asymmetric operations — not PyCrypto
+  - [ ] `secrets` module used for all token and random-value generation (not `random`)
+  - [ ] `argon2-cffi` used for password hashing (`argon2` package: `pip install argon2-cffi`)
+  - [ ] `hashlib.md5` and `hashlib.sha1` absent from security-sensitive code paths
+  - [ ] AES used in GCM or CCM mode — never in ECB or CBC without authentication
+  - [ ] Nonces generated with `os.urandom(12)` — unique per encryption call
+
+  ## References
+
+  - https://owasp.org/www-project-application-security-verification-standard/ (ASVS v5 §6)
+  - https://cwe.mitre.org/data/definitions/327.html
+  - https://cryptography.io/en/latest/
+  - https://argon2-cffi.readthedocs.io/

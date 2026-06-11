@@ -1,0 +1,116 @@
+metadata:
+  id: ai-rate-limiting
+  name: AI Rate Limiting
+  description: Enforce per-user and per-team request and token-budget limits on AI API access; monitor consumption; scope prompts to relevant context only; avoid mixing unrelated tasks in one session.
+  version: "1.0.0"
+  tags: [ai-security, rate-limiting, cost-management, token-budget]
+
+category: ai-governance
+severity: medium
+
+summary: "Enforce per-user and per-team AI request and token-budget limits; monitor consumption and alert on anomalies; scope prompts to relevant context only (never whole-repo); use one session per task to keep context clean and costs predictable. (NIST AI RMF GOVERN-1.1)"
+
+asvs_controls: ["13.1.1", "11.1.2"]
+iso_controls: ["A.8.6"]
+iso42001_controls: ["A.6.1"]
+nist_ai_rmf: ["GOVERN-1.1", "MANAGE-2.3"]
+cwe: ["CWE-770", "CWE-400"]
+
+mythos_alignment:
+  pillar: ai-governance
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "OWASP ASVS v5 §13.1.1"
+    - "NIST AI RMF GOVERN-1.1"
+    - "ISO/IEC 42001:2023 A.6.1"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/llm/**"
+    - "**/ai/**"
+    - "**/api/**"
+    - "**/gateway/**"
+    - "**/.cursor/**"
+
+enforcement:
+  mode: warning
+  pre_commit: false
+  merge_gate: false
+  ci: true
+
+content: |
+  ## Principle
+
+  AI API access must be governed by rate limits and token budgets enforced at the API gateway or platform layer. Set per-user request and token limits that reflect legitimate usage patterns and prevent monopolization of shared capacity. Monitor consumption in real time; alert when users or teams approach their budgets. Keep prompts tightly scoped to the files and context relevant to the task—never include an entire repository or unrelated modules. Use separate sessions for unrelated tasks to maintain clean, predictable context and lower costs.
+
+  ## Rationale
+
+  At Mythos-class model pricing ($10/M input tokens, $50/M output tokens), uncontrolled prompt scope and unbounded API access translate directly to significant cost surprises. A single session that includes a full monorepo may consume 500K+ input tokens per request; at scale, this is financially unsustainable. CWE-770 (Allocation of Resources Without Limits) applies: the AI API is a shared resource consumed by an unbounded number of agents and users without a governor.
+
+  Rate limiting also provides a security function: it limits the ability of a compromised account or a runaway agent to drain API quotas, trigger billing alerts, or degrade service for other users. Consumption monitoring surfaces anomalies—a user making 10× their normal request volume may indicate credential compromise, a runaway agent, or a misuse pattern.
+
+  Token budgets declared per subagent in `subagent.yaml` (per ADR 0005) are enforced in CI by `registry-ci.yml`; this rule extends that principle to runtime API access.
+
+  ## BAD example
+
+  ```pseudo
+  # No rate limits; no token budgets; no scope control
+  # User sends 10,000 requests in one hour — no throttling
+  # Prompt includes entire monorepo
+  prompt = "Analyze this codebase: " + read_entire_repo()   # 500K+ tokens
+  response = llm.generate(prompt)
+  # Mixed tasks in one session: fix bug → add feature → write docs → update tests
+  # Context window bloated; results noisy; cost unpredictable
+  ```
+
+  Red flags: no rate limits; no token budgets; whole-repo context; mixed tasks; no consumption monitoring.
+
+  ## GOOD example
+
+  ```pseudo
+  # Rate limit enforced at API gateway
+  rate_limiter = RateLimiter(per_user_rpm=60, per_team_daily=10000)
+  if not rate_limiter.allow(user_id, team_id):
+    return 429, "Rate limit exceeded."
+
+  # Token budget per session
+  budget = TokenBudget(user_id, daily_input_limit=100_000, daily_output_limit=20_000)
+  if budget.would_exceed(estimated_input_tokens):
+    return 429, "Daily token budget exceeded."
+
+  # Scoped prompt: only relevant files
+  prompt = f"Review auth logic in {relevant_dir}/auth/login.ts. Focus on session handling."
+  relevant_files = [read(f"{relevant_dir}/auth/login.ts")]   # 3 files, ~5K tokens
+  response = llm.generate(prompt, context=relevant_files)
+
+  # Budget deducted; consumption logged
+  budget.deduct(response.input_tokens, response.output_tokens)
+  consumption_log.record(user_id, team_id, response.input_tokens, response.output_tokens)
+
+  # Anomaly: alert if user exceeds 3× their rolling average
+  if consumption_monitor.is_anomalous(user_id, window="1h"):
+    alert("anomalous_ai_usage", user_id=user_id)
+  ```
+
+  Why this works: gateway enforces hard limits; budget prevents runaway cost; scoped prompt reduces noise and token spend; consumption is monitored and anomalies are alerted.
+
+  ## Checklist
+
+  - [ ] Per-user and per-team request-rate limits are configured at the API gateway.
+  - [ ] Per-user and per-team token budgets (daily input + output) are enforced.
+  - [ ] Consumption is logged (user, team, tokens, model) and visible via dashboards.
+  - [ ] Anomaly alerts are configured for unusual volume or burst patterns.
+  - [ ] Prompts are scoped to the minimum relevant context (no whole-repo inclusion).
+  - [ ] Separate sessions are used for unrelated tasks.
+  - [ ] Budgets and limits are reviewed quarterly based on observed usage.
+
+  ## References
+
+  - OWASP ASVS v5 §13.1 (Generic Web Service Security): https://owasp.org/www-project-application-security-verification-standard/
+  - NIST AI RMF GOVERN-1.1: https://www.nist.gov/itl/ai-risk-management-framework
+  - ISO/IEC 42001:2023 A.6.1: https://www.iso.org/standard/81230.html
+  - CWE-770 Allocation of Resources Without Limits: https://cwe.mitre.org/

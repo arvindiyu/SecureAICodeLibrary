@@ -1,0 +1,2 @@
+# Placeholder. Phase 2 populates this directory with the 20 baseline AI-governance rules + 2 Mythos-era rules
+# (llm-output-sanitization, ai-kill-switch). Each file MUST validate against registry/schemas/rule.schema.json.

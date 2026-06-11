@@ -1,0 +1,118 @@
+metadata:
+  id: ai-bias-fairness
+  name: AI Bias and Fairness
+  description: Test for disparate impact across protected groups before deployment; define quantitative fairness metrics; audit training data for representation and labeling bias; monitor for drift in production.
+  version: "1.0.0"
+  tags: [ai-governance, bias, fairness, ethics, compliance]
+
+category: ai-governance
+severity: high
+
+summary: "Perform pre-deployment bias audit across protected groups; define and measure at least one quantitative fairness metric (demographic parity, equalized odds); audit training data for representation; monitor production for bias drift; document remediation procedures. (EU AI Act Art. 10)"
+
+asvs_controls: ["1.6.1"]
+iso_controls: ["A.5.7"]
+iso42001_controls: ["A.5.2", "A.6.2", "A.7.3"]
+nist_ai_rmf: ["GOVERN-1.1", "MAP-1.1", "MEASURE-2.5", "MANAGE-2.2"]
+cwe: ["CWE-693"]
+mitre_atlas: ["AML.T0043"]
+
+mythos_alignment:
+  pillar: ai-governance
+  substantiation: aligned
+  roadmap_milestone: M5
+
+sources:
+  primary:
+    - "EU AI Act Art. 10"
+    - "NIST AI RMF MEASURE-2.5"
+    - "ISO/IEC 42001:2023 A.5.2"
+    - "NIST AI 600-1 (2024) §2.6"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/models/**"
+    - "**/ml/**"
+    - "**/training/**"
+    - "**/datasets/**"
+    - "**/ai/**"
+
+enforcement:
+  mode: warning
+  pre_commit: false
+  merge_gate: false
+  ci: true
+
+content: |
+  ## Principle
+
+  Every AI system that produces decisions or recommendations affecting people must be tested for bias before deployment and monitored continuously in production. Define quantitative fairness metrics appropriate to the use case, measure them on representative held-out test sets, and gate deployment on passing defined thresholds. Assess training data for representation gaps and labeling bias. Maintain documented remediation procedures for when bias is detected or drifts above threshold.
+
+  ## Rationale
+
+  Biased AI systems can deny services, opportunities, or fair treatment to protected groups—causing tangible harm. EU AI Act Art. 10 (data governance for high-risk AI) requires training data to be relevant, representative, and free of errors that lead to discrimination. NIST AI 600-1 (2024) §2.6 identifies bias and homogenization as significant GenAI risks.
+
+  Bias is not a static property of a model: production distributions drift, demographic compositions change, and feedback loops can amplify historical bias over time. A single pre-deployment audit is therefore insufficient; continuous monitoring is required. Without documented remediation procedures, bias detected in production has no clear escalation path, which leads to delayed correction and compounding harm.
+
+  MITRE ATLAS AML.T0043 (Craft Adversarial Data) is relevant because adversaries can deliberately inject biased training examples to degrade model fairness for specific groups.
+
+  ## BAD example
+
+  ```pseudo
+  # Model trained on historical hiring data
+  model = train(hiring_data)
+  # No fairness metrics defined; no protected group analysis; no bias audit
+  # No production monitoring; no remediation procedures
+  deploy(model)
+  # Result: model systematically disadvantages certain groups
+  # Discovered only after external complaint or regulatory audit
+  ```
+
+  Red flags: no fairness metrics; no protected group segmentation; no bias audit report; no production drift monitoring; no remediation runbook.
+
+  ## GOOD example
+
+  ```pseudo
+  # 1. Pre-training: assess data for representation and labeling bias
+  representation = audit_representation(training_data, protected_groups)
+  apply_mitigations(re_weight=True, oversample_underrepresented=True)
+
+  # 2. Post-training: pre-deployment bias audit
+  model = train(corrected_data)
+  bias_report = bias_audit(model, test_set, protected_groups)
+  assert bias_report.demographic_parity_gap < 0.05   # gate on threshold
+  assert bias_report.equalized_odds_gap < 0.05
+  bias_report.attach_to(model_card)   # per ai-explainability
+
+  # 3. Production: fairness monitoring dashboard
+  deploy(model)
+  fairness_dashboard.configure(
+    metrics=["demographic_parity", "equalized_odds"],
+    groups=protected_groups,
+    alert_threshold=0.05,
+    cadence="weekly"
+  )
+  remediation_runbook = link_to("docs/runbooks/ai-bias-remediation.md")
+  ```
+
+  Why this works: training data is corrected before model training; fairness gates block deployment if thresholds are breached; production dashboard catches drift early; remediation path is documented before it is needed.
+
+  ## Checklist
+
+  - [ ] Quantitative fairness metrics are defined and documented in the model card.
+  - [ ] A pre-deployment bias audit is completed with results attached to the model card.
+  - [ ] Training data is assessed for representation gaps and labeling bias.
+  - [ ] Deployment is gated on passing defined fairness thresholds.
+  - [ ] A production fairness dashboard is active with alert thresholds configured.
+  - [ ] Remediation procedures are documented and assigned to an owner.
+  - [ ] Bias evaluation is scheduled periodically (monthly or quarterly) in production.
+  - [ ] EU AI Act Art. 10 data governance requirements are addressed for high-risk AI.
+
+  ## References
+
+  - EU AI Act Art. 10 (Data and data governance): https://eur-lex.europa.eu/eli/reg/2024/1689/oj
+  - NIST AI RMF MEASURE-2.5: https://www.nist.gov/itl/ai-risk-management-framework
+  - NIST AI 600-1 GenAI Profile (2024): https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf
+  - ISO/IEC 42001:2023 A.5.2 (AI risk assessment): https://www.iso.org/standard/81230.html
+  - MITRE ATLAS AML.T0043: https://atlas.mitre.org/

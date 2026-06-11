@@ -1,0 +1,110 @@
+metadata:
+  id: input-validation-typescript
+  name: Input Validation — TypeScript
+  description: TypeScript-specific input validation using Zod, class-validator, or equivalent; enforce strict types; no any on boundary inputs.
+  version: "1.0.0"
+  tags: [input-validation, typescript, zod, class-validator, express]
+  languages: [typescript]
+
+category: coding-standards/per-language
+severity: high
+summary: "Use Zod or class-validator for runtime schema validation at all TypeScript API boundaries. Enable strict mode; prohibit 'any' on incoming request bodies. Validate before type-asserting. Return structured 400 errors."
+
+extends: input-validation
+
+asvs_controls: ["5.1.1", "5.1.3"]
+iso_controls: ["A.8.28"]
+nist_ai_rmf: ["GOVERN-1.1"]
+cwe: ["CWE-20"]
+
+mythos_alignment:
+  pillar: ide-coverage
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "OWASP ASVS v5 §5.1.3"
+    - "CWE-20"
+    - "ISO/IEC 27001:2022 A.8.28"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/*.ts"
+    - "**/*.tsx"
+  exclude:
+    - "**/test/**"
+    - "**/*.test.ts"
+    - "**/*.spec.ts"
+    - "**/__tests__/**"
+
+enforcement:
+  mode: blocking
+  pre_commit: false
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Delta from parent
+
+  This rule extends `input-validation` with TypeScript-specific guidance on library selection, strict-mode enforcement, and type-safe request handling.
+
+  ## BAD example
+
+  ```typescript
+  // BAD: req.body typed as any — TypeScript type system bypassed
+  app.post('/orders', (req: Request, res: Response) => {
+    const body = req.body as any;
+    const quantity = body.quantity;   // no validation, no type safety
+    processOrder(quantity);
+  });
+  ```
+
+  ## GOOD example
+
+  ```typescript
+  import { z } from 'zod';
+
+  const OrderSchema = z.object({
+    productId: z.string().uuid(),
+    quantity: z.number().int().positive().max(1000),
+    notes: z.string().max(500).optional(),
+  });
+
+  type OrderInput = z.infer<typeof OrderSchema>;
+
+  app.post('/orders', (req: Request, res: Response) => {
+    const result = OrderSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ errors: result.error.flatten() });
+    }
+    // result.data is fully typed as OrderInput — no any
+    processOrder(result.data);
+  });
+  ```
+
+  With `class-validator` (NestJS):
+  ```typescript
+  import { IsUUID, IsInt, IsPositive, Max, IsOptional, MaxLength } from 'class-validator';
+
+  export class CreateOrderDto {
+    @IsUUID() productId: string;
+    @IsInt() @IsPositive() @Max(1000) quantity: number;
+    @IsOptional() @MaxLength(500) notes?: string;
+  }
+  ```
+
+  ## Checklist
+
+  - [ ] `tsconfig.json` has `"strict": true` and `"noImplicitAny": true`
+  - [ ] All API boundary inputs use Zod, class-validator, or an equivalent schema library
+  - [ ] `req.body as any` or `req.body as <type>` without prior validation is absent
+  - [ ] `z.infer<typeof Schema>` used to derive TypeScript types from Zod schemas (single source of truth)
+  - [ ] Validation errors return HTTP 400 with a structured, client-consumable error body
+
+  ## References
+
+  - https://owasp.org/www-project-application-security-verification-standard/ (ASVS v5 §5.1)
+  - https://cwe.mitre.org/data/definitions/20.html
+  - https://zod.dev/

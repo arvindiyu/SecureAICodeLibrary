@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/arvindiyu/SecureAICodeLibrary/registry/schemas/constitution.schema.json",
+  "title": "Secure AI Code Library — Constitution (machine-readable control mapping)",
+  "description": "JSON Schema for an OPTIONAL machine-readable form of CONSTITUTION.md. In Phase 1 the constitution ships as narrative markdown. This schema is defined now so a future phase can split the document into a YAML mapping of control areas to primary anchors and in-tree implementation loci without a schema bump.",
+  "type": "object",
+  "required": ["metadata", "principles", "standards", "control_areas"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["title", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string" },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "effective_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "supersedes": {
+          "type": "string",
+          "description": "Optional. Previous version this constitution supersedes."
+        }
+      }
+    },
+
+    "principles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "statement"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^P[0-9]+$",
+            "description": "Principle identifier P1, P2, etc."
+          },
+          "statement": { "type": "string", "minLength": 1 }
+        }
+      },
+      "minItems": 1
+    },
+
+    "standards": {
+      "type": "object",
+      "required": ["primary", "secondary"],
+      "additionalProperties": false,
+      "properties": {
+        "primary": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/standard" },
+          "minItems": 1,
+          "description": "Primary anchor standards: OWASP ASVS v5, ISO/IEC 27001:2022, ISO/IEC 42001:2023, NIST AI RMF."
+        },
+        "secondary": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/standard" },
+          "description": "Secondary catalogs: MITRE ATT&CK, MITRE ATLAS, CWE, OWASP Top 10 for LLM, NIST SSDF, SLSA, CycloneDX."
+        }
+      }
+    },
+
+    "control_areas": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/control_area" },
+      "minItems": 1
+    },
+
+    "versioning": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "policy": {
+          "type": "string",
+          "description": "Plain-text statement of the versioning policy (typically links to SPEC.md section 4)."
+        },
+        "amendment_process": {
+          "type": "string"
+        }
+      }
+    }
+  },
+
+  "$defs": {
+    "standard": {
+      "type": "object",
+      "required": ["id", "name", "version", "issuer", "url"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Short stable identifier (e.g. 'OWASP-ASVS', 'ISO-27001', 'NIST-AI-RMF')."
+        },
+        "name": { "type": "string", "minLength": 1 },
+        "version": {
+          "type": "string",
+          "description": "Version or year-revision (e.g. 'v5.0', '2022', '1.0+GenAI-Profile-2024')."
+        },
+        "issuer": { "type": "string", "minLength": 1 },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["primary", "secondary"],
+          "description": "Whether this standard is a primary anchor or a secondary catalog."
+        }
+      }
+    },
+
+    "control_area": {
+      "type": "object",
+      "required": ["id", "title", "primary_anchors", "implementation_locus"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z]$",
+          "description": "Single-letter area identifier matching CONSTITUTION.md sections (A, B, C, ...)."
+        },
+        "title": { "type": "string", "minLength": 1 },
+        "primary_anchors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["standard_id", "control_ids"],
+            "additionalProperties": false,
+            "properties": {
+              "standard_id": {
+                "type": "string",
+                "description": "References standards[].id above."
+              },
+              "control_ids": {
+                "type": "array",
+                "items": { "type": "string" },
+                "minItems": 1,
+                "uniqueItems": true,
+                "description": "Section IDs within that standard (e.g. ['V2', 'V3'] for ASVS, ['A.5.17'] for ISO)."
+              }
+            }
+          },
+          "minItems": 1
+        },
+        "implementation_locus": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true,
+          "description": "Repo-relative paths implementing the control area (e.g. 'registry/rules/coding-standards/auth-patterns.rule.yaml')."
+        },
+        "gates": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["ide-time", "pre-commit", "ci", "manthan", "runtime"]
+          },
+          "uniqueItems": true,
+          "description": "Where ratification happens at runtime."
+        },
+        "substantiation": {
+          "type": "string",
+          "enum": ["substantiated", "aligned", "roadmap"],
+          "description": "Status mirrored from docs/MYTHOS.md alignment matrix."
+        }
+      }
+    }
+  }
+}

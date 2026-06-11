@@ -1,0 +1,116 @@
+metadata:
+  id: input-validation-python
+  name: Input Validation — Python
+  description: Python-specific input validation using pydantic or marshmallow; use type annotations; avoid eval/exec on user input; validate file uploads with python-magic.
+  version: "1.0.0"
+  tags: [input-validation, python, pydantic, marshmallow, fastapi, django]
+  languages: [python]
+
+category: coding-standards/per-language
+severity: high
+summary: "Use pydantic (v2) or marshmallow for schema validation at all Python API boundaries. Never pass user input to eval(), exec(), or subprocess without strict allowlisting. Validate file type with python-magic, not just the extension."
+
+extends: input-validation
+
+asvs_controls: ["5.1.1", "5.1.3"]
+iso_controls: ["A.8.28"]
+nist_ai_rmf: ["GOVERN-1.1"]
+cwe: ["CWE-20", "CWE-95"]
+
+mythos_alignment:
+  pillar: ide-coverage
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "OWASP ASVS v5 §5.1.3"
+    - "CWE-20"
+    - "CWE-95"
+    - "ISO/IEC 27001:2022 A.8.28"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/*.py"
+  exclude:
+    - "**/test/**"
+    - "**/*_test.py"
+    - "**/tests/**"
+    - "**/conftest.py"
+
+enforcement:
+  mode: blocking
+  pre_commit: false
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Delta from parent
+
+  This rule extends `input-validation` with Python-specific guidance on pydantic usage, dangerous built-ins, and file upload validation.
+
+  ## BAD example
+
+  ```python
+  # BAD: using eval on user input — arbitrary code execution
+  @app.post("/calculate")
+  def calculate(expression: str):
+      return {"result": eval(expression)}  # CWE-95: code injection
+
+  # BAD: raw dict without schema — no type, length, or format check
+  @app.post("/users")
+  def create_user(data: dict):
+      email = data.get("email")
+      db.insert_user(email=email)
+  ```
+
+  ## GOOD example
+
+  ```python
+  from pydantic import BaseModel, EmailStr, Field, field_validator
+  import re
+
+  class UserCreate(BaseModel):
+      email: EmailStr
+      age: int = Field(ge=0, le=150)
+      username: str = Field(min_length=3, max_length=30)
+
+      @field_validator('username')
+      @classmethod
+      def username_alphanumeric(cls, v: str) -> str:
+          if not re.fullmatch(r'[a-zA-Z0-9_]+', v):
+              raise ValueError('Username must be alphanumeric')
+          return v
+
+  @app.post("/users")
+  def create_user(user: UserCreate):
+      # user is validated and typed — no raw dict access
+      db.insert_user(user.model_dump())
+  ```
+
+  File upload validation with python-magic:
+  ```python
+  import magic
+
+  ALLOWED_MIME_TYPES = {'image/jpeg', 'image/png', 'image/webp'}
+
+  def validate_upload(file_bytes: bytes, filename: str) -> None:
+      mime = magic.from_buffer(file_bytes[:2048], mime=True)
+      if mime not in ALLOWED_MIME_TYPES:
+          raise ValueError(f'Disallowed file type: {mime}')
+  ```
+
+  ## Checklist
+
+  - [ ] pydantic v2 or marshmallow used for all request body schemas
+  - [ ] `eval()`, `exec()`, and `compile()` absent from any code path that touches user input
+  - [ ] Subprocess calls use list form (`subprocess.run(['cmd', arg])`) — never `shell=True` with user input
+  - [ ] File MIME type verified with python-magic, not by extension alone
+  - [ ] Pydantic `model_config = ConfigDict(extra='forbid')` set to reject unknown fields
+
+  ## References
+
+  - https://owasp.org/www-project-application-security-verification-standard/ (ASVS v5 §5.1)
+  - https://cwe.mitre.org/data/definitions/20.html
+  - https://docs.pydantic.dev/

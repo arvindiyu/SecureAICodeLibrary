@@ -1,0 +1,95 @@
+# yaml-language-server: $schema=../../schemas/subagent.schema.json
+# Canonical Tier-A + Tier-C subagent specification for `ai-governance-auditor`.
+# Field ordering follows registry/schemas/subagent.schema.json property order
+# (cache-stable per ADR 0005 §8). Do not reorder top-level keys.
+
+metadata:
+  id: ai-governance-auditor
+  name: AI Governance Auditor
+  description: >-
+    Audits AI-touching code for ISO 42001 / NIST AI RMF compliance gaps. Walks
+    changed files matching the AI-globs (**/llm/**, **/agents/**, **/prompts/**,
+    **/mcp/**) and checks each Tier 0 + scope-activated AI-governance rule.
+    Emits SARIF findings keyed to rule IDs plus a markdown gap summary on
+    request. Required before action — high-impact findings block the gate.
+  version: "1.0.0"
+
+classification: medium-impact
+
+human_approval: required_before_action
+
+tiers:
+  native:
+    cursor: "@ai-governance-auditor [--rule <id>]"
+    agents_md: "Invoke `ai-governance-auditor`; optionally narrow with --rule <id>."
+    copilot_coding_agent: "Auto-run on PRs labelled `area:ai-governance`."
+  headless:
+    runner: registry/subagents/ai-governance-auditor/run.sh
+    deps: [git, rg, jq, yq]
+    optional_llm_env: SECUREAI_LLM_ENDPOINT
+    output_format: sarif
+
+token_budget:
+  input_max: 60000
+  output_max: 10000
+  warn_at: 0.75
+  system_prompt: 3000
+  context_max: 57000
+
+audit_log:
+  enabled: true
+  path: .securecode/audit.log
+  format: jsonl
+  fields:
+    - timestamp
+    - subagent_id
+    - tier
+    - user
+    - inputs_hash
+    - model
+    - token_in
+    - token_out
+    - decision
+    - finding_count
+
+tool_scope:
+  allowed:
+    - read_file
+    - glob
+    - grep
+
+inputs:
+  required:
+    - staged_diff
+  optional:
+    - rule_id
+
+outputs:
+  - sarif_report
+  - gap_summary_markdown
+
+references:
+  rules:
+    - prompt-injection-prevention
+    - mcp-server-safety
+    - agentic-action-classification
+    - agentic-human-approval
+    - agentic-tool-scoping
+    - agentic-bulk-limits
+    - agentic-obo-auth
+    - ai-audit-logging
+    - ai-data-classification
+    - ai-data-provenance
+    - ai-data-segregation
+    - ai-content-moderation
+    - ai-bias-fairness
+    - ai-explainability
+    - ai-guardrails
+    - ai-human-oversight
+    - ai-model-lifecycle
+    - ai-rate-limiting
+    - ai-regulatory-compliance
+    - ai-third-party-ai
+    - llm-output-sanitization
+    - ai-kill-switch
+    - ai-code-provenance

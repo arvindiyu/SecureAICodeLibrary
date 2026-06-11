@@ -1,0 +1,122 @@
+metadata:
+  id: access-control
+  name: Access Control
+  description: Enforce server-side authorization on every request; deny by default; prevent IDOR; apply least privilege.
+  version: "1.0.0"
+  tags: [access-control, authorization, rbac, abac, least-privilege, idor]
+
+category: coding-standards
+severity: critical
+summary: "Enforce server-side authorization on every request. Deny by default. Verify resource ownership to prevent IDOR. Centralize checks in middleware; never rely on client-side role checks alone."
+
+asvs_controls: ["4.1.1", "4.1.2", "4.1.3"]
+iso_controls: ["A.5.15", "A.8.3"]
+nist_ai_rmf: ["GOVERN-1.1", "MAP-1.5"]
+cwe: ["CWE-284", "CWE-639", "CWE-285"]
+
+mythos_alignment:
+  pillar: secure-by-design
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "OWASP ASVS v5 §4.1.1"
+    - "OWASP ASVS v5 §4.1.2"
+    - "OWASP ASVS v5 §4.1.3"
+    - "CWE-284"
+    - "CWE-639"
+    - "ISO/IEC 27001:2022 A.5.15"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/*.ts"
+    - "**/*.tsx"
+    - "**/*.js"
+    - "**/*.jsx"
+    - "**/*.mjs"
+    - "**/*.py"
+    - "**/*.java"
+    - "**/*.kt"
+    - "**/*.go"
+    - "**/*.cs"
+    - "**/*.rb"
+    - "**/*.php"
+  exclude:
+    - "**/test/**"
+    - "**/*.test.*"
+    - "**/__tests__/**"
+
+enforcement:
+  mode: blocking
+  pre_commit: true
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Principle
+
+  Authorization must be enforced server-side on every request. Deny access by default — grant only when an explicit policy permits it. Verify that the requesting principal both holds the required role AND owns or is permitted to access the specific resource. Never rely on client-side role checks, hidden UI elements, or caller-supplied role claims as access-control mechanisms.
+
+  ## Rationale
+
+  Broken Access Control is the OWASP Top 10 №1 category and covers a wide surface: missing authorization checks, insecure direct object references (IDOR), privilege escalation, and client-side-only gating. Server-side enforcement is the only tamper-resistant layer. Deny-by-default prevents newly introduced endpoints from being reachable before a policy is applied. Centralized middleware reduces the likelihood of scattered, inconsistent checks.
+
+  Proper access control also satisfies OWASP ASVS §4.1 and ISO/IEC 27001:2022 A.5.15, which require that users receive only the minimum permissions necessary for their function and that all access attempts are authorized before resource operations are performed.
+
+  Resource ownership verification (preventing IDOR, CWE-639) is a distinct check from role verification: even a valid role grants access only to resources the principal is authorized to manipulate. Both checks must be present and layered.
+
+  ## BAD example
+
+  ```typescript
+  // React hides the button — but the API endpoint has no authorization check
+  app.delete('/api/admin/users/:id', async (req, res) => {
+    await db.query('DELETE FROM users WHERE id = $1', [req.params.id]);
+    res.json({ deleted: req.params.id });
+    // No authentication, no role check, no ownership check
+  });
+  ```
+
+  ## GOOD example
+
+  ```typescript
+  function requireRole(...roles: string[]) {
+    return (req: Request, res: Response, next: NextFunction) => {
+      if (!req.user) return res.status(401).json({ error: 'Unauthenticated' });
+      if (!roles.includes(req.user.role)) {
+        logger.warn({ event: 'authz.denied', userId: req.user.id, path: req.path });
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+      next();
+    };
+  }
+
+  app.get('/api/invoices/:id', authenticate, async (req, res) => {
+    const invoice = await invoiceService.findById(req.params.id);
+    if (!invoice) return res.status(404).json({ error: 'Not found' });
+    // Ownership check — role alone is insufficient
+    if (invoice.ownerId !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    res.json(invoice);
+  });
+  ```
+
+  ## Checklist
+
+  - [ ] Every API endpoint has a server-side authentication + authorization guard
+  - [ ] Deny-by-default policy: routes without an explicit grant return 403
+  - [ ] Authorization middleware is centralized, not scattered across handlers
+  - [ ] Resource ownership is verified separately from role check (IDOR prevention)
+  - [ ] Caller-supplied role or permission fields in request bodies are never trusted
+  - [ ] Access-denied events are logged with principal ID, path, and required permissions
+  - [ ] Principle of least privilege applied to all service accounts and API keys
+  - [ ] IDOR testing is part of the security review process
+
+  ## References
+
+  - https://owasp.org/www-project-application-security-verification-standard/ (ASVS v5 §4.1)
+  - https://cwe.mitre.org/data/definitions/284.html
+  - https://cwe.mitre.org/data/definitions/639.html
+  - https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html

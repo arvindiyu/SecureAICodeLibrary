@@ -1,0 +1,119 @@
+metadata:
+  id: input-validation-java
+  name: Input Validation — Java
+  description: Java-specific input validation using Jakarta Bean Validation (@Valid, @NotBlank, @Size); validate DTOs at controller boundary; sanitize HTML with OWASP Java HTML Sanitizer.
+  version: "1.0.0"
+  tags: [input-validation, java, bean-validation, spring, jakarta]
+  languages: [java]
+
+category: coding-standards/per-language
+severity: high
+summary: "Use Jakarta Bean Validation (@Valid, @NotBlank, @Size, @Pattern) on all Spring @RequestBody and @RequestParam inputs. Apply @Validated at the service layer for nested calls. Sanitize HTML with OWASP Java HTML Sanitizer. Reject unknown fields with @JsonIgnoreProperties(ignoreUnknown=false)."
+
+extends: input-validation
+
+asvs_controls: ["5.1.1", "5.1.3"]
+iso_controls: ["A.8.28"]
+nist_ai_rmf: ["GOVERN-1.1"]
+cwe: ["CWE-20"]
+
+mythos_alignment:
+  pillar: ide-coverage
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "OWASP ASVS v5 §5.1.3"
+    - "CWE-20"
+    - "ISO/IEC 27001:2022 A.8.28"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/*.java"
+  exclude:
+    - "**/test/**"
+    - "**/*Test.java"
+    - "**/*Tests.java"
+    - "**/src/test/**"
+
+enforcement:
+  mode: blocking
+  pre_commit: false
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Delta from parent
+
+  This rule extends `input-validation` with Java/Spring-specific guidance on Bean Validation annotations, DTO hardening, and HTML sanitization.
+
+  ## BAD example
+
+  ```java
+  // BAD: raw Map input — no type checking, no length bounds
+  @PostMapping("/users")
+  public ResponseEntity<User> createUser(@RequestBody Map<String, Object> body) {
+      String email = (String) body.get("email");
+      return ResponseEntity.ok(userService.create(email));
+  }
+  ```
+
+  ## GOOD example
+
+  ```java
+  import jakarta.validation.constraints.*;
+  import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+  @JsonIgnoreProperties(ignoreUnknown = false)  // reject extra fields
+  public class UserCreateRequest {
+
+      @Email(message = "Invalid email format")
+      @NotBlank
+      @Size(max = 255)
+      private String email;
+
+      @Min(0) @Max(150)
+      private int age;
+
+      @NotBlank
+      @Size(min = 1, max = 100)
+      @Pattern(regexp = "^[\\p{L}\\s\\-']+$")
+      private String name;
+
+      // getters/setters omitted for brevity
+  }
+
+  @RestController
+  public class UserController {
+      @PostMapping("/users")
+      public ResponseEntity<User> createUser(@Valid @RequestBody UserCreateRequest req) {
+          return ResponseEntity.ok(userService.create(req));
+      }
+  }
+  ```
+
+  HTML sanitization with OWASP Java HTML Sanitizer:
+  ```java
+  import org.owasp.html.PolicyFactory;
+  import org.owasp.html.Sanitizers;
+
+  PolicyFactory policy = Sanitizers.FORMATTING.and(Sanitizers.BLOCKS);
+  String safeHtml = policy.sanitize(userHtmlInput);
+  ```
+
+  ## Checklist
+
+  - [ ] `@Valid` applied to every `@RequestBody` parameter
+  - [ ] DTO fields annotated with `@NotBlank`, `@Size`, `@Min`, `@Max`, `@Pattern` as appropriate
+  - [ ] `@JsonIgnoreProperties(ignoreUnknown = false)` on request DTOs to reject unexpected fields
+  - [ ] `@Validated` applied at the service layer for cross-cutting validation
+  - [ ] HTML user input sanitized with `org.owasp.html:owasp-java-html-sanitizer`
+  - [ ] `ConstraintViolationException` handler returns HTTP 400 with structured error details
+
+  ## References
+
+  - https://owasp.org/www-project-application-security-verification-standard/ (ASVS v5 §5.1)
+  - https://cwe.mitre.org/data/definitions/20.html
+  - https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html

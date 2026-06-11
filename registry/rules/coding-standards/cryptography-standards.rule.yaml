@@ -1,0 +1,116 @@
+metadata:
+  id: cryptography-standards
+  name: Cryptography Standards
+  description: Use only approved algorithms (AES-256-GCM, Argon2id, SHA-256+, Ed25519); ban MD5, SHA-1, DES, 3DES, RC4, ECB mode; use OS CSPRNG for all random material.
+  version: "1.0.0"
+  tags: [cryptography, encryption, hashing, key-management, csprng, pqc]
+
+category: coding-standards
+severity: critical
+summary: "Use AES-256-GCM or ChaCha20-Poly1305 for encryption; Argon2id or bcrypt(≥12) for passwords; SHA-256+ for hashing. Ban MD5, SHA-1, DES, 3DES, RC4, ECB. Use OS CSPRNG; never Math.random() for secrets."
+
+asvs_controls: ["6.2.1", "6.2.2", "6.2.3", "6.3.1"]
+iso_controls: ["A.8.24"]
+nist_ai_rmf: ["GOVERN-1.1", "MAP-1.5"]
+cwe: ["CWE-327", "CWE-326", "CWE-338", "CWE-916"]
+
+mythos_alignment:
+  pillar: secure-by-design
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "OWASP ASVS v5 §6.2.1"
+    - "OWASP ASVS v5 §6.2.2"
+    - "OWASP ASVS v5 §6.2.3"
+    - "OWASP ASVS v5 §6.3.1"
+    - "CWE-327"
+    - "CWE-326"
+    - "ISO/IEC 27001:2022 A.8.24"
+    - "NIST SP 800-218 PO.1"
+
+scope:
+  always_apply: false
+  globs:
+    - "**/*.ts"
+    - "**/*.tsx"
+    - "**/*.js"
+    - "**/*.jsx"
+    - "**/*.mjs"
+    - "**/*.py"
+    - "**/*.java"
+    - "**/*.kt"
+    - "**/*.go"
+    - "**/*.cs"
+    - "**/*.rs"
+    - "**/*.rb"
+    - "**/*.php"
+  exclude:
+    - "**/test/**"
+    - "**/*.test.*"
+    - "**/__tests__/**"
+
+enforcement:
+  mode: blocking
+  pre_commit: true
+  merge_gate: true
+  ci: true
+
+content: |
+  ## Principle
+
+  Use only vetted, currently approved cryptographic primitives. Never implement custom encryption or hashing. Always use the operating system's cryptographically secure pseudo-random number generator (CSPRNG) for all keys, tokens, IVs, and nonces. Manage keys via a KMS or secret manager — never embed keys in source code.
+
+  ## Rationale
+
+  Weak or broken algorithms render security controls ineffective. MD5 and SHA-1 have demonstrated collision attacks; DES, 3DES, and RC4 are deprecated by NIST due to practical key exhaustion and bias attacks; ECB mode leaks data patterns regardless of key strength. Using non-CSPRNG functions (`Math.random()`, `random.random()`) for security tokens or IVs makes them predictable (CWE-338).
+
+  OWASP ASVS §6 and ISO/IEC 27001:2022 A.8.24 both require that cryptographic algorithms and key lengths conform to current recommendations and are subject to periodic review as standards evolve (quantum-computing considerations require planning for crypto agility now).
+
+  Authenticated encryption modes (GCM, Poly1305) detect tampering in addition to providing confidentiality, replacing the error-prone encrypt-then-MAC pattern. A missing or reused IV with the same key is a critical vulnerability in stream and GCM modes (CWE-329).
+
+  ## BAD example
+
+  ```python
+  import hashlib, random
+
+  # BAD: MD5 for password storage
+  hashed = hashlib.md5(password.encode()).hexdigest()
+
+  # BAD: non-CSPRNG for token
+  token = str(random.randint(100000, 999999))
+  ```
+
+  ## GOOD example
+
+  ```python
+  from argon2 import PasswordHasher
+  import secrets
+
+  # Password hashing — Argon2id (preferred)
+  ph = PasswordHasher(time_cost=3, memory_cost=65536, parallelism=4)
+  hashed = ph.hash(password)
+  ph.verify(hashed, password)  # raises VerifyMismatchError if invalid
+
+  # CSPRNG token
+  token = secrets.token_urlsafe(32)
+  ```
+
+  ## Checklist
+
+  - [ ] All symmetric encryption uses AES-256-GCM or ChaCha20-Poly1305
+  - [ ] All password hashing uses Argon2id, bcrypt (cost ≥12), or scrypt
+  - [ ] All tokens, keys, and IVs generated via OS CSPRNG (not Math.random / random.random)
+  - [ ] No banned algorithms (MD5, SHA-1, DES, 3DES, RC4, ECB) in security contexts
+  - [ ] Encryption keys managed via KMS or secret manager; never hardcoded
+  - [ ] IV/nonce is unique per encryption operation and never reused with the same key
+  - [ ] Key rotation schedule is defined and enforced
+  - [ ] Asymmetric keys use RSA-2048+ or Ed25519; post-quantum migration plan documented
+
+  ## References
+
+  - https://owasp.org/www-project-application-security-verification-standard/ (ASVS v5 §6)
+  - https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html
+  - https://cwe.mitre.org/data/definitions/327.html
+  - https://cwe.mitre.org/data/definitions/338.html

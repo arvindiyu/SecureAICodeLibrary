@@ -1,0 +1,126 @@
+metadata:
+  id: compliance-checks-executed
+  name: Compliance Checks Executed
+  description: .securecode/audit.log must show all required Tier 0 and scope-activated subagents ran for the changed files; warns if audit log is missing or incomplete.
+  version: "1.0.0"
+  tags: [precommit, compliance, audit-log, subagents, tier0]
+
+category: precommit
+severity: medium
+
+summary: "Warn if .securecode/audit.log does not contain entries for required Tier 0 subagents (ai-governance-auditor, coding-standards-reviewer) covering the changed files in this commit. Audit completeness is the evidence trail for compliance."
+
+asvs_controls: ["V7.1.1", "V7.1.2", "V1.7.1"]
+iso_controls: ["A.8.15", "A.8.16"]
+iso42001_controls: ["A.9.1"]
+nist_ai_rmf: ["MEASURE-2.2", "GOVERN-1.4"]
+cwe: ["CWE-778"]
+
+mythos_alignment:
+  pillar: quantitative-posture
+  substantiation: aligned
+  roadmap_milestone: M1
+
+sources:
+  primary:
+    - "NIST SP 800-218 RV.1.2"
+    - "ISO/IEC 27001:2022 A.8.15"
+    - "ISO/IEC 42001:2023 A.9.1"
+    - "OWASP ASVS v5 §V7.1"
+
+scope:
+  always_apply: false
+  globs: ["**/.securecode/audit.log", "src/**/*", "lib/**/*"]
+
+enforcement:
+  mode: warning
+  pre_commit: true
+  merge_gate: false
+  ci: true
+
+content: |
+  ## Principle
+
+  Compliance is not just about having security controls — it is about having evidence that those controls were applied. The `.securecode/audit.log` (JSON-lines) is the machine-readable audit trail that proves each required subagent ran against the changed files. Without an audit log entry, the compliance check has no evidence.
+
+  ## Rationale
+
+  The audit log is written by Tier C subagent runners as part of `hooks/pre-commit.sh`. The required subagents for every commit are the two scope-independent ones: `ai-governance-auditor` and `coding-standards-reviewer`. Additional scope-activated subagents (e.g. `threat-modeler` for architecture changes) may also be required based on the change type.
+
+  This rule warns rather than blocks to avoid false-positive blocks in environments where the audit log is stored externally or in CI ephemeral storage. Teams with strict compliance requirements should upgrade this to `blocking` via `hooks/config.yaml`.
+
+  ## Audit log entry format
+
+  Each required subagent must produce a JSON-lines entry in `.securecode/audit.log`:
+
+  ```json
+  {
+    "timestamp": "2026-06-10T19:42:13Z",
+    "subagent_id": "ai-governance-auditor",
+    "tier": "C",
+    "user": "dev@example.com",
+    "inputs_hash": "sha256:abc...",
+    "model": null,
+    "token_in": 0,
+    "token_out": 0,
+    "decision": "pass",
+    "finding_count": 0
+  }
+  ```
+
+  ## BAD example
+
+  ```bash
+  # Developer runs pre-commit hook with --skip-subagents flag (not permitted by policy)
+  hooks/pre-commit.sh --skip-subagents
+  # compliance-checks-executed: WARN: no audit.log entries for ai-governance-auditor
+  # or coding-standards-reviewer covering staged files in this session.
+  ```
+
+  ## GOOD example
+
+  ```bash
+  # Standard pre-commit run; Tier C subagents run automatically
+  hooks/pre-commit.sh
+  # Tier C: ai-governance-auditor → 0 findings → audit.log entry appended
+  # Tier C: coding-standards-reviewer → 2 medium findings → audit.log entries appended
+  # compliance-checks-executed: PASS — audit log complete for this commit session
+  ```
+
+  `hooks/pre-commit.sh` audit completeness check:
+
+  ```bash
+  REQUIRED_SUBAGENTS="ai-governance-auditor coding-standards-reviewer"
+  COMMIT_HASH=$(git rev-parse --verify HEAD 2>/dev/null || echo "pre-commit")
+
+  for subagent in $REQUIRED_SUBAGENTS; do
+    if [ -f .securecode/audit.log ]; then
+      FOUND=$(jq -r --arg sa "$subagent" 'select(.subagent_id == $sa)' .securecode/audit.log | tail -1)
+      if [ -z "$FOUND" ]; then
+        echo "WARN: No audit.log entry for $subagent. Ensure Tier C runner executed." >&2
+      fi
+    else
+      echo "WARN: .securecode/audit.log not found. Subagent audit trail unavailable." >&2
+      break
+    fi
+  done
+  ```
+
+  ## Checklist
+
+  - [ ] `.securecode/audit.log` exists after pre-commit execution.
+  - [ ] `ai-governance-auditor` Tier C runner entry is present for this commit session.
+  - [ ] `coding-standards-reviewer` Tier C runner entry is present for this commit session.
+  - [ ] Scope-activated subagents (e.g. `threat-modeler`) have entries when triggered.
+  - [ ] Audit log entries include `subagent_id`, `tier`, `decision`, and `finding_count`.
+  - [ ] `.securecode/` is gitignored in consumer projects but retained in CI ephemeral storage.
+
+  ## References
+
+  - NIST SP 800-218 (SSDF) RV.1.2 — Review the change for security implications
+  - ISO/IEC 27001:2022 A.8.15 — Logging and monitoring
+  - ISO/IEC 42001:2023 A.9.1 — Monitoring, measurement, analysis and evaluation
+  - OWASP ASVS v5 §V7.1 — Log content requirements
+  - `registry/subagents/ai-governance-auditor/` — AI Governance Auditor subagent
+  - `registry/subagents/coding-standards-reviewer/` — Coding Standards Reviewer subagent
+  - `docs/MANTHAN-CONTRACT.md` §Audit-log emission
